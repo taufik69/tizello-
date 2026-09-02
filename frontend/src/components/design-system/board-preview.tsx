@@ -1,35 +1,99 @@
+import { CardTile } from "@/components/board/card-tile";
+import { ColumnPill } from "@/components/board/column-pill";
+import type { BoardList } from "@/types/board";
 import { Section } from "./section";
 
-const LISTS = ["Backlog", "In progress", "Done"];
-const CARDS = ["Extract Trello tokens", "Set up Tailwind theme", "Ship board view"];
-const LABEL_BARS = ["bg-label-green", "bg-label-yellow", "bg-label-orange"];
+/*
+ * Fixtures rendered through the REAL CardTile and ColumnPill, so this preview
+ * cannot drift from the board at /board/sprint. Change the card there and this
+ * section changes with it.
+ */
+const LISTS: BoardList[] = [
+  {
+    id: "preview-todo",
+    title: "To do",
+    tone: "neutral",
+    cards: [
+      {
+        id: "p1",
+        title: "Audit empty states across the app",
+        labels: ["purple"],
+        members: [{ id: "u2", name: "Priya Das" }],
+        checklist: { done: 1, total: 6 },
+      },
+      {
+        id: "p2",
+        title: "Decide on a drag-and-drop library",
+        labels: [],
+        members: [],
+        commentCount: 4,
+      },
+    ],
+  },
+  {
+    id: "preview-progress",
+    title: "In progress",
+    tone: "info",
+    cards: [
+      {
+        id: "p3",
+        title: "Notion-style kanban cards",
+        labels: ["green", "blue"],
+        members: [
+          { id: "u1", name: "Alex Rahman" },
+          { id: "u2", name: "Priya Das" },
+        ],
+        dueDate: "2026-09-05",
+        checklist: { done: 4, total: 5 },
+      },
+    ],
+  },
+  {
+    id: "preview-done",
+    title: "Done",
+    tone: "success",
+    cards: [
+      {
+        id: "p4",
+        title: "Extract Trello design tokens",
+        labels: ["green"],
+        members: [{ id: "u3", name: "Sam Okafor" }],
+        checklist: { done: 8, total: 8 },
+      },
+    ],
+  },
+];
 
 export function BoardPreview() {
   return (
-    <Section title="Board preview — 272px lists, 8px cards">
-      <div className="scrollbar-board flex gap-3 overflow-x-auto rounded-lg bg-brand-600 p-3">
-        {LISTS.map((list, listIndex) => (
-          <div key={list} className="w-list shrink-0 rounded-lg bg-canvas p-2">
-            <h3 className="px-2 py-1.5 text-sm font-semibold text-text">{list}</h3>
-            <ul className="space-y-2 pt-1">
-              {CARDS.slice(0, 3 - listIndex).map((card, cardIndex) => (
-                <li
-                  key={card}
-                  className="cursor-pointer rounded-md bg-surface p-2 shadow-card transition-shadow duration-100 ease-standard hover:shadow-raised"
-                >
-                  <span
-                    className={`mb-1.5 block h-1.5 w-10 rounded-full ${LABEL_BARS[cardIndex]}`}
-                  />
-                  <p className="text-sm text-text">{card}</p>
-                </li>
+    <Section title="Board preview — 272px columns, flat cards">
+      <div className="scrollbar-board flex gap-4 overflow-x-auto rounded-md border border-border bg-surface p-4">
+        {LISTS.map((list) => (
+          <div key={list.id} className="w-list shrink-0">
+            <div className="flex items-center gap-2 px-1 pb-2">
+              <ColumnPill
+                id={`preview-${list.id}`}
+                title={list.title}
+                tone={list.tone}
+              />
+              <span className="text-2xs text-text-subtle">
+                {list.cards.length}
+              </span>
+            </div>
+            <ul className="space-y-1.5">
+              {list.cards.map((card) => (
+                <CardTile key={card.id} card={card} />
               ))}
             </ul>
-            <button className="mt-2 w-full rounded-sm px-2 py-1.5 text-left text-sm text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-hover">
-              + Add a card
-            </button>
           </div>
         ))}
       </div>
+      <p className="text-xs text-text-muted">
+        Cards are flat: a hairline border and a hover fill, no drop shadow.
+        Colour lives in the status pill and the label dots, not the track — a
+        dense column stays calm. Rendered with the same{" "}
+        <code className="font-mono">CardTile</code> the real board uses.
+      </p>
     </Section>
   );
 }

@@ -19,8 +19,8 @@ export function BoardHeader({ board }: { board: Board }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
       <div className="flex items-baseline gap-3">
-        <h1 className="text-lg font-semibold text-on-board">{board.title}</h1>
-        <p className="text-2xs text-on-board/75">
+        <h1 className="text-lg font-semibold text-text">{board.title}</h1>
+        <p className="text-2xs text-text-subtle">
           {board.lists.length} lists · {cardCount} cards
         </p>
       </div>

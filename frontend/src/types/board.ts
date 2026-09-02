@@ -28,9 +28,13 @@ export type Card = {
   coverSrc?: string;
 };
 
+/** Drives the tint of a column's status pill. Defaults to "neutral". */
+export type ListTone = "neutral" | "info" | "warning" | "success";
+
 export type BoardList = {
   id: string;
   title: string;
+  tone?: ListTone;
   cards: Card[];
 };
 

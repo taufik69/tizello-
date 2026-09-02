@@ -29,6 +29,7 @@ const boards: Board[] = [
     lists: [
       {
         id: "list-backlog",
+        tone: "neutral",
         title: "Backlog",
         cards: [
           card("Audit empty states across the app", ["purple"], {
@@ -46,6 +47,7 @@ const boards: Board[] = [
       },
       {
         id: "list-progress",
+        tone: "info",
         title: "In progress",
         cards: [
           card("Board page — lists and cards", ["green", "blue"], {
@@ -63,6 +65,7 @@ const boards: Board[] = [
       },
       {
         id: "list-review",
+        tone: "warning",
         title: "In review",
         cards: [
           card("Dark mode token audit", ["orange"], {
@@ -77,6 +80,7 @@ const boards: Board[] = [
       },
       {
         id: "list-done",
+        tone: "success",
         title: "Done",
         cards: [
           card("Extract Trello design tokens", ["green"], { members: [ALEX] }),

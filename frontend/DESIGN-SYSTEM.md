@@ -279,10 +279,15 @@ Headings get `tracking-tight` (`-0.01em`) and `ink-950` from the base layer.
 
 | Utility | Use |
 | --- | --- |
-| `shadow-card` | resting card — Trello's exact recipe |
+| `shadow-card` | Trello's resting-card recipe. **Kanban cards no longer use it** — see below. Keep for anything that genuinely floats a hair off the page. |
 | `shadow-raised` | dragged card, hover lift |
 | `shadow-overlay` | dropdowns, popovers |
 | `shadow-modal` | dialogs |
+
+> **Kanban cards are flat.** A hairline `border-border` and a `surface-hover`
+> fill on hover, no shadow — the Notion treatment rather than the Trello one.
+> Twenty shadowed cards in a column read as noise; twenty bordered ones read as
+> a list. Elevation is reserved for things that actually overlay something else.
 
 In **light** they are tinted `rgba(9, 30, 66, …)` — Trello's own trick, never
 pure black. In **dark** a blue-tinted shadow is invisible, so they switch to
@@ -299,6 +304,12 @@ theme. Consequence: they don't compose with `shadow-<color>`, which we never do.
 | `w-list` | `272px` — Trello's exact list column |
 | `w-sidebar` | `256px` |
 | `h-topbar` | `48px` |
+
+The board canvas is neutral (`bg-canvas`) and the column track is untinted.
+Colour appears in two small places only: the column's status pill and the
+label dots on a card. `--board` / `--on-board` remain defined for brand-tinted
+panels — the auth aside in `.claude/specs/authentication.md` uses them — but the
+board itself no longer does.
 
 ## Motion
 

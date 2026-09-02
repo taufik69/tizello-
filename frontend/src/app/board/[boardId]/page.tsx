@@ -30,10 +30,10 @@ export default async function BoardPage({ params }: PageProps<"/board/[boardId]"
     <div className="flex h-dvh flex-col">
       <TopBar />
 
-      <div className="flex min-h-0 flex-1 flex-col bg-board">
+      <div className="flex min-h-0 flex-1 flex-col bg-canvas">
         <BoardHeader board={board} />
 
-        <div className="scrollbar-board flex min-h-0 flex-1 items-start gap-3 overflow-x-auto px-4 pb-4">
+        <div className="scrollbar-board flex min-h-0 flex-1 items-start gap-4 overflow-x-auto px-4 pb-4">
           {board.lists.map((list) => (
             <BoardColumn key={list.id} list={list} boardId={board.id} />
           ))}

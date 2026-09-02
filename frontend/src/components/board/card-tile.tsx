@@ -5,15 +5,18 @@ import { AppImage } from "@/components/ui/app-image";
 import type { Card } from "@/types/board";
 
 /**
- * A single card. Server Component — nothing here is interactive yet beyond the
- * button wrapper, which will open the card detail once that route exists.
+ * A single card, Notion-style: a hairline border and a flat surface rather than
+ * Trello's drop shadow. Depth comes from the border and a hover fill, which
+ * keeps a dense column calm — twenty shadowed cards read as noise.
+ *
+ * Server Component.
  */
 export function CardTile({ card }: { card: Card }) {
   return (
     <li>
       <button
         type="button"
-        className="w-full space-y-2 overflow-hidden rounded-md bg-surface p-2 text-left shadow-card transition-shadow duration-100 ease-standard hover:shadow-raised"
+        className="block w-full overflow-hidden rounded-sm border border-border bg-surface text-left transition-colors duration-100 ease-standard hover:bg-surface-hover"
       >
         {card.coverSrc && (
           <AppImage
@@ -21,17 +24,20 @@ export function CardTile({ card }: { card: Card }) {
             alt=""
             width={272}
             height={120}
-            className="-mx-2 -mt-2 mb-1 w-[calc(100%+1rem)] max-w-none"
+            className="w-full border-b border-border"
           />
         )}
 
-        <CardLabels labels={card.labels} />
+        <div className="space-y-1.5 px-2.5 py-2">
+          <p className="flex items-start gap-1.5 text-sm text-text">
+            <CardLabels labels={card.labels} />
+            <span>{card.title}</span>
+          </p>
 
-        <p className="text-sm text-text">{card.title}</p>
-
-        <div className="flex items-end justify-between gap-2">
-          <CardMeta card={card} />
-          <MemberAvatars members={card.members} />
+          <div className="flex items-center justify-between gap-2 empty:hidden">
+            <CardMeta card={card} />
+            <MemberAvatars members={card.members} />
+          </div>
         </div>
       </button>
     </li>

@@ -67,7 +67,7 @@ export function AddCardForm({
         maxLength={200}
         placeholder="Enter a title…"
         aria-describedby={state.error ? `new-card-error-${listId}` : undefined}
-        className="w-full resize-none rounded-md border border-border bg-surface p-2 text-sm text-text shadow-card placeholder:text-text-subtle"
+        className="w-full resize-none rounded-sm border border-border bg-surface p-2 text-sm text-text placeholder:text-text-subtle"
       />
 
       {state.error && (

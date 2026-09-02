@@ -12,15 +12,19 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
   month: "short",
 });
 
-/** Overdue reads as danger, due within 48h as warning, otherwise neutral. */
+/**
+ * Overdue reads danger, due within 48h warning, otherwise muted. Colour only —
+ * no chip fill. Notion's card meta is quiet text, and a row of tinted pills
+ * fights the card's own hairline border for attention.
+ */
 function dueTone(dueDate: string) {
   const remaining = new Date(dueDate).getTime() - Date.now();
-  if (remaining < 0) return "bg-danger-subtle text-danger";
-  if (remaining < 2 * DAY_MS) return "bg-warning-subtle text-warning";
+  if (remaining < 0) return "text-danger";
+  if (remaining < 2 * DAY_MS) return "text-warning";
   return "text-text-subtle";
 }
 
-function Badge({
+function Item({
   children,
   className = "text-text-subtle",
 }: {
@@ -28,9 +32,7 @@ function Badge({
   className?: string;
 }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-xs px-1 py-0.5 text-2xs font-medium ${className}`}
-    >
+    <span className={`inline-flex items-center gap-1 text-2xs ${className}`}>
       {children}
     </span>
   );
@@ -38,24 +40,22 @@ function Badge({
 
 export function CardMeta({ card }: { card: Card }) {
   const { dueDate, checklist, commentCount, attachmentCount } = card;
-  const hasMeta =
-    dueDate || checklist || commentCount || attachmentCount;
 
-  if (!hasMeta) return null;
+  if (!dueDate && !checklist && !commentCount && !attachmentCount) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
       {dueDate && (
-        <Badge className={dueTone(dueDate)}>
+        <Item className={dueTone(dueDate)}>
           <ClockIcon className="size-3" />
-          <span>Due {dateFormat.format(new Date(dueDate))}</span>
-        </Badge>
+          <span>{dateFormat.format(new Date(dueDate))}</span>
+        </Item>
       )}
       {checklist && (
-        <Badge
+        <Item
           className={
             checklist.done === checklist.total
-              ? "bg-success-subtle text-success"
+              ? "text-success"
               : "text-text-subtle"
           }
         >
@@ -64,25 +64,25 @@ export function CardMeta({ card }: { card: Card }) {
             {checklist.done}/{checklist.total}
             <span className="sr-only"> checklist items complete</span>
           </span>
-        </Badge>
+        </Item>
       )}
       {commentCount ? (
-        <Badge>
+        <Item>
           <CommentIcon className="size-3" />
           <span>
             {commentCount}
             <span className="sr-only"> comments</span>
           </span>
-        </Badge>
+        </Item>
       ) : null}
       {attachmentCount ? (
-        <Badge>
+        <Item>
           <AttachmentIcon className="size-3" />
           <span>
             {attachmentCount}
             <span className="sr-only"> attachments</span>
           </span>
-        </Badge>
+        </Item>
       ) : null}
     </div>
   );

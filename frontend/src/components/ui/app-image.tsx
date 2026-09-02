@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type ImageProps } from "next/image";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 const FALLBACK_SRC = "/image-fallback.svg";
 
@@ -32,9 +32,27 @@ export function AppImage({
   const [failedSrc, setFailedSrc] = useState<ImageProps["src"] | null>(null);
   const errored = failedSrc !== null && failedSrc === src;
 
+  /*
+   * An image request starts as the HTML parses, so it can fail BEFORE React
+   * hydrates and attaches onError — and React never replays a missed event.
+   * Without this the image would sit broken forever. On mount, ask the element
+   * whether it already failed: `complete` with a zero naturalWidth is the only
+   * reliable signal for that.
+   *
+   * A ref callback rather than an effect: it runs at commit with the node in
+   * hand, and does not trip react-hooks/set-state-in-effect.
+   */
+  const catchPreHydrationError = useCallback(
+    (node: HTMLImageElement | null) => {
+      if (node?.complete && node.naturalWidth === 0) setFailedSrc(src);
+    },
+    [src],
+  );
+
   return (
     <Image
       {...rest}
+      ref={catchPreHydrationError}
       src={errored ? fallbackSrc : src}
       alt={alt}
       quality={100}
