@@ -10,6 +10,7 @@ A Trello-style task management app. This package is the web client.
 @AGENTS.md
 @DESIGN-SYSTEM.md
 @.claude/rules/scope.md
+@.claude/rules/workflow.md
 @.claude/rules/ui-components.md
 @.claude/rules/pages-and-structure.md
 
@@ -73,12 +74,13 @@ board UI lands.
 
 ## Rules
 
-Four rule files are imported above, so they are always in context. They are the
+Five rule files are imported above, so they are always in context. They are the
 contract for this package — read them before writing code, not after review.
 
 | File | Covers |
 | --- | --- |
 | [.claude/rules/scope.md](./.claude/rules/scope.md) | frontend only — `backend/` is off limits |
+| [.claude/rules/workflow.md](./.claude/rules/workflow.md) | backlog → sprint planning → sprint board → close |
 | [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md) | tokens, palette, type scale, themes |
 | [.claude/rules/ui-components.md](./.claude/rules/ui-components.md) | server/client split, images, the 150-line cap, a11y |
 | [.claude/rules/pages-and-structure.md](./.claude/rules/pages-and-structure.md) | file structure, new-page checklist, data fetching |

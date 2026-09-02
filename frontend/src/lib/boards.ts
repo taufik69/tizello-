@@ -1,10 +1,13 @@
-import type { Board, Card, LabelColor } from "@/types/board";
+import type { Board, Card, LabelColor, SprintStatus } from "@/types/board";
 
 /*
  * In-memory stand-in for the database. Module state, so edits survive
  * navigation within a dev session but reset on restart — enough to exercise
- * the read/mutate path end to end. Swap the four functions below for real
- * queries; nothing outside this file knows where the data comes from.
+ * the read/mutate path end to end. Swap the functions below for real queries;
+ * nothing outside this file knows where the data comes from.
+ *
+ * Shape follows .claude/rules/workflow.md: a backlog and a sprint board are
+ * separate containers, and a card lives in exactly one of them.
  */
 
 let nextId = 100;
@@ -22,15 +25,25 @@ const ALEX = { id: "u-1", name: "Alex Rahman" };
 const PRIYA = { id: "u-2", name: "Priya Das" };
 const SAM = { id: "u-3", name: "Sam Okafor" };
 
+const SPRINT_LIST_META: Record<
+  SprintStatus,
+  { id: string; title: string; tone: "neutral" | "info" | "success" }
+> = {
+  todo: { id: "list-todo", title: "To do", tone: "neutral" },
+  "in-progress": { id: "list-in-progress", title: "In progress", tone: "info" },
+  done: { id: "list-done", title: "Done", tone: "success" },
+};
+
 const boards: Board[] = [
   {
-    id: "sprint",
-    title: "Sprint board",
+    id: "backlog",
+    title: "Backlog",
+    kind: "backlog",
     lists: [
       {
         id: "list-backlog",
-        tone: "neutral",
         title: "Backlog",
+        tone: "neutral",
         cards: [
           card("Audit empty states across the app", ["purple"], {
             members: [PRIYA],
@@ -43,12 +56,33 @@ const boards: Board[] = [
           card("Keyboard shortcuts for list navigation", ["blue"], {
             members: [SAM],
           }),
+          card("Card detail drawer", ["purple"], { commentCount: 2 }),
+          card("Board settings and archive", []),
+        ],
+      },
+    ],
+  },
+  {
+    id: "sprint-4",
+    title: "Sprint 4",
+    kind: "sprint",
+    sprint: { number: 4, startsOn: "2026-09-01", endsOn: "2026-09-12" },
+    lists: [
+      {
+        ...SPRINT_LIST_META.todo,
+        status: "todo",
+        cards: [
+          card("Fix focus ring on the list composer", ["red"], {
+            commentCount: 1,
+          }),
+          card("Sprint close: return unfinished work", ["purple"], {
+            members: [SAM],
+          }),
         ],
       },
       {
-        id: "list-progress",
-        tone: "info",
-        title: "In progress",
+        ...SPRINT_LIST_META["in-progress"],
+        status: "in-progress",
         cards: [
           card("Board page — lists and cards", ["green", "blue"], {
             members: [ALEX, PRIYA],
@@ -61,27 +95,16 @@ const boards: Board[] = [
             members: [ALEX],
             attachmentCount: 1,
           }),
-        ],
-      },
-      {
-        id: "list-review",
-        tone: "warning",
-        title: "In review",
-        cards: [
           card("Dark mode token audit", ["orange"], {
             members: [SAM],
             dueDate: "2026-09-01",
             checklist: { done: 8, total: 8 },
           }),
-          card("Fix focus ring on the list composer", ["red"], {
-            commentCount: 1,
-          }),
         ],
       },
       {
-        id: "list-done",
-        tone: "success",
-        title: "Done",
+        ...SPRINT_LIST_META.done,
+        status: "done",
         cards: [
           card("Extract Trello design tokens", ["green"], { members: [ALEX] }),
           card("Light and dark theming", ["green"], { members: [PRIYA] }),
@@ -104,6 +127,17 @@ export function listBoardIds(): Promise<string[]> {
   return settle(boards.map((board) => board.id));
 }
 
+/** The single active (unclosed) sprint, if there is one. */
+export function getActiveSprint(): Promise<Board | undefined> {
+  return settle(
+    boards.find((board) => board.kind === "sprint" && !board.sprint?.closedOn),
+  );
+}
+
+export function getBacklog(): Promise<Board | undefined> {
+  return settle(boards.find((board) => board.kind === "backlog"));
+}
+
 /**
  * Appends a card. Returns the created card, or undefined when the list is
  * unknown — callers decide how to surface that.
@@ -123,3 +157,11 @@ export function addCard(
   list.cards.push(created);
   return settle(created);
 }
+
+export function findBoard(kind: Board["kind"], id?: string) {
+  return id
+    ? boards.find((board) => board.id === id && board.kind === kind)
+    : boards.find((board) => board.kind === kind);
+}
+
+export { settle };

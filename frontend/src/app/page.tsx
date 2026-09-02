@@ -27,7 +27,7 @@ export default function DesignSystemPage() {
           </span>
           <div className="flex items-center gap-3">
             <Link
-              href="/board/sprint"
+              href="/board/sprint-4"
               className="text-xs font-semibold text-text-brand transition-colors duration-100 ease-standard hover:text-brand-600"
             >
               Open the board &rarr;
