@@ -1,0 +1,328 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Tizello — Design System
+   --------------------------------------------------------------------------
+   Extracted from trello.com (Sept 2026) and reduced to a minimal, standard
+   token set. See DESIGN-SYSTEM.md for the full reference.
+
+   Structure, in order:
+     1. @theme          — primitive ramps + scales. Identical in both themes.
+     2. @custom-variant — the `dark:` variant definition.
+     3. :root / dark    — raw semantic values. THIS is what flips.
+     4. @theme inline   — binds semantic utilities to those raw values.
+     5. @layer base     — element defaults.
+     6. @utility        — elevation + odds and ends.
+
+   Trello's own typeface is Atlassian's proprietary "Charlie Display / Charlie
+   Text" (served from Atlassian's private CDN, not licensable). We use Inter,
+   which matches its proportions and x-height at UI sizes.
+
+   Brand: fresh mint #34C77B.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. PRIMITIVES — do not change between themes
+   ========================================================================== */
+@theme {
+  /* ----------------------------------------------------------------------
+     TYPOGRAPHY
+     Trello's live scale: 12 / 14 / 16 / 20 / 24 / 36 / 48 at weights
+     400 / 500 / 600 / 700, body line-height 1.5. Kept, tightened at display
+     sizes.
+     ---------------------------------------------------------------------- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+    monospace;
+
+  --text-2xs: 0.6875rem;      /* 11px — meta, counters        */
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;         /* 12px — labels, badges        */
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;        /* 14px — card text, UI default */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;          /* 16px — body                  */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;         /* 20px — list titles           */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.5rem;          /* 24px — section headings      */
+  --text-xl--line-height: 2rem;
+  --text-2xl: 1.875rem;       /* 30px                         */
+  --text-2xl--line-height: 2.375rem;
+  --text-3xl: 2.25rem;        /* 36px                         */
+  --text-3xl--line-height: 2.75rem;
+  --text-4xl: 3rem;           /* 48px — hero                  */
+  --text-4xl--line-height: 3.5rem;
+  --text-4xl--letter-spacing: -0.02em;
+
+  --tracking-tight: -0.01em;
+
+  /* ----------------------------------------------------------------------
+     BRAND — fresh mint
+     #34C77B is the identity colour. It is NOT accessible under white text
+     (2.2:1), so solid buttons pair it with deep-green ink (--color-on-brand,
+     7.1:1) — which holds in BOTH themes, so the primary button is identical
+     in light and dark.
+     ---------------------------------------------------------------------- */
+  --color-brand-50: #e8faf0;
+  --color-brand-100: #c9f3de;
+  --color-brand-200: #9ce8c4;
+  --color-brand-300: #6bdba7;
+  --color-brand-400: #47d18f;
+  --color-brand-500: #34c77b;
+  --color-brand-600: #24a866;
+  --color-brand-700: #158049;
+  --color-brand-800: #106138;
+  --color-brand-900: #0b4527;
+  --color-brand-950: #062b18;
+  --color-on-brand: #06281a;
+
+  /* ----------------------------------------------------------------------
+     NEUTRALS — light
+     Trello's cool-cast greys, taken verbatim from the live site.
+     ---------------------------------------------------------------------- */
+  --color-ink-0: #ffffff;
+  --color-ink-50: #fafbfc;
+  --color-ink-100: #f4f5f7;
+  --color-ink-200: #ebecf0;
+  --color-ink-300: #dfe1e6;
+  --color-ink-400: #c1c7d0;
+  --color-ink-500: #a5adba;
+  --color-ink-600: #7a869a;
+  --color-ink-700: #505f79;
+  --color-ink-800: #42526e;
+  --color-ink-900: #172b4d;
+  --color-ink-950: #091e42;
+
+  /* ----------------------------------------------------------------------
+     NEUTRALS — dark
+     Trello's dark mode is NOT the light ramp inverted; it is a separate,
+     warmer/greener set of greys. These are its actual values.
+     ---------------------------------------------------------------------- */
+  --color-slate-0: #101214;   /* deepest — app canvas       */
+  --color-slate-50: #161a1d;
+  --color-slate-100: #1d2125;
+  --color-slate-200: #22272b; /* default surface            */
+  --color-slate-300: #282e33; /* hover / raised surface     */
+  --color-slate-400: #2c333a;
+  --color-slate-500: #38414a; /* border                     */
+  --color-slate-600: #454f59; /* border, strong             */
+  --color-slate-700: #738496; /* text, subtlest             */
+  --color-slate-800: #8c9bab; /* text, subtle               */
+  --color-slate-900: #9fadbc; /* text, muted                */
+  --color-slate-950: #b6c2cf; /* text, primary              */
+
+  /* ----------------------------------------------------------------------
+     CARD LABELS — six desaturated hues (Trello's label row, minimalised).
+     Legible on both themes, so they are primitives, not semantic tokens.
+     ---------------------------------------------------------------------- */
+  --color-label-green: #4bce97;
+  --color-label-yellow: #f5cd47;
+  --color-label-orange: #fea362;
+  --color-label-red: #f87168;
+  --color-label-purple: #9f8fef;
+  --color-label-blue: #579dff;
+
+  /* ----------------------------------------------------------------------
+     RADII — Trello's census was 2 / 3 / 4 / 4.8 / 8px. Reduced to five steps.
+     ---------------------------------------------------------------------- */
+  --radius-xs: 0.1875rem;  /* 3px  — chips, labels   */
+  --radius-sm: 0.25rem;    /* 4px  — inputs, buttons */
+  --radius-md: 0.5rem;     /* 8px  — cards           */
+  --radius-lg: 0.75rem;    /* 12px — lists, panels   */
+  --radius-xl: 1rem;       /* 16px — modals          */
+
+  /* ----------------------------------------------------------------------
+     BOARD GEOMETRY — Trello's list column is exactly 272px wide.
+     ---------------------------------------------------------------------- */
+  --spacing-list: 17rem;      /* 272px */
+  --spacing-sidebar: 16rem;   /* 256px */
+  --spacing-topbar: 3rem;     /* 48px  */
+
+  /* MOTION — Trello's UI transitions are short and near-linear-out. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ==========================================================================
+   2. THE `dark:` VARIANT
+   Three states, resolved in this order:
+     <html>                      -> follow the OS
+     <html data-theme="light">   -> force light, even if the OS is dark
+     <html data-theme="dark">    -> force dark, even if the OS is light
+   Semantic tokens flip on their own, so `dark:` is an escape hatch — reach
+   for it only when a token genuinely cannot express the difference.
+   ========================================================================== */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/* ==========================================================================
+   3. SEMANTIC VALUES — the only block that differs between themes
+   Deliberately NOT named `--color-*`: these are raw values, bound to
+   utilities in step 4.
+
+   Colours use light-dark(<light>, <dark>), which resolves against the
+   element's computed `color-scheme`. That keeps both palettes on one line
+   and means the theme switch below is a single declaration rather than a
+   duplicated block. box-shadow has no light-dark() equivalent, so the four
+   elevation tokens are the one place we do repeat ourselves.
+   ========================================================================== */
+:root {
+  /* Follow the OS by default; the [data-theme] rules below override it. */
+  color-scheme: light dark;
+
+  /*                             light                        dark              */
+  --canvas:         light-dark(var(--color-ink-100),  var(--color-slate-0));
+  --surface:        light-dark(var(--color-ink-0),    var(--color-slate-200));
+  --surface-sunken: light-dark(var(--color-ink-200),  var(--color-slate-50));
+  --surface-hover:  light-dark(var(--color-ink-100),  var(--color-slate-300));
+
+  --text:           light-dark(var(--color-ink-900),  var(--color-slate-950));
+  --text-muted:     light-dark(var(--color-ink-700),  var(--color-slate-900));
+  --text-subtle:    light-dark(var(--color-ink-600),  var(--color-slate-800));
+  --text-inverse:   light-dark(var(--color-ink-0),    var(--color-slate-100));
+  --text-brand:     light-dark(var(--color-brand-700), var(--color-brand-400));
+
+  --border:         light-dark(var(--color-ink-300),  var(--color-slate-500));
+  --border-strong:  light-dark(var(--color-ink-400),  var(--color-slate-600));
+  --focus:          light-dark(var(--color-brand-600), var(--color-brand-400));
+
+  --success:        light-dark(#24a866,             #4bce97);
+  --success-subtle: light-dark(#e8faf0,             #1c3329);
+  --warning:        light-dark(#b57f00,             #f5cd47);
+  --warning-subtle: light-dark(#fff7e0,             #332e1b);
+  --danger:         light-dark(#c9372c,             #f87168);
+  --danger-subtle:  light-dark(#ffedeb,             #42221f);
+  --info:           light-dark(#1d69d4,             #579dff);
+  --info-subtle:    light-dark(#e9f2ff,             #1c2b41);
+
+  /* Trello tints its shadows with #091E42 rather than pure black. */
+  --elev-card: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  --elev-raised: 0 4px 8px -2px rgba(9, 30, 66, 0.1), 0 0 1px rgba(9, 30, 66, 0.2);
+  --elev-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.2);
+  --elev-modal: 0 12px 24px -6px rgba(9, 30, 66, 0.18), 0 0 1px rgba(9, 30, 66, 0.2);
+}
+
+/* The switch. One declaration re-resolves every light-dark() above. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* On dark, a blue-tinted shadow vanishes. These go near-black and deeper. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --elev-card: 0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
+    --elev-raised: 0 4px 8px -2px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
+    --elev-overlay: 0 8px 16px -4px rgba(3, 4, 4, 0.56), 0 0 1px rgba(3, 4, 4, 0.5);
+    --elev-modal: 0 12px 24px -6px rgba(3, 4, 4, 0.6), 0 0 1px rgba(3, 4, 4, 0.5);
+  }
+}
+:root[data-theme="dark"] {
+  --elev-card: 0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
+  --elev-raised: 0 4px 8px -2px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
+  --elev-overlay: 0 8px 16px -4px rgba(3, 4, 4, 0.56), 0 0 1px rgba(3, 4, 4, 0.5);
+  --elev-modal: 0 12px 24px -6px rgba(3, 4, 4, 0.6), 0 0 1px rgba(3, 4, 4, 0.5);
+}
+
+/* ==========================================================================
+   4. BINDING — semantic utilities point at the raw values above.
+   `inline` is what makes them theme-aware: the utility compiles to
+   `var(--surface)`, which resolves per-element at paint time. A plain
+   @theme block would bake today's hex into the utility instead.
+   ========================================================================== */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-text-inverse: var(--text-inverse);
+  --color-text-brand: var(--text-brand);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-focus: var(--focus);
+
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+}
+
+/* ==========================================================================
+   5. BASE
+   ========================================================================== */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    color: var(--text);
+  }
+
+  /* One focus treatment everywhere — a 2px brand ring, never a browser outline. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-500);
+    color: var(--color-on-brand);
+  }
+}
+
+/* ==========================================================================
+   6. UTILITIES
+   Elevation is defined here rather than via --shadow-* in @theme: Tailwind
+   bakes a @theme shadow's literal value into the utility, so it could not
+   follow the theme.
+   ========================================================================== */
+@utility shadow-card {
+  box-shadow: var(--elev-card);
+}
+@utility shadow-raised {
+  box-shadow: var(--elev-raised);
+}
+@utility shadow-overlay {
+  box-shadow: var(--elev-overlay);
+}
+@utility shadow-modal {
+  box-shadow: var(--elev-modal);
+}
+
+@utility scrollbar-board {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
