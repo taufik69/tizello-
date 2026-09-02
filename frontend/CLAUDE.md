@@ -95,7 +95,12 @@ src/
   app/            # routing ONLY — page/layout/loading/error + globals.css
   components/
     ui/           # generic primitives (app-image, theme-toggle)
-    board/        # feature components
+    board/        # feature components (columns, cards, composer)
     layout/       # app shell
   lib/            # data access, helpers, pure logic
+    actions/      # Server Actions — the one place lib/ may import next/*
+  types/          # shared domain types
 ```
+
+Routes so far: `/` design-system reference · `/board/[boardId]` the board
+(`/board/sprint`).

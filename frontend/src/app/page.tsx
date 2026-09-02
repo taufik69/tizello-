@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BoardPreview } from "@/components/design-system/board-preview";
 import { Media } from "@/components/design-system/media";
 import {
@@ -24,7 +25,15 @@ export default function DesignSystemPage() {
           <span className="inline-flex items-center rounded-xs bg-brand-100 px-2 py-0.5 text-2xs font-semibold tracking-widest text-brand-800 uppercase">
             Design system
           </span>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/board/sprint"
+              className="text-xs font-semibold text-text-brand transition-colors duration-100 ease-standard hover:text-brand-600"
+            >
+              Open the board &rarr;
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
         <h1 className="text-4xl font-semibold">Tizello</h1>
         <p className="max-w-xl text-base text-text-muted">

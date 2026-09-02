@@ -22,7 +22,9 @@ src/
     board/                 # feature components
     layout/                # app shell — top bar, sidebar, nav
   lib/                     # data access, helpers, pure logic
-  types/                   # shared TS types when they outgrow their module
+    actions/               #   Server Actions ("use server") — the one place
+                           #   lib/ may import next/*
+  types/                   # shared TS types shared by lib/ and components/
 public/                    # static assets served from /
 ```
 
@@ -38,6 +40,10 @@ Rules:
 - **Co-locate what only one route uses** in that route's folder — but if it is a
   component, it still goes under `components/`, not inside `app/`.
 - **`lib/` is framework-agnostic.** No JSX, no `next/*` imports beyond types.
+  The single exception is `lib/actions/`, which holds Server Actions and needs
+  `revalidatePath` / `revalidateTag`. Keep those files thin: validate, call a
+  plain function from `lib/`, revalidate. Business logic stays testable and
+  framework-free next door.
 
 ## Checklist for a new page
 
@@ -97,8 +103,11 @@ type generation — do not import them, and do not hand-write the props type.
 ## Data and mutations
 
 - **Reads** happen in Server Components.
-- **Writes** use Server Actions (`"use server"`), not a hand-rolled `/api`
-  route. Revalidate with `revalidatePath` / `revalidateTag` after a mutation.
+- **Writes** use Server Actions (`"use server"`) in `src/lib/actions/`, not a
+  hand-rolled `/api` route. Revalidate with `revalidatePath` / `revalidateTag`
+  after a mutation. An action returns a plain serialisable state object so the
+  calling client leaf can render the error inline — see
+  `createCardAction` + `AddCardForm`.
 - **Route handlers (`app/api/`) are for real HTTP endpoints only** — webhooks,
   third-party callbacks, or something a non-browser client consumes.
 - **Validate every input at the server boundary.** Client-side validation is a

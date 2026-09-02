@@ -191,6 +191,11 @@
   --text-inverse:   light-dark(var(--color-ink-0),    var(--color-slate-100));
   --text-brand:     light-dark(var(--color-brand-700), var(--color-brand-400));
 
+  /* The board canvas is brand-tinted in both themes, so its ink is its own
+     token rather than --text-inverse (which follows the theme, not the board). */
+  --board:          light-dark(var(--color-brand-700), var(--color-brand-900));
+  --on-board:       light-dark(var(--color-ink-0),     var(--color-slate-950));
+
   --border:         light-dark(var(--color-ink-300),  var(--color-slate-500));
   --border-strong:  light-dark(var(--color-ink-400),  var(--color-slate-600));
   --focus:          light-dark(var(--color-brand-600), var(--color-brand-400));
@@ -252,6 +257,9 @@
   --color-text-subtle: var(--text-subtle);
   --color-text-inverse: var(--text-inverse);
   --color-text-brand: var(--text-brand);
+
+  --color-board: var(--board);
+  --color-on-board: var(--on-board);
 
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
