@@ -196,6 +196,12 @@
   --board:          light-dark(var(--color-brand-700), var(--color-brand-900));
   --on-board:       light-dark(var(--color-ink-0),     var(--color-slate-950));
 
+  /* The auth aside's gradient field. Deeper than --board in both themes so the
+     glass shapes drawn in --on-board keep their contrast at the gradient's
+     LIGHTEST point, not just its average. Spec: .claude/specs/authentication.md §12. */
+  --auth-panel-from: light-dark(var(--color-brand-600), var(--color-brand-800));
+  --auth-panel-to:   light-dark(var(--color-brand-800), var(--color-brand-950));
+
   --border:         light-dark(var(--color-ink-300),  var(--color-slate-500));
   --border-strong:  light-dark(var(--color-ink-400),  var(--color-slate-600));
   --focus:          light-dark(var(--color-brand-600), var(--color-brand-400));
@@ -260,6 +266,8 @@
 
   --color-board: var(--board);
   --color-on-board: var(--on-board);
+  --color-auth-panel-from: var(--auth-panel-from);
+  --color-auth-panel-to: var(--auth-panel-to);
 
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
@@ -333,4 +341,51 @@
 @utility scrollbar-board {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
+}
+
+/* --------------------------------------------------------------------------
+   AUTH ASIDE — the right panel of the split shell.
+   See .claude/specs/authentication.md §5. Layer 1 (the gradient field) and the
+   noise overlay live here rather than in the component so no hex, and no
+   `style={{}}`, appears in markup. Both read the --auth-panel-* tokens, so the
+   panel re-resolves with the theme like everything else.
+
+   Motion is deliberately absent: this pass renders the panel static. Every
+   animation added later must sit inside
+   @media (prefers-reduced-motion: no-preference).
+   -------------------------------------------------------------------------- */
+
+/* Two large, soft radial gradients offset from one another, over a linear base.
+   The radials are what stop it reading as a flat fill.
+   
+   Neither radial goes LIGHTER than --auth-panel-from, which makes that token
+   the lightest point the whole field can reach — the point spec §5 says to
+   check --on-board against. The bottom-left radial deliberately runs the other
+   way, toward brand-950, because that is where layer 3's copy sits. */
+@utility auth-field {
+  background-color: var(--auth-panel-to);
+  background-image:
+    radial-gradient(
+      72% 62% at 10% 90%,
+      color-mix(in oklab, var(--color-brand-950) 58%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(58% 52% at 86% 14%, var(--auth-panel-from), transparent 70%),
+    linear-gradient(148deg, var(--auth-panel-from), var(--auth-panel-to));
+}
+
+/* Banding is the single most common way a panel like this looks cheap. One
+   120x120 feTurbulence tile at 0.04 breaks it up without reading as texture. */
+@utility auth-noise {
+  opacity: 0.04;
+  background-repeat: repeat;
+  background-size: 120px 120px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Glass on the shape layer. backdrop-filter on an SVG element is honoured by
+   Chromium and Safari and simply ignored elsewhere — the low-opacity fill and
+   the 1px stroke carry the effect on their own, so the fallback is fine. */
+@utility glass-pane {
+  backdrop-filter: blur(14px);
 }

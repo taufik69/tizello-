@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function TopBar() {
@@ -21,7 +22,10 @@ export function TopBar() {
           Design system
         </Link>
       </nav>
-      <ThemeToggle />
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <SignOutButton />
+      </div>
     </header>
   );
 }
