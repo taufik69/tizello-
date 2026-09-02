@@ -33,6 +33,10 @@
       "Bash(git push:*)"
     ],
     "deny": [
+      "Write(../backend/**)",
+      "Edit(../backend/**)",
+      "Write(//home/desktop/Desktop/tizello/backend/**)",
+      "Edit(//home/desktop/Desktop/tizello/backend/**)",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./**/.env)",
