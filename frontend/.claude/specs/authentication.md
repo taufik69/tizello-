@@ -1,6 +1,8 @@
 # Spec — Authentication module
 
-**Status:** draft, awaiting review
+**Status:** revision 2 — Notion-style flow, split-panel layout kept.
+Supersedes revision 1's password-first sign-in. Rationale in
+`.claude/specs/auth-ux-analysis.md`.
 **Scope:** frontend only. No `backend/` changes — see `.claude/rules/scope.md`.
 **Depends on:** `DESIGN-SYSTEM.md`, `.claude/rules/ui-components.md`,
 `.claude/rules/pages-and-structure.md`
@@ -19,11 +21,16 @@ and the right half is an animated illustration.
 | --- | --- |
 | 1 | Sign up with email + password |
 | 2 | Email verification (account starts unverified) |
-| 3 | Sign in, **two-step** — email, then password |
-| 4 | Forgot password → emailed link → set a new one |
-| 5 | Social sign-in buttons (Google, GitHub) |
+| 3 | Sign in, **two-step** — email, then a **6-digit login code**, with password as the fallback |
+| 4 | Recovery ("Can't log in?") → emailed link → set a new password |
+| 5 | Social sign-in buttons (Google, GitHub) — **grid, not a stack** |
 | 6 | Sign out |
 | 7 | Route protection: `/board/*` requires a session |
+
+**The login code is the default path.** A code sent to the address just typed
+cannot be forgotten, which deletes the single largest cause of failed sign-ins
+rather than decorating it. The password stays as a fallback for anyone who set
+one, reachable from a link on the same screen.
 
 ### Out of scope (write down, build later)
 
@@ -45,14 +52,21 @@ change to that one file.
 
 Observed on `id.atlassian.com` (Sept 2026 — Trello delegates auth to Atlassian ID):
 
-| Trello | Tizello | Why |
+We looked at both. Notion's flow won; the full comparison is in
+`.claude/specs/auth-ux-analysis.md`. What we take from where:
+
+| Source | Decision | Why |
 | --- | --- | --- |
-| Centered card, illustrations flanking it | **Split panel** — form left, animation right | The brief. Also gives the illustration room to actually animate. |
-| Two-step: email → Continue → password | **Two-step, kept** | Requested. §6.2 changes *how* step 1 works. |
-| Step 1 hits the server to look up the account | **Step 1 is client-side only** | Trello's version is a user-enumeration oracle. Same UX, no oracle. See §6.2. |
-| Google, Microsoft, Apple, Slack | **Google, GitHub** | Dev-tool audience. |
-| Signup asks email only, then a second screen | **One signup form**: name, email, password | Two-step signup buys nothing once we're not doing an account lookup. |
-| Passkey button | Not in v1 | Listed above. |
+| **Notion** | Login **code** first, password demoted to a link | Removes the forgotten-password failure branch entirely |
+| **Notion** | Social providers in a **grid** | Five stacked bars is a wall on a phone; a grid is two short rows |
+| **Notion** | Stay on our own domain, our own branding | Trello hands you to `id.atlassian.com` mid-credential — a trust dip, and the exact shape of a phishing page |
+| **Notion** | Helper text does product work, not legal work | "Use your work email" earns its line; terms boilerplate does not |
+| **Trello** | A visible **"Can't log in?"** link | Notion hides recovery; that is only safe because it has no passwords at all |
+| **Trello** | Explicit **Remember me**, on step 1 | Session length should be a visible control, not a silent default |
+| **Trello** | Recovery framed as *recovery*, not "reset password" | Broader, and honest about what people actually lose |
+| *Neither* | **Split panel** — form left, animation right | The brief. Both products centre a card; we do not. §4, §5. |
+| *Neither* | Step 1 makes **no server call** | Trello's account lookup is a user-enumeration oracle. Same UX without it. §6.2 |
+| *Neither* | Google + GitHub only | Dev-tool audience. Trello offers six methods; two is enough. |
 
 Metrics worth copying from their form (they are well-tuned):
 
@@ -102,87 +116,133 @@ accepted** — an absolute URL is an open-redirect and must be dropped.
 ┌───────────────────────────┬───────────────────────────┐
 │                           │                           │
 │   ◆ Tizello               │                           │
-│                           │      [ animated SVG ]     │
+│                           │   ▱      [ shapes ]       │
 │   Log in to continue      │                           │
 │   ┌─────────────────────┐ │      Organise anything    │
 │   │ Email               │ │      Boards, lists and    │
 │   │ [_________________] │ │      cards for the work   │
 │   └─────────────────────┘ │      your team actually   │
-│   [     Continue      ]   │      does.                │
-│   ─────── or ───────      │                           │
-│   [ G  Google          ]  │                           │
-│   [ ⌥  GitHub          ]  │                           │
+│   □ Remember me           │      does.                │
+│   [     Continue      ]   │                           │
+│   ──── or continue ────   │        ◯   ▰              │
+│   [ Google ] [ GitHub ]   │                           │
 │                           │                           │
+│   Can't log in? ·         │                           │
 │   Create an account       │                           │
-│                           │                           │
 │   Privacy · Terms         │                           │
 └───────────────────────────┴───────────────────────────┘
-     bg-surface, 50%              bg-board, 50%
+     bg-surface, 50%          gradient + shapes, 50%
 ```
 
 | Property | Value |
 | --- | --- |
 | Grid | `lg:grid-cols-2`, each panel `min-h-dvh` |
 | Left panel | `bg-surface`, form column `max-w-[22rem]` (352px), vertically centred |
-| Right panel | `bg-board` with a brand gradient overlay, `hidden lg:grid` |
+| Right panel | the three animated layers of §5, `hidden lg:grid`, `overflow-hidden` so shapes can bleed past the edge |
 | Below `lg` | Right panel is **removed entirely**, not stacked. Left panel goes full width. Nobody scrolls past decoration to reach a login form. |
 | Logo | Top-left of the left panel, links to `/` |
 | Footer | Privacy · Terms links, `text-2xs text-text-subtle`, bottom of left panel |
 
-The right panel's copy changes per route (sign-in vs sign-up get different
-lines); the layout takes it from a small map keyed by pathname, or each page
-passes it via a slot. **Decision: a `<AuthAside>` component with a `variant`
-prop**, rendered by the layout from `usePathname`… no — that would make the
-layout a client component. **Use a parallel route or per-page prop instead:**
-each `page.tsx` renders its own `<AuthAside variant="sign-in" />`, and the
-layout only provides the grid. Keeps everything server-side.
+The right panel's copy changes per route — sign-in and sign-up get different
+lines. Reading the route with `usePathname` would drag the layout across the
+client boundary, so instead **the layout provides only the grid**, and each
+`page.tsx` renders its own `<AuthAside variant="sign-in" />`. Everything stays
+a Server Component. See §5 for what the panel contains.
 
 ---
 
-## 5. The animated illustration
+## 5. The right panel — shapes, effects, motion
 
-A single inline SVG component, `components/auth/auth-illustration.tsx`.
+This is the half of the screen that has to carry the product's confidence. It is
+**required**, not decorative garnish: modern geometric composition, real depth,
+and continuous motion.
 
-**It is a Server Component.** The animation is declarative CSS inside the SVG —
-no `useEffect`, no animation library, no `"use client"`. This is the point: a
-decorative animation should cost zero JavaScript.
+`components/auth/auth-aside.tsx` renders three stacked layers inside the panel.
 
-### What it shows
+```
+┌───────────────────────────────────────┐
+│  layer 3 · copy          "Organise    │
+│                           anything"   │
+│                                       │
+│  layer 2 · shapes    ◜◝  ▱  ◯  ▰      │  ← inline SVG, animated
+│                                       │
+│  layer 1 · field    ░▒▓ gradient mesh │  ← CSS, animated
+└───────────────────────────────────────┘
+        bg: --auth-panel-from → --auth-panel-to
+```
 
-A miniature Tizello board assembling itself, on loop:
+### Layer 1 — the gradient field
 
-| Beat | Time | What happens |
-| --- | --- | --- |
-| 1 | 0.0s | Three empty columns fade + rise into place, staggered 120ms |
-| 2 | 0.8s | Five cards slide in from the left, staggered 140ms |
-| 3 | 2.2s | One card's label bar wipes from 0 → full width |
-| 4 | 2.6s | A checkbox on another card ticks (path draws left → right) |
-| 5 | 3.0s | One card lifts and settles into the next column |
-| 6 | 4.2s | Everything holds |
-| — | 6.0s | Loop restarts with a cross-fade, not a hard cut |
+Not a flat fill. Two large, soft radial gradients in brand tones, offset from
+each other, drifting on long out-of-phase loops (23s and 31s) so the background
+never visibly repeats. Pure CSS on the panel element:
 
-Continuous under all of it: the whole board drifts ±4px vertically over 8s, out
-of phase with the 6s loop so the motion never looks metronomic.
+- `background-image`: two `radial-gradient(...)` layers over the linear base.
+- Animate `background-position` only — cheap, compositor-friendly.
+- A `0.04` opacity noise overlay (inline SVG `feTurbulence`, one filter, sized
+  120×120 and tiled) to kill gradient banding. Banding is the single most
+  common way a panel like this looks cheap.
 
-### Rules
+### Layer 2 — the shapes
 
-- **`prefers-reduced-motion: reduce` → no motion.** Not "slower". The SVG
-  renders its final frame — assembled board, filled label, ticked box — as a
-  static image. Implement by wrapping every `animation` declaration in
-  `@media (prefers-motion: no-preference)`, so static is the default and motion
-  is the enhancement.
-- Animate **`transform` and `opacity` only**, plus `stroke-dashoffset` for the
-  tick. No animating `width`, `x`, `y`, or filters — they force layout on every
-  frame.
-- Colours come from the palette via `currentColor` and hard-coded brand hexes
-  only where an SVG cannot read a CSS variable. Prefer `fill="currentColor"`
-  with opacity so the panel's ink token drives it.
-- `aria-hidden="true"` and no `<title>`. It is decoration; the adjacent heading
-  carries the meaning.
-- Budget: **under 12KB** of inline markup. If it grows past that, simplify the
-  drawing — do not move it to a file and add a request.
+A single inline SVG, `components/auth/auth-shapes.tsx`. Modern geometric
+vocabulary, not an illustration of anything:
 
----
+| Element | Treatment |
+| --- | --- |
+| 3–5 large rounded rectangles | glassy: low-opacity white fill, 1px lighter stroke, `backdrop-filter: blur()` where supported |
+| 1–2 rings (stroked circles) | thin, high-contrast, partially cropped by the panel edge |
+| 1 soft blob | organic counterweight to the rectangles, heavily blurred |
+| a fine grid or dot field | very low opacity, gives the glass something to sit against |
+
+Composition rules: **asymmetric**, weighted to one side; at least one shape
+**bleeds off the panel edge** so it reads as a window onto something larger;
+overlap at least twice so depth is legible; never centre everything.
+
+Motion, all on a shared 20s master loop so nothing syncs into a visible beat:
+
+| Element | Motion |
+| --- | --- |
+| rectangles | drift ±8px, rotate ±2°, staggered phases |
+| rings | slow continuous rotation, 40s and 55s, opposite directions |
+| blob | scale 1.0 ↔ 1.06, 18s |
+| grid | parallax drift, half the speed of the rectangles |
+| whole group | ±6px vertical float, 26s |
+
+Nothing pulses, nothing bounces, nothing loops in under 15s. The panel should
+read as *alive*, never as *animating*.
+
+### Layer 3 — the copy
+
+One line of display type plus one supporting line, bottom-left, on
+`--on-board`. Copy changes per route; each `page.tsx` passes `variant` to
+`AuthAside` so the layout stays a Server Component (no `usePathname`).
+
+### Hard rules
+
+- **Zero JavaScript.** All of it is CSS and inline SVG in Server Components. No
+  `useEffect`, no animation library, no `"use client"`. A decorative animation
+  that costs bundle size is a bad trade.
+- **`prefers-reduced-motion: reduce` → completely still.** Not slower. Every
+  `animation` declaration lives inside
+  `@media (prefers-reduced-motion: no-preference)`, so static is the default
+  and motion is the enhancement. Static must still look composed — it is a
+  finished poster, not a paused video.
+- **Animate `transform`, `opacity` and `background-position` only.** Never
+  `width`/`height`/`x`/`y`/`filter` — they force layout or re-raster every frame.
+- **`will-change` on at most two elements.** More costs more than it saves.
+- Every animated element gets `aria-hidden="true"`. The panel contributes no
+  heading and no alt text; layer 3's copy is real text.
+- **Budget: 14KB** of inline SVG markup, and the panel must not push the page
+  past a 60fps frame budget on a mid-range laptop. If either breaks, cut shapes
+  — do not externalise the file and add a request.
+- Contrast: check `--on-board` against the **lightest** point the gradient ever
+  reaches mid-animation, not the average.
+
+### What it is not
+
+Not the miniature assembling kanban board from revision 1. That was literal and
+it dated quickly. Abstract shapes age better and do not promise a specific UI.
 
 ## 6. Screens
 
@@ -226,7 +286,7 @@ Below the fields:
 On success → redirect to `/verify-email?pending=1` (the "check your inbox"
 state, §6.5), **not** to the board. The account exists but is unverified.
 
-### 6.2 `/sign-in` — two-step
+### 6.2 `/sign-in` — two-step, code first
 
 **Step 1 — email**
 
@@ -234,9 +294,11 @@ state, §6.5), **not** to the board. The account exists but is unverified.
 | --- | --- |
 | Email | `username` |
 
+- **Remember me** checkbox, here on step 1 — session length is a property of the
+  session, not of the password. 30-day cookie vs session cookie. Default off.
 - Button: **Continue**
-- Below: Google / GitHub, then *Can't log in?* → `/forgot-password` ·
-  *Create an account* → `/sign-up`
+- Divider, then the social **grid** (§6.6)
+- Foot: *Can't log in?* → `/forgot-password` · *Create an account* → `/sign-up`
 
 > **Step 1 never calls the server.** It validates the email's shape on the
 > client and advances. Trello's equivalent performs an account lookup, which
@@ -244,46 +306,86 @@ state, §6.5), **not** to the board. The account exists but is unverified.
 > an unauthenticated endpoint. We keep the two-step *feel* and drop the oracle.
 > The single credential check happens on step 2 submit.
 >
-> Consequence: we cannot route an SSO-only account before the password screen.
-> Acceptable — there is no SSO in v1. If it lands later, route on the email's
-> **domain** (a config list), never on a per-account lookup.
+> Consequence: we cannot route an SSO-only account before step 2. Acceptable —
+> there is no SSO in v1. If it lands later, route on the email's **domain** (a
+> config list), never on a per-account lookup.
 
-**Step 2 — password**
+**Step 2 — prove it**
 
-- The email is shown as static text with a **Change** button that returns to
-  step 1 and refocuses the email field.
-- A hidden `email` input keeps the value in the form payload **and** lets
-  password managers associate the credential pair.
+The email is shown as static text with a **Change** button that returns to step
+1 and refocuses the email field. A hidden `email` input keeps the value in the
+payload and lets password managers associate the credential pair.
 
-| Field | `autocomplete` |
-| --- | --- |
-| Password | `current-password` |
+Step 2's field area is a **slot with two modes**:
 
-- **Remember me** checkbox — 30-day session vs session-cookie. Default off.
-- Button: **Log in**
-- Link: *Forgot password?*
+```
+┌─ mode: code (default) ────────────┐   ┌─ mode: password ──────────────┐
+│  ◀ alex@tizello.dev      Change   │   │  ◀ alex@tizello.dev    Change │
+│                                    │   │                               │
+│  We sent a 6-digit code to your    │   │  Password                     │
+│  inbox.                            │   │  [__________________]  Show   │
+│  [_][_][_]  [_][_][_]              │   │                               │
+│                                    │   │  [        Log in         ]    │
+│  [        Log in         ]         │   │                               │
+│  Resend code (60s)                 │   │  Use a login code instead     │
+│  Use a password instead            │   │  Can't log in?                │
+└────────────────────────────────────┘   └───────────────────────────────┘
+```
 
-Both steps live in **one client component** (`sign-in-form.tsx`) holding
-`step: "email" | "password"`. It is a leaf; `page.tsx` stays a Server Component.
+| Mode | Field | `autocomplete` |
+| --- | --- | --- |
+| code *(default)* | 6 digits | `one-time-code` |
+| password | password | `current-password` |
 
-Focus management: advancing to step 2 moves focus to the password field;
-**Change** returns focus to the email field. Announce the step change via a
-polite live region — a sighted user sees the form swap, a screen-reader user
-must be told.
+Code rules:
 
-### 6.3 `/forgot-password`
+- **Six digits, numeric.** One `<input inputmode="numeric" maxlength="6">` that
+  renders as six boxes, **not six inputs** — six inputs break paste, break
+  screen-reader navigation, and fight the iOS/Android SMS-style autofill.
+- Paste of a 6-digit string fills it and submits.
+- Auto-submit when the sixth digit lands. Never auto-submit a partial value.
+- **Resend** disabled 60s with a visible countdown.
+- Codes expire in **10 minutes**, are single-use, and are invalidated by a
+  successful sign-in or a new code request.
+- `Use a password instead` switches mode client-side. It is a link, not a
+  round-trip. Shown always — we cannot look up whether a password exists (that
+  would be the enumeration oracle again).
+- *Can't log in?* appears **here too**. This is where people actually get stuck,
+  not on step 1.
 
-Heading: **Reset your password** · Sub: *We'll email you a link to set a new one.*
+Both steps and both modes live in **one client component**
+(`sign-in-form.tsx`) holding `step` and `mode`. It is a leaf; `page.tsx` stays a
+Server Component.
 
-One field: Email (`autocomplete="username"`). Button: **Send reset link**.
+Focus management: advancing to step 2 focuses the first code box; **Change**
+returns focus to the email field; switching mode focuses the new field. Announce
+every step and mode change through a polite live region — a sighted user sees
+the swap, a screen-reader user must be told.
+
+> **v1 has no mail server.** The fixture in `src/lib/auth.ts` "sends" the code
+> by logging it to the server console and accepting the literal `000000`. §9
+> records what the backend must actually do. Do not ship the literal.
+
+### 6.3 `/forgot-password` — "Can't log in?"
+
+Heading: **Can't log in?**
+Field label: *We'll send a recovery link to*
+Button: **Send recovery link**
+Link: *Return to log in*
+
+Trello's copy here is better than ours and we use it as-is. "Recovery" is
+broader and more honest than "reset password" — the common failure is not
+knowing *which* method you used, not just forgetting a string.
+
+One field: Email (`autocomplete="username"`).
 
 > **Always render the same success state**, whether or not the address exists:
-> *If an account exists for that address, a reset link is on its way.* Anything
-> conditional is an enumeration oracle. The server must return the same response
-> and take roughly the same time either way (§9).
+> *If an account exists for that address, a recovery link is on its way.*
+> Anything conditional is an enumeration oracle. The server must return the same
+> response and take roughly the same time either way (§9).
 
-Success view replaces the form: confirmation text, the address it went to, and
-a **Resend** button disabled for 60s with a visible countdown.
+Success view replaces the form: confirmation text, the address it went to, and a
+**Resend** button disabled for 60s with a visible countdown.
 
 ### 6.4 `/reset-password?token=…`
 
@@ -316,19 +418,33 @@ Three states in one route:
 
 Token consumption happens in a Server Action on load, not in an effect.
 
-### 6.6 Social buttons
+### 6.6 Social buttons — a grid
 
 Google and GitHub, identical treatment on `/sign-in` and `/sign-up`:
 
-- 40px tall, full width, `border-border bg-surface`, brand mark left, label
-  centred, stacked with 8px gaps.
+```
+──────────── or continue with ────────────
+      ┌──────────┐  ┌──────────┐
+      │ G Google │  │ ⌥ GitHub │
+      └──────────┘  └──────────┘
+```
+
+- **Two up in a grid**, not stacked full-width. Notion's layout: five methods fit
+  in two short rows where Trello's stack needs five. A third provider wraps to a
+  second row rather than lengthening a wall.
+- Google first — highest completion rate everywhere.
+- **Below** the email form, under a divider. Above it, OAuth becomes the default
+  path and we stop collecting email addresses.
+- 40px tall, `border-border bg-surface`, brand mark left of a centred label.
 - They are `<a>` elements to `/api/auth/oauth/{provider}/start?next=…`, not
   buttons — an OAuth start is a navigation.
 - **In v1 that endpoint does not exist.** They render, are keyboard-reachable,
-  and are marked `aria-disabled="true"` with a tooltip *Coming soon* until the
+  and are marked `aria-disabled="true"` with a *Coming soon* tooltip until the
   backend lands. Do not stub a fake OAuth flow.
 
----
+**Account linking must be decided before OAuth ships.** The same email arriving
+via Google and via password has to resolve to **one** account. Retrofitting that
+rule means merging live accounts; decide it in §9's contract first.
 
 ## 7. Validation
 
@@ -388,6 +504,8 @@ this repo.** Base path `/api/v1/auth`. JSON in, JSON out.
 | --- | --- | --- | --- | --- |
 | POST | `/register` | `{ name, email, password }` | `201 { user }` | 409 `EMAIL_TAKEN`, 422 `WEAK_PASSWORD` |
 | POST | `/login` | `{ email, password, remember }` | `200 { user }` + `Set-Cookie` | 401, 403 `EMAIL_NOT_VERIFIED`, 429 |
+| POST | `/login/request-code` | `{ email }` | `202` *(always)* | 429 |
+| POST | `/login/verify-code` | `{ email, code, remember }` | `200 { user }` + `Set-Cookie` | 401 `CODE_INVALID`, 410 `CODE_EXPIRED`, 429 |
 | POST | `/logout` | — | `204` + cookie cleared | — |
 | GET | `/session` | — | `200 { user }` / `401` | — |
 | POST | `/verify-email` | `{ token }` | `200 { user }` | 400, 410 |
@@ -410,6 +528,16 @@ Requirements on the backend, to be honoured when it is written:
   never placed in `localStorage`.
 - Reset and verification tokens: single-use, ≥128 bits of entropy, stored
   hashed. Reset expires in **1 hour**, verification in **24 hours**.
+- **Login codes: 6 digits, cryptographically random, stored hashed, single-use,
+  10-minute expiry.** Invalidated by a successful sign-in or a newer request.
+  Cap attempts at **5 per code**, then burn it — six digits is only 10⁶, so
+  without an attempt cap a code is brute-forceable in seconds.
+- `/login/request-code` returns `202` for unknown addresses, same as
+  `/forgot-password`, and pads response time to a constant.
+- **Account linking:** an OAuth identity whose verified email matches an existing
+  account **links to it** rather than creating a second account. Never link on an
+  unverified email — that is an account-takeover primitive. Decide and implement
+  this before the first OAuth provider ships.
 - `/forgot-password` and `/resend-verification` return `202` for unknown
   addresses and should pad response time to a constant.
 - Rate limits, per IP **and** per email: login 10/15min, register 5/hour,
@@ -441,6 +569,9 @@ While the backend is absent, `src/lib/auth.ts` fixtures behave as:
 - one seeded unverified user, to exercise the `EMAIL_NOT_VERIFIED` path
 - register appends to the in-memory list and returns unverified
 - any 32-char hex token is "valid"; the literal `expired` is expired
+- **login codes: `request-code` logs the code to the server console and the
+  fixture accepts the literal `000000`.** Never ship that literal; §14 has an
+  acceptance check for it.
 - every call sleeps 200–400ms so loading states are real
 
 ---
@@ -454,8 +585,9 @@ leaves, 150 lines hard cap.
 | --- | --- | --- |
 | `app/(auth)/layout.tsx` | server | the two-panel grid |
 | `app/(auth)/*/page.tsx` | server | metadata, session redirect, composition |
-| `components/auth/auth-aside.tsx` | server | right panel: illustration + copy, `variant` prop |
-| `components/auth/auth-illustration.tsx` | server | the animated SVG (§5) |
+| `components/auth/auth-aside.tsx` | server | right panel: composes the three layers + copy, `variant` prop |
+| `components/auth/auth-shapes.tsx` | server | the animated geometric SVG, layer 2 (§5) |
+| `components/ui/code-input.tsx` | **client** | 6-digit code: one input rendered as six boxes |
 | `components/auth/auth-header.tsx` | server | logo, heading, subheading |
 | `components/auth/social-buttons.tsx` | server | Google + GitHub links |
 | `components/auth/auth-divider.tsx` | server | the "— or —" rule |
@@ -473,9 +605,10 @@ leaves, 150 lines hard cap.
 | `types/auth.ts` | — | `User`, `AuthError`, `AuthErrorCode` |
 | `proxy.ts` | — | route protection |
 
-`sign-in-form.tsx` is the file most likely to hit 150 lines. If it does, extract
-the two steps into `sign-in-email-step.tsx` / `sign-in-password-step.tsx` and
-leave the state machine in the parent.
+`sign-in-form.tsx` now holds two axes of state (`step` **and** `mode`) and will
+certainly exceed 150 lines. Plan for the split up front: extract
+`sign-in-email-step.tsx`, `sign-in-code-step.tsx` and `sign-in-password-step.tsx`,
+and leave only the machine in the parent.
 
 ---
 
@@ -521,7 +654,13 @@ Both themes must be checked — the right panel is brand-tinted in both, so
 - [ ] `npm run build` and `npm run lint` pass; no file over 150 lines
 - [ ] Only the four form files and the two field primitives are `"use client"`
 - [ ] Every auth `page.tsx` is a Server Component with `metadata`
-- [ ] Illustration ships **zero** JavaScript and is static under reduced motion
+- [ ] Right panel ships **zero** JavaScript and is completely still under
+      `prefers-reduced-motion: reduce`, while still looking composed
+- [ ] Panel animation holds 60fps on a mid-range laptop; no layout-triggering
+      properties animated
+- [ ] The `000000` fixture code is gone before any real deployment
+- [ ] Pasting a 6-digit code fills and submits; the code field is one input,
+      not six
 - [ ] Right panel is absent below `lg`, and no horizontal scroll at 360px
 - [ ] Every screen legible and correct in light **and** dark
 - [ ] Wrong password on a real account and a login to a non-existent account
@@ -547,9 +686,10 @@ Both themes must be checked — the right panel is brand-tinted in both, so
    not.
 3. **Remember me default** — spec says off. Some teams prefer on for a tool
    people live in all day.
-4. **Illustration art direction** — the assembling board (§5) is one option.
-   The alternative is something abstract and slower. Worth a look before it is
-   drawn, since it is the most bespoke asset in the module.
+4. **Account linking rule** (§9) — needs deciding before OAuth ships, not after.
+5. **Work-email helper text** — Notion nudges toward an org email because it has
+   a teams model. We do not yet. Copying the line without the feature is cargo
+   cult; leave it out until workspaces exist?
 5. **`/verify-email` auto-redirect** — 2s is a guess. Some find it abrupt.
 
 ---
@@ -559,12 +699,15 @@ Both themes must be checked — the right panel is brand-tinted in both, so
 Each step is independently reviewable and leaves the app in a working state.
 
 1. Types, validation rules, `lib/auth.ts` fixtures, `lib/actions/auth-actions.ts`
-2. `(auth)/layout.tsx` + `auth-aside` + `auth-header` + a **static** illustration
+2. `(auth)/layout.tsx` + `auth-aside` + `auth-header` + the panel's three
+   layers, **static** — composition first, motion in step 9
 3. `text-field`, `password-field`, `checkbox`, `password-strength`
 4. `/sign-up` end to end
-5. `/sign-in` two-step end to end
+5. `/sign-in`: step 1, then step 2 in **password** mode end to end
 6. `/forgot-password` + `/reset-password`
 7. `/verify-email` three states
 8. `proxy.ts` route protection + sign out
-9. Animate the illustration, including the reduced-motion path
-10. Full a11y and both-themes pass against §14
+9. `code-input` + step 2's **code** mode, mode switching, resend cooldown
+10. Animate the panel — gradient drift, shapes, parallax — and the
+    reduced-motion path
+11. Full a11y and both-themes pass against §14
