@@ -6,6 +6,7 @@ import { CardTile } from "@/components/board/card-tile";
 import { BoardPageHeader } from "@/components/sprint-board/board-page-header";
 import { SprintBoardPanel } from "@/components/sprint-board/sprint-board-panel";
 import { getSession } from "@/lib/auth";
+import { SKIP_AUTH } from "@/lib/demo-auth";
 import { getBoard } from "@/lib/boards";
 import { getBoardAssignees, getSprintBoard } from "@/lib/demo-board";
 import { DEMO_TODAY } from "@/lib/demo-projects";
@@ -53,7 +54,9 @@ export default async function BoardPage({ params }: PageProps<"/board/[boardId]"
    * actually resolved to a user, and a cookie that resolves to nobody is
    * treated exactly like no cookie at all.
    */
-  if (!(await getSession())) redirect(`/sign-in?next=/board/${boardId}`);
+  /* TEMP: see `lib/demo-auth.ts`. */
+  if (!SKIP_AUTH && !(await getSession()))
+    redirect(`/sign-in?next=/board/${boardId}`);
 
   const sprintBoard = await getSprintBoard(boardId);
 

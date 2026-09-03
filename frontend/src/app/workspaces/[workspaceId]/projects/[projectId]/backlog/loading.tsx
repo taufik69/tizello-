@@ -7,7 +7,7 @@ const SKELETON_ROWS = ["a", "b", "c", "d", "e"];
  */
 export default function BacklogLoading() {
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+    <main className="w-full px-4 py-8 sm:px-6">
       <div className="space-y-2">
         <div className="h-3 w-28 animate-pulse rounded-xs bg-surface-sunken" />
         <div className="h-6 w-32 animate-pulse rounded-sm bg-surface-sunken" />

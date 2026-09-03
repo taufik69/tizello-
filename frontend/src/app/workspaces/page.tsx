@@ -19,7 +19,7 @@ export default async function WorkspacesPage() {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <main className="w-full px-4 py-8 sm:px-6">
         <header className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight text-text">
             Workspaces

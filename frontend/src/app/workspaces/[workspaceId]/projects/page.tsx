@@ -50,7 +50,7 @@ export default async function ProjectsPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+    <main className="w-full px-4 py-8 sm:px-6">
       <ProjectsPageHeader workspace={workspace} />
 
       {/* The strip wraps rather than scrolls: at 360px the five view links

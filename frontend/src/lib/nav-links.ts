@@ -13,6 +13,19 @@ import type { SidebarItem, SidebarSection } from "@/types/nav";
  * disabled — the flow stays visible without emitting a dead link.
  */
 
+/*
+ * TEMPORARY — design review only. See `lib/demo-auth.ts`.
+ *
+ * Projects and Members are workspace-scoped and Sprints / Sprint planning are
+ * project-scoped, so from `/board/*` there is nothing to scope them to and they
+ * all render disabled. While the UI is being designed every section has to be
+ * reachable, so an unscoped item falls back to a fixture workspace and project
+ * rather than going dead. Delete these two constants and the fallbacks in
+ * `resolveHref` once the shell can hold a real project.
+ */
+const DEMO_WORKSPACE_ID = "atlas-robotics";
+const DEMO_PROJECT_ID = "TIZ-1";
+
 export const PRIMARY_ITEMS: readonly SidebarItem[] = [
   { id: "home", label: "Home", icon: "home", href: "/workspaces" },
   {
@@ -63,14 +76,23 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
         href: "/board/sprint",
       },
       {
-        /* Built, but per project: the screen lives at
-           `/workspaces/[workspaceId]/projects/[projectId]/sprint-planning`,
-           and the sidebar knows a workspace at most — it has no project to
-           scope the link to. It stays hint-only until a project is a thing the
-           shell can hold, exactly as Backlog and Sprints do. */
+        /* Per project: `/workspaces/[id]/projects/[id]/sprints`. TEMP-scoped
+           to the fixture project so the section is reachable. */
+        id: "sprints",
+        label: "Sprints",
+        icon: "sprint",
+        workspaceScoped: true,
+        workspaceSegment: `/projects/${DEMO_PROJECT_ID}/sprints`,
+        hint: "Open a project to see its sprints",
+      },
+      {
+        /* Per project: `/workspaces/[id]/projects/[id]/sprint-planning`. TEMP-
+           scoped to the fixture project so the section is reachable. */
         id: "sprint-planning",
         label: "Sprint planning",
         icon: "planning",
+        workspaceScoped: true,
+        workspaceSegment: `/projects/${DEMO_PROJECT_ID}/sprint-planning`,
         hint: "Open a project to plan its sprint",
       },
     ],
@@ -95,6 +117,8 @@ export function resolveHref(
   workspaceId?: string,
 ): string | undefined {
   if (!item.workspaceScoped) return item.href;
-  if (!workspaceId) return undefined;
-  return `/workspaces/${workspaceId}${item.workspaceSegment ?? ""}`;
+  /* TEMP: no open workspace used to mean "render disabled". See the note on
+     DEMO_WORKSPACE_ID above. */
+  const id = workspaceId ?? DEMO_WORKSPACE_ID;
+  return `/workspaces/${id}${item.workspaceSegment ?? ""}`;
 }

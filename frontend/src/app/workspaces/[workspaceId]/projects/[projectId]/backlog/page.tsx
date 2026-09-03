@@ -46,7 +46,7 @@ export default async function ProjectBacklogPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+    <main className="w-full px-4 py-8 sm:px-6">
       <BacklogPageHeader workspaceId={workspace.id} project={project} />
 
       {/* Everything below the header is interactive, so `BacklogPanel` is the

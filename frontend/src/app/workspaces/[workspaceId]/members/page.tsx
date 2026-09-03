@@ -42,7 +42,7 @@ export default async function MembersPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <main className="w-full px-4 py-8 sm:px-6">
       <MembersPageHeader workspace={workspace} />
       <MembersPanel
         members={members}

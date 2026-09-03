@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SKIP_AUTH } from "@/lib/demo-auth";
 import { SESSION_COOKIE } from "@/lib/session-cookie";
 
 /*
@@ -11,6 +12,9 @@ import { SESSION_COOKIE } from "@/lib/session-cookie";
  * with any value at all passes here.
  */
 export function proxy(request: NextRequest) {
+  /* TEMP: see `lib/demo-auth.ts`. */
+  if (SKIP_AUTH) return NextResponse.next();
+
   if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
 
   const url = request.nextUrl.clone();

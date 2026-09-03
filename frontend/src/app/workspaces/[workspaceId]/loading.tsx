@@ -2,7 +2,7 @@ const SKELETON_CARDS = ["a", "b", "c"];
 
 export default function WorkspaceLoading() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <main className="w-full px-4 py-8 sm:px-6">
       <div className="flex items-start gap-3">
         <div className="size-8 animate-pulse rounded-full bg-surface-sunken" />
         <div className="flex-1 space-y-2">
