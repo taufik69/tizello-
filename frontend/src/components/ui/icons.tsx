@@ -143,3 +143,22 @@ export function PencilIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Start, on a planning sprint's kebab menu. */
+export function PlayIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 3.4l7 4.6-7 4.6z" />
+    </Icon>
+  );
+}
+
+/** Complete, on the active sprint's kebab menu. */
+export function FlagIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 14V2.5" />
+      <path d="M4 3h7.5l-1.4 2.5L11.5 8H4z" />
+    </Icon>
+  );
+}
