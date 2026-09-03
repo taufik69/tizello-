@@ -19,6 +19,19 @@ const VARIANT = {
 
 export type BadgeVariant = keyof typeof VARIANT;
 
+/**
+ * The chrome without a fill, for callers whose palette is domain knowledge and
+ * therefore does not belong in `ui/` — the project status and priority chips
+ * map six statuses and three priorities to complete class strings of their own.
+ * Same bargain as `button.tsx`'s `BRAND_FILL`: one place owns the geometry, so
+ * a second chip cannot drift from this one.
+ *
+ * It deliberately sets no colour. `cn` is a plain join, so a base that set one
+ * would leave two fills in the class list and let source order pick.
+ */
+export const BADGE_BASE =
+  "inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-2xs font-semibold whitespace-nowrap";
+
 export function Badge({
   variant = "default",
   className,
@@ -26,11 +39,7 @@ export function Badge({
 }: React.ComponentProps<"span"> & { variant?: BadgeVariant }) {
   return (
     <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-2xs font-semibold whitespace-nowrap",
-        VARIANT[variant],
-        className,
-      )}
+      className={cn(BADGE_BASE, VARIANT[variant], className)}
       {...props}
     />
   );

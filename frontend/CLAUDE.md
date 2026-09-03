@@ -31,9 +31,13 @@ against demo data in `src/lib/`, never that a backend is wired.
       switcher, create dialog, sidebar shell.
 - [x] **Members** — roster, role menu, remove-with-confirm, invite dialog,
       pending-invites tab, and the accept page at `/invite/[token]`.
-- [ ] **Projects** — grid, cards and the create dialog render on the workspace
-      page; no project detail route, `ProjectCard` is not a link, and boards are
-      not scoped to a project.
+- [ ] **Projects** — `/workspaces/[workspaceId]/projects` renders five
+      URL-driven views (`?view=active|timeline|board|all|status`) over
+      `demo-projects.ts`, plus the grid and create dialog on the workspace page.
+      Every control in the toolbar is a `LockedControl`: no create, filter,
+      sort, search or drag & drop. No project detail route, and boards are not
+      scoped to a project. `Project` (workspace tile) and `ProjectRecord`
+      (full record) are still two types.
 - [ ] **Backlog** — `/board/backlog` renders with a working card composer, but
       it is one global backlog, not per-project.
 - [ ] **Sprint** — `Sprint` type (number, `startsOn`/`endsOn`, `closedOn`) and

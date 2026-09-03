@@ -30,6 +30,7 @@ const STATUS = [
   ["bg-warning-subtle", "text-warning", "Warning"],
   ["bg-danger-subtle", "text-danger", "Danger"],
   ["bg-info-subtle", "text-info", "Info"],
+  ["bg-accent-subtle", "text-accent", "Accent"],
 ];
 
 export function BrandPalette() {
@@ -79,7 +80,7 @@ export function NeutralPalettes() {
 export function StatusPalette() {
   return (
     <Section title="Status">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {STATUS.map(([bg, fg, label]) => (
           <div key={label} className={`rounded-md border border-border p-4 ${bg}`}>
             <p className={`text-sm font-semibold ${fg}`}>{label}</p>

@@ -139,6 +139,30 @@ so a second green would read as a bug.
 | `warning` | `#b57f00` | `#f5cd47` | | `warning-subtle` | `#fff7e0` | `#332e1b` |
 | `danger` | `#c9372c` | `#f87168` | | `danger-subtle` | `#ffedeb` | `#42221f` |
 | `info` | `#1d69d4` | `#579dff` | | `info-subtle` | `#e9f2ff` | `#1c2b41` |
+| `accent` | `#5b3fc4` | `#9f8fef` | | `accent-subtle` | `#f3effc` | `#2a2440` |
+
+`accent` is the fifth status hue, added for the Projects screens: *done*,
+*held*, *failed* and *active* were covered, a **preparatory** phase was not, and
+reusing `info` would have made "Planning" indistinguishable from "In Progress".
+Plum is the only hue left unspoken-for. Its primitives are `plum-50 / plum-600 /
+plum-900` in block 1; the dark ink reuses `label-purple`.
+
+**A `-subtle` fill does not automatically pair with its own strong token.**
+Measured against the values above, at 11px:
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| `text-success` on `bg-success-subtle` | 2.82:1 ❌ | 6.80:1 |
+| `text-warning` on `bg-warning-subtle` | 3.27:1 ❌ | 8.86:1 |
+| `text-info` on `bg-info-subtle` | 4.63:1 | 5.21:1 |
+| `text-danger` on `bg-danger-subtle` | 4.57:1 | 5.10:1 |
+| **`text-text-muted` on any `-subtle`** | **5.70–6.03:1 ✅** | **5.90–6.44:1 ✅** |
+
+So a status chip takes **neutral ink on a tinted fill**: the hue is carried by
+the fill, which is the part that is recognisable at a glance. The strong token
+is for dots, ring arcs and bar rails, where the bar is 3:1 — and even there it
+must sit on `surface`, not `surface-sunken` (`success` on `surface-sunken` is
+2.59:1 in light).
 
 ### Card labels
 

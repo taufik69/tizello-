@@ -125,6 +125,18 @@
   --color-label-blue: #579dff;
 
   /* ----------------------------------------------------------------------
+     PLUM — the fifth status hue, backing --accent in block 3.
+     Green, amber, red and blue are already spoken for by brand/success,
+     warning, danger and info, so a project phase that is none of those
+     (Planning) had no colour left. #9f8fef already exists as label-purple and
+     is the dark-mode ink; it is far too light to carry 11px text on white, so
+     the light-mode ink is a deeper plum and the two fills are its ends.
+     ---------------------------------------------------------------------- */
+  --color-plum-50: #f3effc;   /* subtle fill, light  */
+  --color-plum-600: #5b3fc4;  /* ink / dot, light    */
+  --color-plum-900: #2a2440;  /* subtle fill, dark   */
+
+  /* ----------------------------------------------------------------------
      RADII — Trello's census was 2 / 3 / 4 / 4.8 / 8px. Reduced to five steps.
      ---------------------------------------------------------------------- */
   --radius-xs: 0.1875rem;  /* 3px  — chips, labels   */
@@ -221,6 +233,16 @@
   --info:           light-dark(#1d69d4,             #579dff);
   --info-subtle:    light-dark(#e9f2ff,             #1c2b41);
 
+  /* A fifth status hue. success / warning / danger / info cover done, held,
+     failed and active; a preparatory phase (a project still being scoped) is
+     none of those, and reusing `info` would make it indistinguishable from
+     "in progress". Plum is the only hue in the palette not already carrying a
+     meaning. Ink is `text-text-muted` on the subtle fill (5.70:1 light,
+     6.44:1 dark); `--accent` itself is for dots, arcs and bar rails, where it
+     clears 3:1 on `surface` in both themes (7.11:1 / 5.49:1). */
+  --accent:         light-dark(var(--color-plum-600), var(--color-label-purple));
+  --accent-subtle:  light-dark(var(--color-plum-50),  var(--color-plum-900));
+
   /* Trello tints its shadows with #091E42 rather than pure black. */
   --elev-card: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
   --elev-raised: 0 4px 8px -2px rgba(9, 30, 66, 0.1), 0 0 1px rgba(9, 30, 66, 0.2);
@@ -289,6 +311,8 @@
   --color-danger-subtle: var(--danger-subtle);
   --color-info: var(--info);
   --color-info-subtle: var(--info-subtle);
+  --color-accent: var(--accent);
+  --color-accent-subtle: var(--accent-subtle);
 }
 
 /* ==========================================================================
