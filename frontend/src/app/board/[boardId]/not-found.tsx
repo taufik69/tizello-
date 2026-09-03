@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function BoardNotFound() {
   return (
-    <main className="grid min-h-dvh place-items-center bg-canvas px-6">
+    <main className="grid h-full place-items-center px-6">
       <div className="max-w-sm space-y-3 text-center">
         <h1 className="text-xl font-semibold text-text">Board not found</h1>
         <p className="text-sm text-text-muted">

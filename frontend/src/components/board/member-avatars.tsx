@@ -1,13 +1,5 @@
+import { initials } from "@/lib/initials";
 import type { Member } from "@/types/board";
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
 
 /**
  * Overlapping initials discs. Kept small and low-contrast so they read as a

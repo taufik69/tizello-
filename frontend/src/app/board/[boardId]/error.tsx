@@ -12,7 +12,7 @@ export default function BoardError({
   reset: () => void;
 }) {
   return (
-    <main className="grid min-h-dvh place-items-center bg-canvas px-6">
+    <main className="grid h-full place-items-center px-6">
       <div className="max-w-sm space-y-3 text-center">
         <h1 className="text-xl font-semibold text-text">
           This board didn&rsquo;t load

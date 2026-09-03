@@ -1,5 +1,11 @@
+import { BRAND_FILL } from "@/components/ui/button";
+
 /**
  * The primary button on every auth form. 40px, full width.
+ *
+ * The colour, hover and press treatment now lives in `ui/button.tsx` as
+ * `BRAND_FILL`, so the auth submit and the app's `<Button variant="default">`
+ * cannot drift apart. Only the geometry is local:
  *
  * `bg-brand-500` carries `text-on-brand` — dark ink, 7.1:1. White on mint is
  * 2.2:1 and must never ship (DESIGN-SYSTEM.md, contrast rule).
@@ -9,8 +15,7 @@
  * you point at it, which is the opposite of what a hover should say. The press
  * is a 1px drop, not a third colour.
  */
-export const AUTH_BUTTON =
-  "h-10 w-full rounded-sm bg-brand-500 text-sm font-semibold text-on-brand transition-[background-color,transform] duration-100 ease-standard hover:bg-brand-600 active:translate-y-px active:bg-brand-600 disabled:pointer-events-none disabled:opacity-60";
+export const AUTH_BUTTON = `h-10 w-full rounded-sm text-sm font-semibold ${BRAND_FILL}`;
 
 export function AuthSubmit({
   label,

@@ -126,6 +126,7 @@ These are the tokens components use. Each resolves per theme.
 | `border` | `ink-300` | `slate-500` | default hairline |
 | `border-strong` | `ink-400` | `slate-600` | emphasised divider, input border |
 | `focus` | `brand-600` | `brand-400` | the focus ring |
+| `scrim` | `ink-950 @ 55%` | `#030404 @ 72%` | the `::backdrop` behind a modal |
 
 ### Status
 

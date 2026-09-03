@@ -1,0 +1,29 @@
+import {
+  BacklogIcon,
+  HomeIcon,
+  MembersIcon,
+  PlanningIcon,
+  ProjectsIcon,
+  SearchIcon,
+  SprintIcon,
+} from "@/components/ui/nav-icons";
+import type { SidebarIconName } from "@/types/nav";
+
+/*
+ * Name → glyph. Nav data crosses the server/client boundary as plain props, so
+ * a component cannot travel with it; this is the client-side half of that
+ * split. A complete `Record` rather than a lookup with a fallback, so adding an
+ * icon name without drawing it is a type error.
+ */
+export const SIDEBAR_ICON: Record<
+  SidebarIconName,
+  React.ComponentType<{ className?: string }>
+> = {
+  home: HomeIcon,
+  search: SearchIcon,
+  projects: ProjectsIcon,
+  members: MembersIcon,
+  backlog: BacklogIcon,
+  sprint: SprintIcon,
+  planning: PlanningIcon,
+};

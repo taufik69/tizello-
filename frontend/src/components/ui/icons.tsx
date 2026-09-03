@@ -1,10 +1,17 @@
 /*
- * Hand-rolled 12px glyphs rather than an icon package — the board needs five,
- * and a dependency would ship far more than that. All inherit currentColor.
+ * Hand-rolled 16px glyphs rather than an icon package — a dependency would ship
+ * far more than the handful this app draws. All inherit currentColor.
+ *
+ * This file holds the board and menu glyphs. The app shell's navigation set
+ * lives next door in `nav-icons.tsx` and shares the `Icon` wrapper exported
+ * here: one file carrying both would sit over the 150-line cap.
  */
-type IconProps = { className?: string };
+export type IconProps = { className?: string };
 
-function Icon({ children, className }: IconProps & { children: React.ReactNode }) {
+export function Icon({
+  children,
+  className,
+}: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -60,6 +67,31 @@ export function PlusIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <path d="M8 3.5v9M3.5 8h9" />
+    </Icon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 6.5L8 10.5l4-4" />
+    </Icon>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 8.5l3.5 3.5L13 4.5" />
+    </Icon>
+  );
+}
+
+export function SettingsIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="8" r="2.25" />
+      <path d="M8 1.5l1 1.6 1.9-.3.4 1.9 1.7.9-1 1.6 1 1.6-1.7.9-.4 1.9-1.9-.3-1 1.6-1-1.6-1.9.3-.4-1.9-1.7-.9 1-1.6-1-1.6 1.7-.9.4-1.9 1.9.3z" />
     </Icon>
   );
 }

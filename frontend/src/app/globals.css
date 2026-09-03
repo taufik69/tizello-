@@ -202,6 +202,12 @@
   --auth-panel-from: light-dark(var(--color-brand-600), var(--color-brand-800));
   --auth-panel-to:   light-dark(var(--color-brand-800), var(--color-brand-950));
 
+  /* The modal scrim. Not a surface and not text, so no existing token covered
+     it: it has to DARKEN whatever is behind it in both themes, which a themed
+     surface token cannot do (bg-canvas is near-white in light). Tinted with
+     ink-950 / near-black to match the elevation recipes above. */
+  --scrim:          light-dark(rgba(9, 30, 66, 0.55), rgba(3, 4, 4, 0.72));
+
   --border:         light-dark(var(--color-ink-300),  var(--color-slate-500));
   --border-strong:  light-dark(var(--color-ink-400),  var(--color-slate-600));
   --focus:          light-dark(var(--color-brand-600), var(--color-brand-400));
@@ -268,6 +274,8 @@
   --color-on-board: var(--on-board);
   --color-auth-panel-from: var(--auth-panel-from);
   --color-auth-panel-to: var(--auth-panel-to);
+
+  --color-scrim: var(--scrim);
 
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
