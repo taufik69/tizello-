@@ -97,6 +97,11 @@ export function sprintFromDraft(
     itemCount: base?.itemCount ?? 0,
     totalPoints: base?.totalPoints ?? 0,
     doneCount: base?.doneCount ?? 0,
+    /* Carried, not re-derived: the capacity target is set elsewhere and this
+       form has no field for it, so rebuilding the record without it would
+       silently erase the number planning measures against. Absent stays
+       absent rather than becoming 0 — unknown is not zero. */
+    ...(base?.capacityPoints ? { capacityPoints: base.capacityPoints } : {}),
   };
 }
 

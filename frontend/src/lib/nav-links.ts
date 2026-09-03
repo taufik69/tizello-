@@ -63,10 +63,15 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
         href: "/board/sprint-4",
       },
       {
+        /* Built, but per project: the screen lives at
+           `/workspaces/[workspaceId]/projects/[projectId]/sprint-planning`,
+           and the sidebar knows a workspace at most — it has no project to
+           scope the link to. It stays hint-only until a project is a thing the
+           shell can hold, exactly as Backlog and Sprints do. */
         id: "sprint-planning",
         label: "Sprint planning",
         icon: "planning",
-        hint: "Sprint planning is not built yet",
+        hint: "Open a project to plan its sprint",
       },
     ],
   },

@@ -48,6 +48,14 @@ export type SprintRecord = {
   totalPoints: number;
   /** How many of `itemCount` are done. Always `<= itemCount`. */
   doneCount: number;
+  /**
+   * How many points the team expects to finish inside this box — the target
+   * planning fills against, not a limit anything enforces. Optional because it
+   * is a forecast someone has to make: a sprint booked on a Friday and not yet
+   * discussed has no number, and `0` would read as "no capacity" rather than
+   * "unknown". `totalPoints` above is what is actually IN the sprint.
+   */
+  capacityPoints?: number;
 };
 
 /**

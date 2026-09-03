@@ -40,10 +40,21 @@ against demo data in `src/lib/`, never that a backend is wired.
       (full record) are still two types.
 - [ ] **Backlog** — `/board/backlog` renders with a working card composer, but
       it is one global backlog, not per-project.
-- [ ] **Sprint** — `Sprint` type (number, `startsOn`/`endsOn`, `closedOn`) and
-      one fixture sprint; no create-sprint UI and no date input anywhere.
-- [ ] **Sprint planning** — `planIntoSprint()` / `closeSprint()` and both Server
-      Actions are complete and correct; nothing calls them. Logic done, no UI.
+- [ ] **Sprint** — `/workspaces/[workspaceId]/projects/[projectId]/sprints`
+      lists five fixture sprints from `demo-sprints.ts`, grouped Active /
+      Planning / Completed, with a create-and-edit dialog (`TextField
+      type="date"` is the date input), start / complete confirms and
+      delete-with-confirm. All `useState`: nothing persists past a refresh.
+      `Sprint` (board stamp) and `SprintRecord` (full record) are two types.
+- [ ] **Sprint planning** —
+      `/workspaces/[workspaceId]/projects/[projectId]/sprint-planning` renders
+      the backlog and the selected PLANNING sprint side by side, moves tasks
+      between them by setting `sprintId`, totals story points against the
+      sprint's `capacityPoints`, and confirms Start sprint in a dialog. Working
+      search, priority filter and sort on the backlog side; no drag & drop.
+      Every move is client state over `lib/sprint-planning.ts` — the pure
+      helpers are shaped like `planIntoSprint()` / `closeSprint()` and their
+      Server Actions, which remain complete, correct and still uncalled.
 - [x] **Columns** — To do / In progress / Done, fixed on sprint boards, rendered
       by `BoardColumn` + `ColumnPill`. A card's list is its status.
 - [ ] **Sprint board + tasks** — board, cards, labels, meta and the composer all
