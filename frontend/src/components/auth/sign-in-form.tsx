@@ -65,33 +65,38 @@ export function SignInForm({ next }: { next?: string }) {
 
       <AuthAlert code={state.code} />
 
-      {step === 1 ? (
-        <SignInEmailStep
-          email={email}
-          error={emailError ?? state.fieldErrors?.email}
-          inputRef={emailRef}
-          remember={remember}
-          onEmailChange={setEmail}
-          onRememberChange={setRemember}
-          onContinue={advance}
-        />
-      ) : mode === "code" ? (
-        <SignInCodeStep
-          email={email}
-          error={state.fieldErrors?.code}
-          pending={pending}
-          onChangeEmail={back}
-          onUsePassword={() => switchTo("password")}
-        />
-      ) : (
-        <SignInPasswordStep
-          email={email}
-          error={state.fieldErrors?.password}
-          pending={pending}
-          onChangeEmail={back}
-          onUseCode={() => switchTo("code")}
-        />
-      )}
+      {/* Keyed on the step AND the mode so a swap remounts — which is what
+          re-runs `auth-enter`. Each step already owns its own focus, so the
+          remount costs nothing. */}
+      <div key={`${step}-${mode}`} className="auth-enter space-y-4">
+        {step === 1 ? (
+          <SignInEmailStep
+            email={email}
+            error={emailError ?? state.fieldErrors?.email}
+            inputRef={emailRef}
+            remember={remember}
+            onEmailChange={setEmail}
+            onRememberChange={setRemember}
+            onContinue={advance}
+          />
+        ) : mode === "code" ? (
+          <SignInCodeStep
+            email={email}
+            error={state.fieldErrors?.code}
+            pending={pending}
+            onChangeEmail={back}
+            onUsePassword={() => switchTo("password")}
+          />
+        ) : (
+          <SignInPasswordStep
+            email={email}
+            error={state.fieldErrors?.password}
+            pending={pending}
+            onChangeEmail={back}
+            onUseCode={() => switchTo("code")}
+          />
+        )}
+      </div>
 
       <p aria-live="polite" className="sr-only">
         {announcement}

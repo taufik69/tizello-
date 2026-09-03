@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthAside } from "@/components/auth/auth-aside";
 import { AuthColumn } from "@/components/auth/auth-column";
 import { AuthDivider } from "@/components/auth/auth-divider";
+import { AuthFooter } from "@/components/auth/auth-footer";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { getSession } from "@/lib/auth";
@@ -39,15 +39,13 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
         <AuthDivider label="or continue with" />
         <SocialButtons next={target ?? undefined} />
 
-        <p className="mt-6 flex justify-center gap-3 text-sm text-text-muted">
-          <Link href="/forgot-password" className="font-semibold text-text-brand">
-            Can&rsquo;t log in?
-          </Link>
-          <span aria-hidden="true">·</span>
-          <Link href="/sign-up" className="font-semibold text-text-brand">
-            Create an account
-          </Link>
-        </p>
+        <AuthFooter
+          prompt="New to Tizello?"
+          href="/sign-up"
+          label="Create an account"
+          secondaryHref="/forgot-password"
+          secondaryLabel="Can&rsquo;t log in?"
+        />
       </AuthColumn>
 
       <AuthAside variant="sign-in" />

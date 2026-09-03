@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AuthSubmit } from "@/components/auth/auth-submit";
 import { SignInIdentity } from "@/components/auth/sign-in-identity";
 import { PasswordField } from "@/components/ui/password-field";
@@ -44,12 +43,6 @@ export function SignInPasswordStep({
         >
           Use a login code instead
         </button>
-        <Link
-          href="/forgot-password"
-          className="rounded-sm text-2xs text-text-subtle transition-colors duration-100 ease-standard hover:text-text-muted"
-        >
-          Can&rsquo;t log in?
-        </Link>
       </div>
     </>
   );

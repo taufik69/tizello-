@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthAside } from "@/components/auth/auth-aside";
 import { AuthColumn } from "@/components/auth/auth-column";
 import { AuthDivider } from "@/components/auth/auth-divider";
+import { AuthFooter } from "@/components/auth/auth-footer";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { getSession } from "@/lib/auth";
@@ -31,12 +31,11 @@ export default async function SignUpPage({ searchParams }: PageProps<"/sign-up">
         <AuthDivider label="or continue with" />
         <SocialButtons next={target ?? undefined} />
 
-        <p className="mt-6 text-center text-sm text-text-muted">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="font-semibold text-text-brand">
-            Log in
-          </Link>
-        </p>
+        <AuthFooter
+          prompt="Already have an account?"
+          href="/sign-in"
+          label="Log in"
+        />
       </AuthColumn>
 
       <AuthAside variant="sign-up" />

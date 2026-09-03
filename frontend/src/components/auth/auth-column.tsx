@@ -24,7 +24,7 @@ export function AuthColumn({
       <AuthLogo />
 
       <main className="flex flex-1 items-center py-10">
-        <div className="mx-auto w-full max-w-[22rem]">
+        <div className="auth-enter mx-auto w-full max-w-[22rem]">
           <AuthHeader heading={heading} sub={sub} />
           {children}
         </div>
