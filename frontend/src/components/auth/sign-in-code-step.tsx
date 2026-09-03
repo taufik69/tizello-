@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { AuthSubmit } from "@/components/auth/auth-submit";
 import { ResendButton } from "@/components/auth/resend-button";
@@ -59,12 +58,6 @@ export function SignInCodeStep({
         >
           Use a password instead
         </button>
-        <Link
-          href="/forgot-password"
-          className="rounded-sm text-2xs text-text-subtle transition-colors duration-100 ease-standard hover:text-text-muted"
-        >
-          Can&rsquo;t log in?
-        </Link>
       </div>
     </>
   );

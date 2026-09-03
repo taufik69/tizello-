@@ -1,3 +1,4 @@
+import { settle } from "@/lib/settle";
 import type { Board, Card, LabelColor, SprintStatus } from "@/types/board";
 
 /*
@@ -114,10 +115,6 @@ const boards: Board[] = [
     ],
   },
 ];
-
-/** Simulates the latency of a real query so loading.tsx is observable. */
-const settle = <T,>(value: T): Promise<T> =>
-  new Promise((resolve) => setTimeout(() => resolve(value), 120));
 
 export function getBoard(boardId: string): Promise<Board | undefined> {
   return settle(boards.find((board) => board.id === boardId));

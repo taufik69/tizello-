@@ -1,10 +1,17 @@
 /*
- * Hand-rolled 12px glyphs rather than an icon package — the board needs five,
- * and a dependency would ship far more than that. All inherit currentColor.
+ * Hand-rolled 16px glyphs rather than an icon package — a dependency would ship
+ * far more than the handful this app draws. All inherit currentColor.
+ *
+ * This file holds the board and menu glyphs. The app shell's navigation set
+ * lives next door in `nav-icons.tsx` and shares the `Icon` wrapper exported
+ * here: one file carrying both would sit over the 150-line cap.
  */
-type IconProps = { className?: string };
+export type IconProps = { className?: string };
 
-function Icon({ children, className }: IconProps & { children: React.ReactNode }) {
+export function Icon({
+  children,
+  className,
+}: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -60,6 +67,99 @@ export function PlusIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <path d="M8 3.5v9M3.5 8h9" />
+    </Icon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 6.5L8 10.5l4-4" />
+    </Icon>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 8.5l3.5 3.5L13 4.5" />
+    </Icon>
+  );
+}
+
+export function SettingsIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="8" r="2.25" />
+      <path d="M8 1.5l1 1.6 1.9-.3.4 1.9 1.7.9-1 1.6 1 1.6-1.7.9-.4 1.9-1.9-.3-1 1.6-1-1.6-1.9.3-.4-1.9-1.7-.9 1-1.6-1-1.6 1.7-.9.4-1.9 1.9.3z" />
+    </Icon>
+  );
+}
+
+/** The kebab. Icon-only triggers that use it always carry an `aria-label`. */
+export function MoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="3.25" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="12.75" r=".85" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.5 4h11M6.5 4V2.5h3V4M4 4l.6 8.4A1.2 1.2 0 005.8 13.5h4.4a1.2 1.2 0 001.2-1.1L12 4" />
+      <path d="M6.75 6.75v4M9.25 6.75v4" />
+    </Icon>
+  );
+}
+
+/**
+ * The six-dot grip. On a backlog row it is decorative — reordering there is not
+ * built, so the handle is `aria-hidden` rather than a control that looks
+ * draggable and is not. On a sprint board card it sits inside a real button
+ * that starts a drag, which is where the affordance is honest.
+ */
+export function GripIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="6" cy="4" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="4" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="8" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="8" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="12" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="12" r=".85" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
+/** Edit, on a row's kebab menu. */
+export function PencilIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M11.2 2.3a1.1 1.1 0 011.6 0l.9.9a1.1 1.1 0 010 1.6L5.9 12.6l-3 .5.5-3z" />
+      <path d="M10.2 3.3l2.5 2.5" />
+    </Icon>
+  );
+}
+
+/** Start, on a planning sprint's kebab menu. */
+export function PlayIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 3.4l7 4.6-7 4.6z" />
+    </Icon>
+  );
+}
+
+/** Complete, on the active sprint's kebab menu. */
+export function FlagIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 14V2.5" />
+      <path d="M4 3h7.5l-1.4 2.5L11.5 8H4z" />
     </Icon>
   );
 }

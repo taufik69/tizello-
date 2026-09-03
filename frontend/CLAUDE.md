@@ -14,6 +14,70 @@ A Trello-style task management app. This package is the web client.
 @.claude/rules/ui-components.md
 @.claude/rules/pages-and-structure.md
 
+## Build progress
+
+> Keep this current — check items off as they ship.
+
+What is actually in `src/`, not what is planned. Everything here is
+frontend-only and fixture-backed: a checked box means the UI exists and works
+against demo data in `src/lib/`, never that a backend is wired.
+
+- [x] **Design system + theming** — tokens in `globals.css`, every colour a
+      `light-dark()` pair, `ThemeToggle`. The reference page still occupies `/`.
+- [x] **Auth** — sign-in (email → password or code), sign-up, forgot/reset
+      password, verify email, sign-out. Server Actions over `auth-fixtures.ts`;
+      `proxy.ts` does the optimistic cookie check.
+- [x] **Workspace** — `/workspaces` grid, `/workspaces/[workspaceId]` detail,
+      switcher, create dialog, sidebar shell.
+- [x] **Members** — roster, role menu, remove-with-confirm, invite dialog,
+      pending-invites tab, and the accept page at `/invite/[token]`.
+- [ ] **Projects** — `/workspaces/[workspaceId]/projects` renders five
+      URL-driven views (`?view=active|timeline|board|all|status`) over
+      `demo-projects.ts`, plus the grid and create dialog on the workspace page.
+      Every control in the toolbar is a `LockedControl`: no create, filter,
+      sort, search or drag & drop. No project detail route, and boards are not
+      scoped to a project. `Project` (workspace tile) and `ProjectRecord`
+      (full record) are still two types.
+- [ ] **Backlog** — `/board/backlog` renders with a working card composer, but
+      it is one global backlog, not per-project.
+- [ ] **Sprint** — `/workspaces/[workspaceId]/projects/[projectId]/sprints`
+      lists five fixture sprints from `demo-sprints.ts`, grouped Active /
+      Planning / Completed, with a create-and-edit dialog (`TextField
+      type="date"` is the date input), start / complete confirms and
+      delete-with-confirm. All `useState`: nothing persists past a refresh.
+      `Sprint` (board stamp) and `SprintRecord` (full record) are two types.
+- [ ] **Sprint planning** —
+      `/workspaces/[workspaceId]/projects/[projectId]/sprint-planning` renders
+      the backlog and the selected PLANNING sprint side by side, moves tasks
+      between them by setting `sprintId`, totals story points against the
+      sprint's `capacityPoints`, and confirms Start sprint in a dialog. Working
+      search, priority filter and sort on the backlog side; no drag & drop.
+      Every move is client state over `lib/sprint-planning.ts` — the pure
+      helpers are shaped like `planIntoSprint()` / `closeSprint()` and their
+      Server Actions, which remain complete, correct and still uncalled.
+- [x] **Columns** — To do / In progress / Done, fixed on sprint boards, rendered
+      by `BoardColumn` + `ColumnPill`. A card's column is its status.
+      `BoardColumn` is the shell both boards share: pill, count, track, empty
+      state and a `footer` slot for the composer, plus optional droppable
+      wiring (`containerRef` / `isOver`) that the sprint board fills in.
+- [x] **Sprint board + tasks** — `/board/sprint` renders the one ACTIVE sprint
+      (SPR-13) from `demo-board.ts`: header with project, sprint, window and
+      state badge; live done/total and points on the toolbar; three columns of
+      task cards with id, priority, labels, points and assignee. **Drag & drop
+      works** — `@dnd-kit/core` + `@dnd-kit/sortable`, pointer and keyboard,
+      reorder within a column and move between them (which changes status),
+      `DragOverlay` ghost and a dashed drop indicator on the landing column.
+      A drop writes one float `position` (`lib/sprint-board.ts`), never a
+      renumber. Detail dialog edits every field including the column, with
+      empty-title validation and delete-with-confirm; a title-only quick add
+      sits under each column. Filter / sort / search are `LockedControl`s and
+      "Complete sprint" opens a confirm that changes nothing — `closeSprint` in
+      `lib/sprint.ts` is still uncalled. All `useState`: nothing persists past
+      a refresh.
+- [ ] **Permissions** — roles are typed and shown (`RoleBadge`), and the owner is
+      locked in the members UI; there is no permission helper and no action is
+      gated by role.
+
 ## Stack
 
 | Concern    | Choice                                        |
@@ -22,6 +86,7 @@ A Trello-style task management app. This package is the web client.
 | Language   | TypeScript (strict)                           |
 | Styling    | Tailwind CSS v4 — CSS-first config, no `tailwind.config.js` |
 | Font       | Inter, via `next/font/google`                 |
+| Drag & drop| `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board only) |
 | Alias      | `@/*` → `src/*`                               |
 
 ```bash
@@ -111,5 +176,5 @@ src/
   types/          # shared domain types
 ```
 
-Routes so far: `/` design-system reference · `/board/[boardId]` the board
-(`/board/sprint`).
+Routes so far: `/` design-system reference · `/board/[boardId]` the board —
+`/board/sprint` is the sprint board, `/board/backlog` the flat one.

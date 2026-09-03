@@ -125,6 +125,18 @@
   --color-label-blue: #579dff;
 
   /* ----------------------------------------------------------------------
+     PLUM — the fifth status hue, backing --accent in block 3.
+     Green, amber, red and blue are already spoken for by brand/success,
+     warning, danger and info, so a project phase that is none of those
+     (Planning) had no colour left. #9f8fef already exists as label-purple and
+     is the dark-mode ink; it is far too light to carry 11px text on white, so
+     the light-mode ink is a deeper plum and the two fills are its ends.
+     ---------------------------------------------------------------------- */
+  --color-plum-50: #f3effc;   /* subtle fill, light  */
+  --color-plum-600: #5b3fc4;  /* ink / dot, light    */
+  --color-plum-900: #2a2440;  /* subtle fill, dark   */
+
+  /* ----------------------------------------------------------------------
      RADII — Trello's census was 2 / 3 / 4 / 4.8 / 8px. Reduced to five steps.
      ---------------------------------------------------------------------- */
   --radius-xs: 0.1875rem;  /* 3px  — chips, labels   */
@@ -202,6 +214,12 @@
   --auth-panel-from: light-dark(var(--color-brand-600), var(--color-brand-800));
   --auth-panel-to:   light-dark(var(--color-brand-800), var(--color-brand-950));
 
+  /* The modal scrim. Not a surface and not text, so no existing token covered
+     it: it has to DARKEN whatever is behind it in both themes, which a themed
+     surface token cannot do (bg-canvas is near-white in light). Tinted with
+     ink-950 / near-black to match the elevation recipes above. */
+  --scrim:          light-dark(rgba(9, 30, 66, 0.55), rgba(3, 4, 4, 0.72));
+
   --border:         light-dark(var(--color-ink-300),  var(--color-slate-500));
   --border-strong:  light-dark(var(--color-ink-400),  var(--color-slate-600));
   --focus:          light-dark(var(--color-brand-600), var(--color-brand-400));
@@ -214,6 +232,16 @@
   --danger-subtle:  light-dark(#ffedeb,             #42221f);
   --info:           light-dark(#1d69d4,             #579dff);
   --info-subtle:    light-dark(#e9f2ff,             #1c2b41);
+
+  /* A fifth status hue. success / warning / danger / info cover done, held,
+     failed and active; a preparatory phase (a project still being scoped) is
+     none of those, and reusing `info` would make it indistinguishable from
+     "in progress". Plum is the only hue in the palette not already carrying a
+     meaning. Ink is `text-text-muted` on the subtle fill (5.70:1 light,
+     6.44:1 dark); `--accent` itself is for dots, arcs and bar rails, where it
+     clears 3:1 on `surface` in both themes (7.11:1 / 5.49:1). */
+  --accent:         light-dark(var(--color-plum-600), var(--color-label-purple));
+  --accent-subtle:  light-dark(var(--color-plum-50),  var(--color-plum-900));
 
   /* Trello tints its shadows with #091E42 rather than pure black. */
   --elev-card: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
@@ -269,6 +297,8 @@
   --color-auth-panel-from: var(--auth-panel-from);
   --color-auth-panel-to: var(--auth-panel-to);
 
+  --color-scrim: var(--scrim);
+
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-focus: var(--focus);
@@ -281,6 +311,8 @@
   --color-danger-subtle: var(--danger-subtle);
   --color-info: var(--info);
   --color-info-subtle: var(--info-subtle);
+  --color-accent: var(--accent);
+  --color-accent-subtle: var(--accent-subtle);
 }
 
 /* ==========================================================================
@@ -363,6 +395,7 @@
    check --on-board against. The bottom-left radial deliberately runs the other
    way, toward brand-950, because that is where layer 3's copy sits. */
 @utility auth-field {
+  position: relative;
   background-color: var(--auth-panel-to);
   background-image:
     radial-gradient(
@@ -370,8 +403,34 @@
       color-mix(in oklab, var(--color-brand-950) 58%, transparent),
       transparent 72%
     ),
-    radial-gradient(58% 52% at 86% 14%, var(--auth-panel-from), transparent 70%),
     linear-gradient(148deg, var(--auth-panel-from), var(--auth-panel-to));
+
+  /* The top-right brand radial rides its own pseudo-element so it can drift on
+     a different loop from the one above — see block 7. Painted first, so every
+     positioned child of the panel still sits above it. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+      58% 52% at 86% 14%,
+      var(--auth-panel-from),
+      transparent 70%
+    );
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* A layer has to be larger than the panel or there is nothing to slide. */
+    background-size: 168% 168%, 100% 100%;
+    background-position: 0% 100%, 0 0;
+    animation: auth-field-a 31s ease-in-out infinite alternate;
+
+    &::before {
+      background-size: 158% 158%;
+      background-position: 100% 0%;
+      animation: auth-field-b 23s ease-in-out infinite alternate;
+    }
+  }
 }
 
 /* Banding is the single most common way a panel like this looks cheap. One
@@ -388,4 +447,155 @@
    the 1px stroke carry the effect on their own, so the fallback is fine. */
 @utility glass-pane {
   backdrop-filter: blur(14px);
+}
+
+/* ==========================================================================
+   7. MOTION
+   The auth panel's long-loop drift (spec §5), plus the one entrance the form
+   column uses.
+
+   Every `animation` declaration sits inside
+   @media (prefers-reduced-motion: no-preference). Static is the default and
+   motion is the enhancement, so `reduce` gets the composed still rather than a
+   slowed-down version of the same thing.
+
+   Only transform, opacity and background-position are animated — nothing here
+   can trigger layout or a re-raster. `will-change` is on two elements: the
+   shape group and the blob.
+   ========================================================================== */
+
+/* Layer 1. The two radials drift on out-of-phase loops (31s and 23s) so the
+   field never visibly repeats. They need separate durations, and one element
+   can only carry one background-position animation — hence the pseudo-element,
+   which holds the top-right radial on its own timeline. */
+@keyframes auth-field-a {
+  to {
+    background-position: 24% 76%, 0 0;
+  }
+}
+@keyframes auth-field-b {
+  to {
+    background-position: 72% 28%;
+  }
+}
+
+/* Layer 2. Long, staggered, and never in phase with each other. */
+@keyframes auth-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes auth-parallax {
+  50% {
+    transform: translate(13px, -8px);
+  }
+}
+@keyframes auth-blob {
+  50% {
+    transform: scale(1.06);
+  }
+}
+@keyframes auth-ring-a {
+  50% {
+    transform: translate(-9px, 6px) scale(1.03);
+  }
+}
+@keyframes auth-ring-b {
+  50% {
+    transform: translate(7px, -5px) scale(0.975);
+  }
+}
+@keyframes auth-drift-a {
+  50% {
+    transform: translate(8px, -6px) rotate(2deg);
+  }
+}
+@keyframes auth-drift-b {
+  50% {
+    transform: translate(-7px, 5px) rotate(-2deg);
+  }
+}
+
+/* The one non-looping animation: the form column arrives rather than appears. */
+@keyframes auth-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Rotation about a shape's own centre, not the SVG user-space origin. Harmless
+   on its own — without a transform it changes nothing — so it stays outside the
+   reduced-motion guard. */
+@utility auth-shape {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+@utility auth-float {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-float 26s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+@utility auth-grid-drift {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-parallax 52s ease-in-out infinite;
+  }
+}
+
+@utility auth-blob-breathe {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-blob 18s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+/* Spec §5 asks the rings to rotate. A stroked circle rotating about its own
+   centre is invisible, so they breathe and drift instead — same long loops
+   (40s / 55s), opposite directions, and something you can actually see. */
+@utility auth-ring-1 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-ring-a 40s ease-in-out infinite;
+  }
+}
+@utility auth-ring-2 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-ring-b 55s ease-in-out infinite;
+  }
+}
+@utility auth-ring-3 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-ring-a 47s ease-in-out -23s infinite;
+  }
+}
+
+/* Four panes, two paths, four phases — negative delays start them mid-loop so
+   nothing lines up on first paint. */
+@utility auth-drift-1 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-drift-a 34s ease-in-out -4s infinite;
+  }
+}
+@utility auth-drift-2 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-drift-b 29s ease-in-out -11s infinite;
+  }
+}
+@utility auth-drift-3 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-drift-a 37s ease-in-out -19s infinite;
+  }
+}
+@utility auth-drift-4 {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-drift-b 31s ease-in-out -26s infinite;
+  }
+}
+
+@utility auth-enter {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: auth-enter 240ms var(--ease-standard) both;
+  }
 }

@@ -16,7 +16,11 @@ import { useId, useState, type ReactNode, type Ref } from "react";
 export type TextFieldProps = {
   label: string;
   name: string;
-  type?: "text" | "email" | "password";
+  /* `date` renders the platform picker. It is here rather than in a separate
+     component because the anatomy is identical — 12px/600 label, 36px control,
+     11px message — and the validate-on-blur timing below applies unchanged to
+     a date the user typed rather than picked. */
+  type?: "text" | "email" | "password" | "date";
   autoComplete?: string;
   defaultValue?: string;
   placeholder?: string;

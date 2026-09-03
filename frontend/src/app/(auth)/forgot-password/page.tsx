@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { AuthAside } from "@/components/auth/auth-aside";
 import { AuthColumn } from "@/components/auth/auth-column";
+import { AuthFooter } from "@/components/auth/auth-footer";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export const metadata = {
@@ -21,11 +21,7 @@ export default function ForgotPasswordPage() {
       >
         <ForgotPasswordForm />
 
-        <p className="mt-6 text-center text-sm text-text-muted">
-          <Link href="/sign-in" className="font-semibold text-text-brand">
-            Return to log in
-          </Link>
-        </p>
+        <AuthFooter href="/sign-in" label="Return to log in" />
       </AuthColumn>
 
       <AuthAside variant="forgot-password" />

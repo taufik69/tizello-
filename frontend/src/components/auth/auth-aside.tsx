@@ -34,6 +34,10 @@ const COPY = {
     title: "Almost there.",
     body: "One click in your inbox and your workspace is ready to use.",
   },
+  invite: {
+    title: "Someone saved you a seat.",
+    body: "Accept, and the boards they have been working on open straight away.",
+  },
 } as const;
 
 export type AuthAsideVariant = keyof typeof COPY;
