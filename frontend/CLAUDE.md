@@ -14,6 +14,40 @@ A Trello-style task management app. This package is the web client.
 @.claude/rules/ui-components.md
 @.claude/rules/pages-and-structure.md
 
+## Build progress
+
+> Keep this current — check items off as they ship.
+
+What is actually in `src/`, not what is planned. Everything here is
+frontend-only and fixture-backed: a checked box means the UI exists and works
+against demo data in `src/lib/`, never that a backend is wired.
+
+- [x] **Design system + theming** — tokens in `globals.css`, every colour a
+      `light-dark()` pair, `ThemeToggle`. The reference page still occupies `/`.
+- [x] **Auth** — sign-in (email → password or code), sign-up, forgot/reset
+      password, verify email, sign-out. Server Actions over `auth-fixtures.ts`;
+      `proxy.ts` does the optimistic cookie check.
+- [x] **Workspace** — `/workspaces` grid, `/workspaces/[workspaceId]` detail,
+      switcher, create dialog, sidebar shell.
+- [x] **Members** — roster, role menu, remove-with-confirm, invite dialog,
+      pending-invites tab, and the accept page at `/invite/[token]`.
+- [ ] **Projects** — grid, cards and the create dialog render on the workspace
+      page; no project detail route, `ProjectCard` is not a link, and boards are
+      not scoped to a project.
+- [ ] **Backlog** — `/board/backlog` renders with a working card composer, but
+      it is one global backlog, not per-project.
+- [ ] **Sprint** — `Sprint` type (number, `startsOn`/`endsOn`, `closedOn`) and
+      one fixture sprint; no create-sprint UI and no date input anywhere.
+- [ ] **Sprint planning** — `planIntoSprint()` / `closeSprint()` and both Server
+      Actions are complete and correct; nothing calls them. Logic done, no UI.
+- [x] **Columns** — To do / In progress / Done, fixed on sprint boards, rendered
+      by `BoardColumn` + `ColumnPill`. A card's list is its status.
+- [ ] **Sprint board + tasks** — board, cards, labels, meta and the composer all
+      render; drag & drop is not built.
+- [ ] **Permissions** — roles are typed and shown (`RoleBadge`), and the owner is
+      locked in the members UI; there is no permission helper and no action is
+      gated by role.
+
 ## Stack
 
 | Concern    | Choice                                        |

@@ -7,9 +7,10 @@ import type { SidebarItem, SidebarSection } from "@/types/nav";
  *   Workspace → Members → Projects → Backlog → Sprint → Sprint planning
  *   → Columns → Sprint board → Tasks
  *
- * Only `/workspaces`, `/workspaces/[workspaceId]`, `/board/backlog` and
- * `/board/sprint-4` exist. Everything else is listed WITHOUT an `href`, which
- * renders it disabled — the flow stays visible without emitting a dead link.
+ * Only `/workspaces`, `/workspaces/[workspaceId]`,
+ * `/workspaces/[workspaceId]/members`, `/board/backlog` and `/board/sprint-4`
+ * exist. Everything else is listed WITHOUT an `href`, which renders it
+ * disabled — the flow stays visible without emitting a dead link.
  */
 
 export const PRIMARY_ITEMS: readonly SidebarItem[] = [
@@ -38,7 +39,9 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
         id: "members",
         label: "Members",
         icon: "members",
-        hint: "Members are not built yet",
+        workspaceScoped: true,
+        workspaceSegment: "/members",
+        hint: "Open a workspace to see its members",
       },
     ],
   },
@@ -86,5 +89,6 @@ export function resolveHref(
   workspaceId?: string,
 ): string | undefined {
   if (!item.workspaceScoped) return item.href;
-  return workspaceId ? `/workspaces/${workspaceId}` : undefined;
+  if (!workspaceId) return undefined;
+  return `/workspaces/${workspaceId}${item.workspaceSegment ?? ""}`;
 }

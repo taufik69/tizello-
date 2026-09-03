@@ -34,7 +34,10 @@ export function WorkspaceDetailHeader({ workspace }: { workspace: Workspace }) {
           </div>
         </div>
 
-        <WorkspaceSettingsMenu workspaceName={workspace.name} />
+        <WorkspaceSettingsMenu
+          workspaceId={workspace.id}
+          workspaceName={workspace.name}
+        />
       </div>
     </header>
   );

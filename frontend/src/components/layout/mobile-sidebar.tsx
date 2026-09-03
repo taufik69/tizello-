@@ -53,6 +53,12 @@ export function MobileSidebar({ children }: { children: React.ReactNode }) {
     setMobileSidebarOpen(false);
   }, [pathname]);
 
+  /* `mobileOpen` is module state and outlives this component. /workspaces and
+     /board are separate layouts, so crossing between them by browser back or
+     forward unmounts one drawer and mounts another — which would otherwise read
+     the stale `true`, call showModal(), and close itself a render later. */
+  useEffect(() => () => setMobileSidebarOpen(false), []);
+
   return (
     <dialog
       ref={ref}

@@ -31,10 +31,16 @@ export type SidebarItem = {
   href?: string;
   /**
    * The destination is the workspace currently in the URL, so it cannot be
-   * written down here. Resolved by `resolveHref`; disabled when no workspace is
-   * open.
+   * written down here. Resolved by `resolveHref` to
+   * `/workspaces/<id><workspaceSegment>`; disabled when no workspace is open.
    */
   workspaceScoped?: boolean;
+  /**
+   * Appended to the workspace route for a sub-screen of it — `"/members"`
+   * gives `/workspaces/atlas-robotics/members`. Absent means the workspace
+   * root, which is where Projects points. Only read when `workspaceScoped`.
+   */
+  workspaceSegment?: string;
   /** Why the item is unavailable. Surfaced as `title` on a disabled item. */
   hint?: string;
 };

@@ -1,5 +1,6 @@
 import { AuthLogo } from "@/components/auth/auth-logo";
 import { AuthHeader } from "@/components/auth/auth-header";
+import { AuthLegalFooter } from "@/components/auth/auth-legal-footer";
 
 /**
  * The left half of the split shell: logo pinned top-left, form column centred
@@ -30,14 +31,7 @@ export function AuthColumn({
         </div>
       </main>
 
-      <footer className="flex gap-4 text-2xs text-text-subtle">
-        <a href="/privacy" className="rounded-xs hover:text-text-muted">
-          Privacy
-        </a>
-        <a href="/terms" className="rounded-xs hover:text-text-muted">
-          Terms
-        </a>
-      </footer>
+      <AuthLegalFooter />
     </div>
   );
 }

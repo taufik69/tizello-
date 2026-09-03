@@ -16,6 +16,13 @@ const VARIANT = {
     "border border-border bg-surface text-text transition-colors duration-100 ease-standard hover:bg-surface-hover disabled:pointer-events-none disabled:opacity-60",
   ghost:
     "text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-hover hover:text-text disabled:pointer-events-none disabled:opacity-60",
+  /* The destructive confirm. `text-inverse` is the only ink that clears the
+     `danger` fill in BOTH themes — white on #c9372c in light, near-black on
+     #f87168 in dark. There is no darker danger token to hover to, so the hover
+     is a dip in opacity; `disabled:pointer-events-none` means it can never
+     fight the disabled dim. */
+  danger:
+    "bg-danger text-text-inverse transition-[opacity,transform] duration-100 ease-standard hover:opacity-90 active:translate-y-px disabled:pointer-events-none disabled:opacity-60",
 } as const;
 
 const SIZE = {

@@ -95,3 +95,23 @@ export function SettingsIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** The kebab. Icon-only triggers that use it always carry an `aria-label`. */
+export function MoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="3.25" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="12.75" r=".85" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.5 4h11M6.5 4V2.5h3V4M4 4l.6 8.4A1.2 1.2 0 005.8 13.5h4.4a1.2 1.2 0 001.2-1.1L12 4" />
+      <path d="M6.75 6.75v4M9.25 6.75v4" />
+    </Icon>
+  );
+}

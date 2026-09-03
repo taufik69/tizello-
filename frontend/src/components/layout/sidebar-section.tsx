@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { SidebarItem } from "@/components/layout/sidebar-item";
 import { resolveHref } from "@/lib/nav-links";
 import type { SidebarSection as SidebarSectionData } from "@/types/nav";
@@ -22,7 +23,10 @@ export function SidebarSection({
   pathname: string;
   workspaceId?: string;
 }) {
-  const labelId = `sidebar-section-${section.id}`;
+  /* Not derived from `section.id`: the desktop <aside> stays mounted while the
+     mobile drawer renders the same tree, so a static id would appear twice in
+     the DOM whenever the drawer is open. useId() is unique per mounted copy. */
+  const labelId = useId();
 
   return (
     <div className="mt-5">
