@@ -62,8 +62,15 @@ export function activeSprint(sprints: SprintRecord[]): SprintRecord | undefined 
  * Done as a percentage, for the bar's width. A sprint nobody has planned into
  * is 0% rather than NaN — `0 / 0` is the empty PLANNING sprint, which is a real
  * row, not a broken one.
+ *
+ * It takes the two counts rather than a whole `SprintRecord` so the sprint
+ * board can pass its LIVE totals — the stored roll-ups go stale the moment a
+ * card is dragged into Done, and two ways of working out one percentage would
+ * be one too many.
  */
-export function donePercent(sprint: SprintRecord): number {
+export function donePercent(
+  sprint: Pick<SprintRecord, "itemCount" | "doneCount">,
+): number {
   if (sprint.itemCount === 0) return 0;
   return Math.round((sprint.doneCount / sprint.itemCount) * 100);
 }

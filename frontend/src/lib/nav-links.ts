@@ -9,7 +9,7 @@ import type { SidebarItem, SidebarSection } from "@/types/nav";
  *
  * Only `/workspaces`, `/workspaces/[workspaceId]`,
  * `/workspaces/[workspaceId]/projects`, `/workspaces/[workspaceId]/members`,
- * `/board/backlog` and `/board/sprint-4` exist. Everything else is listed WITHOUT an `href`, which renders it
+ * `/board/backlog` and `/board/sprint` exist. Everything else is listed WITHOUT an `href`, which renders it
  * disabled — the flow stays visible without emitting a dead link.
  */
 
@@ -60,7 +60,7 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
         id: "sprint-board",
         label: "Sprint board",
         icon: "sprint",
-        href: "/board/sprint-4",
+        href: "/board/sprint",
       },
       {
         /* Built, but per project: the screen lives at

@@ -12,8 +12,8 @@ export const SESSION_COOKIE = "tizello_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 /**
- * Where a signed-in user lands. Spec §3 writes this as `/board/sprint`; the
- * fixture board in `src/lib/boards.ts` is `sprint-4`, and `/board/sprint`
- * renders not-found, so the real id is used here.
+ * Where a signed-in user lands — the running sprint's board, which is spec §3's
+ * `/board/sprint` now that the id resolves to the one ACTIVE sprint rather than
+ * to a fixture board's key.
  */
-export const BOARD_HOME = "/board/sprint-4";
+export const BOARD_HOME = "/board/sprint";

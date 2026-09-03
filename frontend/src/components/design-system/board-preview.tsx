@@ -5,8 +5,8 @@ import { Section } from "./section";
 
 /*
  * Fixtures rendered through the REAL CardTile and ColumnPill, so this preview
- * cannot drift from the board at /board/sprint-4. Change the card there and this
- * section changes with it.
+ * cannot drift from the backlog board at /board/backlog. Change the card there
+ * and this section changes with it.
  */
 const LISTS: BoardList[] = [
   {

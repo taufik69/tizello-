@@ -117,9 +117,10 @@ export function TrashIcon(props: IconProps) {
 }
 
 /**
- * The six-dot grip on a backlog row. Decorative on purpose — reordering is not
- * built, and the handle is `aria-hidden` rather than a control that looks
- * draggable and is not.
+ * The six-dot grip. On a backlog row it is decorative — reordering there is not
+ * built, so the handle is `aria-hidden` rather than a control that looks
+ * draggable and is not. On a sprint board card it sits inside a real button
+ * that starts a drag, which is where the affordance is honest.
  */
 export function GripIcon(props: IconProps) {
   return (

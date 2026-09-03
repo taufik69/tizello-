@@ -1,11 +1,15 @@
-const SKELETON_LISTS = [3, 2, 2, 3];
+/* Three, because the sprint board is the screen this route is for and its
+   columns are fixed: To do, In progress, Done. */
+const SKELETON_LISTS = [3, 2, 3];
 
 /** Streaming fallback: the shell paints immediately while the board resolves. */
 export default function BoardLoading() {
   return (
     <div className="flex h-full flex-col bg-surface-sunken">
-      <div className="px-4 py-3">
-        <div className="h-5 w-40 animate-pulse rounded-sm bg-surface" />
+      <div className="space-y-2 px-4 pt-4 pb-3">
+        <div className="h-3 w-24 animate-pulse rounded-xs bg-surface" />
+        <div className="h-5 w-56 animate-pulse rounded-sm bg-surface" />
+        <div className="h-3 w-40 animate-pulse rounded-xs bg-surface" />
       </div>
 
       <div className="flex flex-1 items-start gap-4 overflow-hidden px-4 pb-4">

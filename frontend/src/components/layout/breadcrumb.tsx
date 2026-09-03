@@ -12,7 +12,7 @@ import { ProjectsIcon, SprintIcon } from "@/components/ui/nav-icons";
 const PAGE_LABELS: Record<string, string> = {
   "/workspaces": "Workspaces",
   "/board/backlog": "Backlog",
-  "/board/sprint-4": "Sprint board",
+  "/board/sprint": "Sprint board",
 };
 
 function humanise(segment: string) {

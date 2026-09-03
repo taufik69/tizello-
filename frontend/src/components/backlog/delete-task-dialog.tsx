@@ -21,10 +21,17 @@ import type { BacklogTask } from "@/types/backlog";
  */
 export function DeleteTaskDialog({
   task,
+  container = "the backlog",
   onOpenChange,
   onConfirm,
 }: {
   task: BacklogTask | null;
+  /**
+   * Where the task is being deleted FROM, named in the sentence. The sprint
+   * board deletes the same task out of a running sprint, and "leaves the
+   * backlog" would be the wrong thing to agree to there.
+   */
+  container?: string;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
@@ -40,8 +47,8 @@ export function DeleteTaskDialog({
         <DialogHeader>
           <DialogTitle id={titleId}>Delete task</DialogTitle>
           <DialogDescription>
-            {task?.id} &mdash; &ldquo;{task?.title}&rdquo; leaves the backlog for
-            good. There is no undo.
+            {task?.id} &mdash; &ldquo;{task?.title}&rdquo; leaves {container}{" "}
+            for good. There is no undo.
           </DialogDescription>
         </DialogHeader>
 

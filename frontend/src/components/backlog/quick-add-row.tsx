@@ -19,7 +19,18 @@ const TRIGGER =
 const INPUT =
   "h-9 w-full rounded-sm border border-border bg-surface px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
 
-export function QuickAddRow({ onAdd }: { onAdd: (title: string) => void }) {
+export function QuickAddRow({
+  onAdd,
+  listTitle,
+}: {
+  onAdd: (title: string) => void;
+  /**
+   * The list this composer files into. Three of them on one board would
+   * otherwise share the accessible name "Add task"; the name is the only thing
+   * that tells them apart, so the column's title is appended to it.
+   */
+  listTitle?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const fieldId = useId();
@@ -29,6 +40,7 @@ export function QuickAddRow({ onAdd }: { onAdd: (title: string) => void }) {
       <button type="button" onClick={() => setOpen(true)} className={TRIGGER}>
         <PlusIcon className="size-3.5" />
         Add task
+        {listTitle && <span className="sr-only"> to {listTitle}</span>}
       </button>
     );
   }
@@ -47,7 +59,7 @@ export function QuickAddRow({ onAdd }: { onAdd: (title: string) => void }) {
       className="mt-2 rounded-md border border-border bg-surface p-2"
     >
       <label htmlFor={fieldId} className="sr-only">
-        New task title
+        New task title{listTitle ? ` for ${listTitle}` : ""}
       </label>
       <input
         id={fieldId}

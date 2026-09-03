@@ -56,9 +56,24 @@ against demo data in `src/lib/`, never that a backend is wired.
       helpers are shaped like `planIntoSprint()` / `closeSprint()` and their
       Server Actions, which remain complete, correct and still uncalled.
 - [x] **Columns** — To do / In progress / Done, fixed on sprint boards, rendered
-      by `BoardColumn` + `ColumnPill`. A card's list is its status.
-- [ ] **Sprint board + tasks** — board, cards, labels, meta and the composer all
-      render; drag & drop is not built.
+      by `BoardColumn` + `ColumnPill`. A card's column is its status.
+      `BoardColumn` is the shell both boards share: pill, count, track, empty
+      state and a `footer` slot for the composer, plus optional droppable
+      wiring (`containerRef` / `isOver`) that the sprint board fills in.
+- [x] **Sprint board + tasks** — `/board/sprint` renders the one ACTIVE sprint
+      (SPR-13) from `demo-board.ts`: header with project, sprint, window and
+      state badge; live done/total and points on the toolbar; three columns of
+      task cards with id, priority, labels, points and assignee. **Drag & drop
+      works** — `@dnd-kit/core` + `@dnd-kit/sortable`, pointer and keyboard,
+      reorder within a column and move between them (which changes status),
+      `DragOverlay` ghost and a dashed drop indicator on the landing column.
+      A drop writes one float `position` (`lib/sprint-board.ts`), never a
+      renumber. Detail dialog edits every field including the column, with
+      empty-title validation and delete-with-confirm; a title-only quick add
+      sits under each column. Filter / sort / search are `LockedControl`s and
+      "Complete sprint" opens a confirm that changes nothing — `closeSprint` in
+      `lib/sprint.ts` is still uncalled. All `useState`: nothing persists past
+      a refresh.
 - [ ] **Permissions** — roles are typed and shown (`RoleBadge`), and the owner is
       locked in the members UI; there is no permission helper and no action is
       gated by role.
@@ -71,6 +86,7 @@ against demo data in `src/lib/`, never that a backend is wired.
 | Language   | TypeScript (strict)                           |
 | Styling    | Tailwind CSS v4 — CSS-first config, no `tailwind.config.js` |
 | Font       | Inter, via `next/font/google`                 |
+| Drag & drop| `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board only) |
 | Alias      | `@/*` → `src/*`                               |
 
 ```bash
@@ -160,5 +176,5 @@ src/
   types/          # shared domain types
 ```
 
-Routes so far: `/` design-system reference · `/board/[boardId]` the board
-(`/board/sprint`).
+Routes so far: `/` design-system reference · `/board/[boardId]` the board —
+`/board/sprint` is the sprint board, `/board/backlog` the flat one.

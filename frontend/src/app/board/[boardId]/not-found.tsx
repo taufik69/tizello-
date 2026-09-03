@@ -9,7 +9,7 @@ export default function BoardNotFound() {
           It may have been deleted, or the link is wrong.
         </p>
         <Link
-          href="/board/sprint-4"
+          href="/board/sprint"
           className="inline-block rounded-sm bg-brand-500 px-3 py-1.5 text-sm font-semibold text-on-brand transition-colors duration-100 ease-standard hover:bg-brand-400"
         >
           Go to the sprint board
