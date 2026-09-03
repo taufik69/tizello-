@@ -115,3 +115,31 @@ export function TrashIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/**
+ * The six-dot grip on a backlog row. Decorative on purpose — reordering is not
+ * built, and the handle is `aria-hidden` rather than a control that looks
+ * draggable and is not.
+ */
+export function GripIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="6" cy="4" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="4" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="8" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="8" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="12" r=".85" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="12" r=".85" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
+/** Edit, on a row's kebab menu. */
+export function PencilIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M11.2 2.3a1.1 1.1 0 011.6 0l.9.9a1.1 1.1 0 010 1.6L5.9 12.6l-3 .5.5-3z" />
+      <path d="M10.2 3.3l2.5 2.5" />
+    </Icon>
+  );
+}

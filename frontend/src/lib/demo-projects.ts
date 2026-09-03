@@ -137,3 +137,14 @@ export function getWorkspaceProjects(
 export function getProjectsCurrentUser(): Promise<ProjectPerson> {
   return settle<ProjectPerson>(PEOPLE.wren);
 }
+
+/**
+ * One project by its human key — `"TIZ-1"`. `undefined` is the signal for
+ * `notFound()`; the backlog page must not render a shell around a project that
+ * does not exist.
+ */
+export function getProject(
+  projectId: string,
+): Promise<ProjectRecord | undefined> {
+  return settle(projects.find((project) => project.id === projectId));
+}
