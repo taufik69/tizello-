@@ -34,7 +34,8 @@ export const PROJECT_VIEW_SUMMARY: Record<ProjectView, string> = {
   status: "How the work is distributed across statuses.",
 };
 
-const DEFAULT_VIEW: ProjectView = "active";
+/** Written WITHOUT the param, so it is current whenever `?view=` is absent. */
+export const DEFAULT_PROJECT_VIEW: ProjectView = "active";
 
 /**
  * `searchParams` values are `string | string[] | undefined`, and a URL can
@@ -46,7 +47,7 @@ export function parseProjectView(
   raw: string | string[] | undefined,
 ): ProjectView {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return PROJECT_VIEWS.find((view) => view === value) ?? DEFAULT_VIEW;
+  return PROJECT_VIEWS.find((view) => view === value) ?? DEFAULT_PROJECT_VIEW;
 }
 
 /**
@@ -56,5 +57,5 @@ export function parseProjectView(
  */
 export function projectsHref(workspaceId: string, view: ProjectView): string {
   const base = `/workspaces/${workspaceId}/projects`;
-  return view === DEFAULT_VIEW ? base : `${base}?view=${view}`;
+  return view === DEFAULT_PROJECT_VIEW ? base : `${base}?view=${view}`;
 }

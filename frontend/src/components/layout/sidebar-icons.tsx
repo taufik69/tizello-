@@ -1,4 +1,13 @@
 import {
+  CalendarIcon,
+  DesktopIcon,
+  HelpIcon,
+  MarketplaceIcon,
+  TasksIcon,
+  TemplatesIcon,
+} from "@/components/ui/app-icons";
+import { TrashIcon } from "@/components/ui/icons";
+import {
   BacklogIcon,
   HomeIcon,
   MembersIcon,
@@ -26,4 +35,11 @@ export const SIDEBAR_ICON: Record<
   backlog: BacklogIcon,
   sprint: SprintIcon,
   planning: PlanningIcon,
+  calendar: CalendarIcon,
+  desktop: DesktopIcon,
+  tasks: TasksIcon,
+  templates: TemplatesIcon,
+  marketplace: MarketplaceIcon,
+  help: HelpIcon,
+  trash: TrashIcon,
 };

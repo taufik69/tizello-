@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { SidebarItem } from "@/components/layout/sidebar-item";
+import { SidebarTreeItem } from "@/components/layout/sidebar-tree-item";
 import { resolveHref } from "@/lib/nav-links";
 import type { SidebarSection as SidebarSectionData } from "@/types/nav";
 
@@ -40,12 +41,27 @@ export function SidebarSection({
       <ul aria-labelledby={labelId} className="space-y-0.5">
         {section.items.map((item) => {
           const href = resolveHref(item, workspaceId);
+          const active = href === pathname;
+
+          /* Sub-views only mean something once the parent has a destination to
+             hang them off; without one the item is disabled anyway. */
+          if (item.children && href) {
+            return (
+              <SidebarTreeItem
+                key={item.id}
+                item={item}
+                href={href}
+                active={active}
+              />
+            );
+          }
+
           return (
             <SidebarItem
               key={item.id}
               item={item}
               href={href}
-              active={href === pathname}
+              active={active}
             />
           );
         })}

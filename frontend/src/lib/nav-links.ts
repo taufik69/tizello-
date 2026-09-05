@@ -1,4 +1,11 @@
-import type { SidebarItem, SidebarSection } from "@/types/nav";
+import { SHELL_SECTIONS } from "@/lib/nav-apps";
+import { DEFAULT_PROJECT_VIEW, PROJECT_VIEW_LABEL } from "@/lib/project-view";
+import type {
+  SidebarChildItem,
+  SidebarItem,
+  SidebarSection,
+} from "@/types/nav";
+import { PROJECT_VIEWS } from "@/types/project";
 
 /*
  * The sidebar's destinations, following the product flow in
@@ -26,6 +33,25 @@ import type { SidebarItem, SidebarSection } from "@/types/nav";
 const DEMO_WORKSPACE_ID = "atlas-robotics";
 const DEMO_PROJECT_ID = "TIZ-1";
 
+/*
+ * The projects page's five `?view=` screens, mirrored under the sidebar's
+ * Projects item so the group expands to exactly what the page's view strip
+ * offers — the same URLs, so a sidebar click and a strip click are the same
+ * navigation.
+ *
+ * Derived from `PROJECT_VIEWS` rather than written out: a sixth view added to
+ * the page appears here without a second edit. The default view is written
+ * WITHOUT the param (see `projectsHref`), so it carries no `param` here either.
+ */
+const PROJECT_VIEW_CHILDREN: readonly SidebarChildItem[] = PROJECT_VIEWS.map(
+  (view) => ({
+    id: `projects-${view}`,
+    label: PROJECT_VIEW_LABEL[view],
+    param:
+      view === DEFAULT_PROJECT_VIEW ? undefined : { name: "view", value: view },
+  }),
+);
+
 export const PRIMARY_ITEMS: readonly SidebarItem[] = [
   { id: "home", label: "Home", icon: "home", href: "/workspaces" },
   {
@@ -48,6 +74,7 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
         workspaceScoped: true,
         workspaceSegment: "/projects",
         hint: "Open a workspace to see its projects",
+        children: PROJECT_VIEW_CHILDREN,
       },
       {
         id: "members",
@@ -97,6 +124,7 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
       },
     ],
   },
+  ...SHELL_SECTIONS,
 ];
 
 /**
@@ -121,4 +149,14 @@ export function resolveHref(
      DEMO_WORKSPACE_ID above. */
   const id = workspaceId ?? DEMO_WORKSPACE_ID;
   return `/workspaces/${id}${item.workspaceSegment ?? ""}`;
+}
+
+/**
+ * A child's destination: the parent's href plus the one param the child
+ * selects. No parent href carries a query of its own, so `?` is always the
+ * right joiner.
+ */
+export function childHref(parentHref: string, child: SidebarChildItem): string {
+  if (!child.param) return parentHref;
+  return `${parentHref}?${child.param.name}=${child.param.value}`;
 }

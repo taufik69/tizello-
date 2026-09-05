@@ -16,8 +16,32 @@ export const SIDEBAR_ICONS = [
   "backlog",
   "sprint",
   "planning",
+  "calendar",
+  "desktop",
+  "tasks",
+  "templates",
+  "marketplace",
+  "help",
+  "trash",
 ] as const;
 export type SidebarIconName = (typeof SIDEBAR_ICONS)[number];
+
+/**
+ * One sub-view of a parent item's page, selected by a single search param — the
+ * sidebar's mirror of that page's view strip. Plain data for the same reason
+ * the items are: it crosses the server/client boundary as props.
+ */
+export type SidebarChildItem = {
+  id: string;
+  label: string;
+  /**
+   * The param this child selects, e.g. `{ name: "view", value: "timeline" }`.
+   * Absent marks the page's DEFAULT view, which is written without a param —
+   * so that child is the current one whenever the param is missing or holds a
+   * value no sibling claims.
+   */
+  param?: { name: string; value: string };
+};
 
 export type SidebarItem = {
   id: string;
@@ -43,6 +67,12 @@ export type SidebarItem = {
   workspaceSegment?: string;
   /** Why the item is unavailable. Surfaced as `title` on a disabled item. */
   hint?: string;
+  /**
+   * The sub-views of this item's page. Present renders the item as a
+   * collapsible group — a disclosure over the same links the page's view strip
+   * carries — instead of a single link.
+   */
+  children?: readonly SidebarChildItem[];
 };
 
 export type SidebarSection = {
