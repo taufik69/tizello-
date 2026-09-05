@@ -1,11 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { ROLE_LABEL } from "@/lib/roles";
 import type { WorkspaceRole } from "@/types/workspace";
-
-const ROLE_LABEL: Record<WorkspaceRole, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MEMBER: "Member",
-};
 
 /**
  * The current user's standing in a workspace. Only ownership earns the brand

@@ -163,3 +163,16 @@ export function FlagIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/**
+ * The denial mark in the permissions matrix — a dash, deliberately not a cross.
+ * "Not granted" is the resting state of most cells, and fourteen red crosses
+ * would read as fourteen errors.
+ */
+export function DashIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4.5 8h7" />
+    </Icon>
+  );
+}

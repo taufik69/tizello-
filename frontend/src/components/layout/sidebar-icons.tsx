@@ -3,6 +3,7 @@ import {
   DesktopIcon,
   HelpIcon,
   MarketplaceIcon,
+  ShieldIcon,
   TasksIcon,
   TemplatesIcon,
 } from "@/components/ui/app-icons";
@@ -32,6 +33,7 @@ export const SIDEBAR_ICON: Record<
   search: SearchIcon,
   projects: ProjectsIcon,
   members: MembersIcon,
+  permissions: ShieldIcon,
   backlog: BacklogIcon,
   sprint: SprintIcon,
   planning: PlanningIcon,

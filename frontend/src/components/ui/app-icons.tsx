@@ -62,3 +62,16 @@ export function HelpIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/**
+ * Roles & permissions. A shield rather than a key: the screen is about what a
+ * role protects, not about letting someone in.
+ */
+export function ShieldIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 2l4.5 1.8v4.1c0 2.6-1.8 4.9-4.5 5.8-2.7-.9-4.5-3.2-4.5-5.8V3.8z" />
+      <path d="M6.2 7.9l1.3 1.3 2.4-2.6" />
+    </Icon>
+  );
+}

@@ -13,6 +13,7 @@ export const SIDEBAR_ICONS = [
   "search",
   "projects",
   "members",
+  "permissions",
   "backlog",
   "sprint",
   "planning",

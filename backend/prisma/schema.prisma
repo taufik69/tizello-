@@ -1,0 +1,88 @@
+// Starter schema: only what the scaffolded infrastructure itself needs —
+// users, workspaces, the membership row the permission middleware reads, and
+// the invitation row the email worker reads back. Feature models are added
+// per module, not here up front.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 removed `url` from this block — the connection string now lives in
+// prisma.config.js (for CLI/migrate) and reaches the client through the pg
+// driver adapter in src/config/db.js.
+datasource db {
+  provider = "postgresql"
+}
+
+// Values must stay in sync with ROLES in src/shared/constants/roles.js.
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships     Membership[]
+  sentInvitations Invitation[] @relation("InvitationInvitedBy")
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  invitations Invitation[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Named by Prisma as `userId_workspaceId` — the compound key
+  // shared/middlewares/permission.js looks a membership up by.
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  email       String
+  workspaceId String
+  role        Role      @default(MEMBER)
+  token       String    @unique
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("InvitationInvitedBy", fields: [invitedById], references: [id])
+
+  // One live invitation per email per workspace — re-inviting replaces the
+  // row rather than piling up tokens that all still work.
+  @@unique([email, workspaceId])
+  @@index([workspaceId])
+  @@map("invitations")
+}

@@ -76,9 +76,14 @@ against demo data in `src/lib/`, never that a backend is wired.
       "Complete sprint" opens a confirm that changes nothing — `closeSprint` in
       `lib/sprint.ts` is still uncalled. All `useState`: nothing persists past
       a refresh.
-- [ ] **Permissions** — roles are typed and shown (`RoleBadge`), and the owner is
-      locked in the members UI; there is no permission helper and no action is
-      gated by role.
+- [ ] **Permissions** — `/workspaces/[workspaceId]/settings/permissions` renders
+      the three role cards, a read-only permissions matrix (14 actions in four
+      areas × OWNER / ADMIN / MEMBER, from `demo-permissions.ts`) and a role
+      assignment list over the members fixture, with the owner locked and a
+      `Toast` confirming each change. It is presentation only: the matrix is
+      what the screen DRAWS, not what anything enforces. There is still no
+      permission helper, and no action anywhere is gated by role — every change
+      is `useState` and gone on refresh.
 
 ## Stack
 

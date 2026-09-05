@@ -16,8 +16,9 @@ import { PROJECT_VIEWS } from "@/types/project";
  *
  * Only `/workspaces`, `/workspaces/[workspaceId]`,
  * `/workspaces/[workspaceId]/projects`, `/workspaces/[workspaceId]/members`,
- * `/board/backlog` and `/board/sprint` exist. Everything else is listed WITHOUT an `href`, which renders it
- * disabled — the flow stays visible without emitting a dead link.
+ * `/workspaces/[workspaceId]/settings/permissions`, `/board/backlog` and
+ * `/board/sprint` exist. Everything else is listed WITHOUT an `href`, which
+ * renders it disabled — the flow stays visible without emitting a dead link.
  */
 
 /*
@@ -83,6 +84,14 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
         workspaceScoped: true,
         workspaceSegment: "/members",
         hint: "Open a workspace to see its members",
+      },
+      {
+        id: "permissions",
+        label: "Roles & permissions",
+        icon: "permissions",
+        workspaceScoped: true,
+        workspaceSegment: "/settings/permissions",
+        hint: "Open a workspace to see its roles",
       },
     ],
   },
