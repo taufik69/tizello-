@@ -27,6 +27,10 @@ export const AUTH_ERROR_CODES = [
   "TOKEN_INVALID",
   "TOKEN_EXPIRED",
   "RATE_LIMITED",
+  // Signed in as bob@personal.com, invited as bob@work.com. An ordinary
+  // mistake with a dead-end failure mode if it has no copy — the accept screen
+  // would refuse and say nothing usable.
+  "INVITE_EMAIL_MISMATCH",
   "SERVER_ERROR",
 ] as const;
 
@@ -49,6 +53,11 @@ export const AUTH_ERROR_COPY: Record<AuthErrorCode, string> = {
   TOKEN_INVALID: "This link is no longer valid.",
   TOKEN_EXPIRED: "This link has expired.",
   RATE_LIMITED: "Too many attempts. Try again in a few minutes.",
+  // Naming the invited address is safe: whoever holds the token was already
+  // told it by the email that carried the link. Without it the message cannot
+  // say which account to switch to, which is the only thing the reader needs.
+  INVITE_EMAIL_MISMATCH:
+    "This invitation was sent to a different address. Sign in as that address to accept.",
   SERVER_ERROR: "Something went wrong. Try again.",
 };
 

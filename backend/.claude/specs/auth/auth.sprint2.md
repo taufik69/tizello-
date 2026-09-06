@@ -61,7 +61,10 @@ with a password. The `auth` module exists as six files.
 - [ ] **No guard** — logging out with an already-expired access token must
       still clear the cookies, or the user is stranded in a state they cannot
       leave
-- [ ] Revoke the presented refresh token's whole **family**
+- [ ] Revoke the session's whole **family** — via the `fid` claim on the access
+      token, NOT the refresh cookie, which its `path` scoping means the browser
+      never sends here. See plan §4.4; getting this wrong revokes nothing and
+      still answers `204`
 - [ ] Clear both cookies, `204`
 
 ### 2.8 `auth.dto.js`

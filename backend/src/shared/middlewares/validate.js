@@ -4,6 +4,7 @@
 
 import AppError from '../utils/AppError.js';
 import httpStatus from '../constants/httpStatus.js';
+import { AUTH_CODES } from '../constants/authCodes.js';
 
 // `target` selects which part of the request to validate — 'body' by
 // default, or 'query' / 'params' for endpoints that validate those instead,
@@ -19,7 +20,11 @@ const validate =
         message: detail.message,
       }));
 
-      return next(new AppError(httpStatus.BAD_REQUEST, 'Validation failed', errors));
+      // The per-field list is `details`, under the form-level VALIDATION_ERROR
+      // code — the client needs both: one to render at the form, one per input.
+      return next(
+        new AppError(httpStatus.BAD_REQUEST, 'Validation failed', AUTH_CODES.VALIDATION_ERROR, errors)
+      );
     }
 
     // Write the validated (Joi-coerced and defaulted) value back so

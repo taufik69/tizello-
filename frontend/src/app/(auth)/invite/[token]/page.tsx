@@ -4,7 +4,8 @@ import { AuthNotice } from "@/components/auth/auth-notice";
 import { InviteAcceptActions } from "@/components/invite/invite-accept-actions";
 import { InviteSignedOut } from "@/components/invite/invite-signed-out";
 import { InviteSummary } from "@/components/invite/invite-summary";
-import { getInvitation, getSignedInAccount } from "@/lib/demo-invites";
+import { getInvitation } from "@/lib/invites";
+import { getSession } from "@/lib/auth";
 
 /*
  * Inside the `(auth)` route group, so this still serves `/invite/[token]` — a
@@ -48,12 +49,8 @@ const DEAD_LINK = {
   },
 } as const;
 
-export default async function InvitePage({
-  params,
-  searchParams,
-}: PageProps<"/invite/[token]">) {
+export default async function InvitePage({ params }: PageProps<"/invite/[token]">) {
   const { token } = await params;
-  const query = await searchParams;
   const lookup = await getInvitation(token);
 
   /* A dead token renders a state, not an empty shell. It is a page rather than
@@ -72,13 +69,17 @@ export default async function InvitePage({
   }
 
   const { invitation } = lookup;
-  const account = await getSignedInAccount();
+  /* The real signed-in account, not a fixture. Null when nobody is signed in —
+     which is the common case here: whoever followed an invitation link usually
+     has no account yet, and the screen sends them to sign up. */
+  const account = await getSession();
 
-  /* There is no auth in scope on this screen, so the signed-in / signed-out
-     split is driven by a query parameter: `?signedIn=0` renders the signed-out
-     branch, anything else renders the signed-in one. Both states are therefore
-     reachable by hand, which is the point. The real page will read a session. */
-  const signedIn = query.signedIn !== "0";
+  /* The session decides now, not a query parameter. `?signedIn=0` used to
+     drive this split so both branches were reachable by hand while there was no
+     auth to read; leaving it in place would let anyone force the signed-out
+     branch on a real session, which is confusing rather than dangerous — but it
+     is also a URL that no longer means anything. */
+  const signedIn = account !== null;
 
   return (
     <>

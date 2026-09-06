@@ -122,9 +122,10 @@ of always passing `{ code: 'X' }`.
 ### 2.3 OAuth start path is wrong in the frontend
 
 `frontend/src/components/auth/social-buttons.tsx` links to
-`/api/auth/oauth/{provider}/start`. Spec §9's base path is `/api/v1/auth`, so
-the correct URL is `/api/v1/auth/oauth/{provider}/start`. The component is out
-of sync with its own spec. One-line frontend fix when OAuth ships; the backend
+`/api/auth/oauth/{provider}/start`. Spec §9's base path is `/api/v1/auth` and
+the route carries no `/oauth` segment (§9 rows 12–13), so the correct URL is
+`/api/v1/auth/{provider}/start`. The component is out of sync with its own
+spec on **both** counts. One-line frontend fix when OAuth ships; the backend
 follows the spec, not the component.
 
 ---
@@ -549,6 +550,21 @@ implementation gets reverted in production.
 | Event | Effect |
 |---|---|
 | `POST /logout` | revoke the presented token's **family**; clear both cookies |
+
+**How logout identifies the family — a correction found in sprint 2.** The
+refresh cookie is scoped to `path=/api/v1/auth/refresh` (§4.1), so a browser
+**never sends it to `/logout`**. Read literally, "revoke the presented token's
+family" revokes nothing: logout would clear the cookies, answer `204`, and
+leave a live refresh token on the machine — the failure mode being silent and
+looking exactly like success.
+
+The access token therefore carries a `fid` claim naming its refresh-token
+family, and `/logout` verifies that token **ignoring expiration** (the signature
+is still checked) to learn which family to revoke. The three alternatives were
+all worse: widening the refresh cookie's path undoes the highest-value line in
+the design; revoking every family signs the user out of every device; revoking
+nothing is the bug. `fid` is not a secret — it names a session and grants
+nothing without the signature around it.
 | `POST /reset-password` | revoke **every** family for the user (spec §9: *"Invalidate all sessions on password reset"*) |
 | Reuse detected | revoke that family |
 | User deleted | cascade drops every row |
@@ -876,8 +892,22 @@ carries `data.code` from the frontend's closed union (§2.2).
 | 9 | POST | `/resend-verification` | — | 3/hr | **`202` always** | `RATE_LIMITED` 429 |
 | 10 | POST | `/forgot-password` | — | 5/hr | **`202` always** | `RATE_LIMITED` 429 |
 | 11 | POST | `/reset-password` | — | 10/15m | `200` | `TOKEN_INVALID` 400, `TOKEN_EXPIRED` 410, `WEAK_PASSWORD` 422 |
-| 12 | GET | `/oauth/:provider/start` | — | 20/15m | `302` to provider | — |
-| 13 | GET | `/oauth/:provider/callback` | — | 20/15m | `302` + cookies | `302 /sign-in?error=…` |
+| 12 | GET | `/:provider/start` | — | 20/15m | `302` to provider | — |
+| 13 | GET | `/:provider/callback` | — | 20/15m | `302` + cookies | `302 /sign-in?error=…` |
+
+**Rows 12–13 carry no `/oauth` segment, and that is a correction.** They read
+`/oauth/:provider/*` until the GitHub OAuth App was registered at
+`http://localhost:5000/api/v1/auth/github/callback`. A provider compares the
+redirect URI to its registration character for character, so the console and
+this table cannot disagree — and between the two, the console is the side that
+cannot be changed by a deploy. The plan moved. Full URLs live in
+`GITHUB_CALLBACK_URL` / `GOOGLE_CALLBACK_URL`; sprint 5 §5.6 holds the detail.
+
+The cost of the shorter path is that `:provider` now sits directly under
+`/api/v1/auth`, one segment from `/login`, `/refresh` and `/session`. It only
+matches two-segment paths ending in `/start` or `/callback`, so nothing
+collides today — but these routes must be registered **before** any other
+`/:param` route under `/api/v1/auth`, or a parameterized sibling shadows them.
 
 **`/logout` takes no guard on purpose.** Logging out with an already-expired
 access token must still clear the cookies — a 401 there strands the user in a
@@ -1067,12 +1097,20 @@ Add to `.env.example` and `REQUIRED_ENV_VARS` in `src/config/env.js`.
 | `COOKIE_DOMAIN` | *unset* | unset = host-only, correct for local dev |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | required only if Google is enabled |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | — | required only if GitHub is enabled |
-| `OAUTH_CALLBACK_BASE_URL` | `http://localhost:5000` | must match the provider console exactly |
+| `GOOGLE_CALLBACK_URL` | `http://localhost:5000/api/v1/auth/google/callback` | whole URL, must match the console exactly |
+| `GITHUB_CALLBACK_URL` | `http://localhost:5000/api/v1/auth/github/callback` | whole URL, must match the console exactly |
 
 OAuth credentials are **not** in `REQUIRED_ENV_VARS`: a developer without Google
 keys should still be able to boot and work on password auth. Register a strategy
-only when its pair is present, and let `/oauth/google/start` 404 otherwise —
-failing at the endpoint is better than refusing to start.
+only when its pair is present (`config.oauth.<provider>.isConfigured`), and let
+`/google/start` 404 otherwise — failing at the endpoint is better than refusing
+to start.
+
+The callback is stored as a **whole URL per provider**, not a base joined to a
+path at runtime. The provider console holds this exact string, and a value
+assembled in code is one nobody can paste beside the console field to compare —
+so the mismatch shows up as `redirect_uri_mismatch` at the provider rather than
+as anything visible in our logs.
 
 ### 11.1 Cross-origin cookies — check this before debugging anything else
 
@@ -1130,7 +1168,39 @@ stranger unable to sign in.
 
 ---
 
-## 13. Open questions — decide before step 1
+## 13. Open questions — answered during implementation
+
+> **Status: all nine sprints are built.** The questions below were open when
+> this plan was written; each now carries the answer the code actually settled
+> on, and where a question was decided *against* the plan, the plan section that
+> changed is named. Sprint 9 §9.3 requires this section to be current — a stale
+> plan is worse than none, because it is trusted.
+>
+> | # | Answer as built |
+> |---|---|
+> | 1 | **Cookies only.** No body form. `shared/utils/cookies.js` is the only place either token is written; a mobile client would add a body variant additively. |
+> | 2 | Confirmed. `auth.dto.js#toUser` maps the timestamp to a boolean, and the raw timestamp never leaves the server — see docs/api/auth.md §Identity model. |
+> | 3 | Unchanged. `BOARD_HOME` is still `/board/sprint`, and the OAuth callback defaults `next` to it. |
+> | 4 | **No.** `forgotPassword` skips a `passwordHash: null` account silently and still returns `202`. Mailing a reset link to an OAuth-only account would let anyone convert it into a password account — an account-takeover path dressed as a convenience. Revisit only as an explicit *set*-password flow. |
+> | 5 | **Resolved.** Nodemailer over SMTP is wired (`shared/utils/mailer.js`), the worker sends all four job types, and `run-email-worker.js` verifies the transport at startup. The remaining blocker is operational, not architectural: the Gmail App Password in `.env` is rejected with `534 WebLoginRequired` and needs regenerating. |
+> | 6 | **Confirmed, and enforced.** The binding compares the invitation address to the account address at accept time, so changing a Tizello email does invalidate an outstanding invitation. The admin resends; the token rotates. |
+> | 7 | **Still `409 ALREADY_MEMBER`.** Promoting a member is a role update and belongs in the future `member` module. Documented in docs/api/invitation.md §1 so the admin-instinct case reads as a decision. |
+> | 8 | **Out of scope, unchanged.** Shareable join links would need §6.2 not to exist. |
+>
+> **Three things changed during implementation and are recorded where they
+> belong**, not only here:
+>
+> 1. **`/logout` cannot read the refresh cookie** — its `path` scoping means the
+>    browser never sends it there. The access token now carries a `fid` claim.
+>    §4.4 carries the correction.
+> 2. **The OAuth routes carry no `/oauth` segment** — the provider consoles pin
+>    the path. §9 rows 12–13 carry the correction.
+> 3. **`express-rate-limit` v8 refuses a custom `keyGenerator` that touches the
+>    request address without `ipKeyGenerator`**, because an IPv6 client can take
+>    a fresh /128 per request and mint unlimited budgets. Sprint 6 §6.2 assumed
+>    IP + email was sufficient; the IPv6 subnet collapse is the missing half.
+
+### The questions as originally written
 
 1. **Cookies-only, or also return the access token in the body?** This plan says
    cookies-only, matching spec §9's XSS guarantee. A future mobile client would

@@ -22,7 +22,7 @@ import { PROJECT_VIEWS } from "@/types/project";
  */
 
 /*
- * TEMPORARY — design review only. See `lib/demo-auth.ts`.
+ * TEMPORARY — design review only.
  *
  * Projects and Members are workspace-scoped and Sprints / Sprint planning are
  * project-scoped, so from `/board/*` there is nothing to scope them to and they

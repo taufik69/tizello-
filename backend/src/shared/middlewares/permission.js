@@ -10,6 +10,7 @@ import AppError from '../utils/AppError.js';
 import httpStatus from '../constants/httpStatus.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { hasPermission, roleAtLeast } from '../constants/roles.js';
+import { AUTH_CODES } from '../constants/authCodes.js';
 import prisma from '../../config/db.js';
 
 // Resolves the caller's role in the workspace named by the route and puts it
@@ -20,7 +21,7 @@ const loadMembership = asyncHandler(async (req, res, next) => {
   const workspaceId = req.params.workspaceId ?? req.body.workspaceId;
 
   if (!workspaceId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'workspaceId is required');
+    throw new AppError(httpStatus.BAD_REQUEST, 'workspaceId is required', AUTH_CODES.VALIDATION_ERROR);
   }
 
   const membership = await prisma.membership.findUnique({
@@ -32,7 +33,7 @@ const loadMembership = asyncHandler(async (req, res, next) => {
   // A non-member gets 404, not 403: confirming that a workspace exists to
   // someone with no access to it is itself a leak.
   if (!membership) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Workspace not found');
+    throw new AppError(httpStatus.NOT_FOUND, 'Workspace not found', AUTH_CODES.NOT_FOUND);
   }
 
   req.membership = membership;
@@ -46,7 +47,11 @@ const requirePermission = (permission) => (req, res, next) => {
 
   if (!hasPermission(role, permission)) {
     return next(
-      new AppError(httpStatus.FORBIDDEN, 'You do not have permission to perform this action')
+      new AppError(
+        httpStatus.FORBIDDEN,
+        'You do not have permission to perform this action',
+        AUTH_CODES.FORBIDDEN
+      )
     );
   }
 
@@ -64,7 +69,11 @@ const requireRole =
 
     if (!role || !roles.includes(role)) {
       return next(
-        new AppError(httpStatus.FORBIDDEN, 'You do not have permission to perform this action')
+        new AppError(
+        httpStatus.FORBIDDEN,
+        'You do not have permission to perform this action',
+        AUTH_CODES.FORBIDDEN
+      )
       );
     }
 
@@ -76,7 +85,11 @@ const requireRole =
 const requireAtLeast = (minimum) => (req, res, next) => {
   if (!roleAtLeast(req.membership?.role, minimum)) {
     return next(
-      new AppError(httpStatus.FORBIDDEN, 'You do not have permission to perform this action')
+      new AppError(
+        httpStatus.FORBIDDEN,
+        'You do not have permission to perform this action',
+        AUTH_CODES.FORBIDDEN
+      )
     );
   }
 

@@ -7,7 +7,7 @@ import { MembersToolbar } from "@/components/members/members-toolbar";
 import { PendingInvitesPanel } from "@/components/members/pending-invites-panel";
 import { RemoveMemberDialog } from "@/components/members/remove-member-dialog";
 import { TabPanel, type TabDescriptor } from "@/components/ui/tabs";
-import { sortInvitations } from "@/lib/demo-invites";
+import { sortInvitations } from "@/lib/invite-sort";
 import { sortMembers } from "@/lib/demo-members";
 import type {
   InvitableRole,

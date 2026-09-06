@@ -4,6 +4,11 @@
 
 import express from 'express';
 import healthRoutes from './health.routes.js';
+import authRoutes from "../modules/auth/auth.routes.js";
+import {
+  workspaceRouter as invitationWorkspaceRoutes,
+  tokenRouter as invitationTokenRoutes,
+} from "../modules/invitation/invitation.routes.js";
 
 const router = express.Router();
 
@@ -14,6 +19,11 @@ router.use('/health', healthRoutes);
 
 // --- Feature module routes ---
 // Each module owns one line. Keep them alphabetical.
-// router.use('/api/v1/<module>s', <module>Routes);
+router.use("/api/v1/auth", authRoutes);
+// Two mounts, one module: admin routes are workspace-scoped because the
+// permission middleware resolves a membership from (userId, workspaceId), and
+// recipient routes are token-scoped because the recipient has no membership yet.
+router.use("/api/v1/invitations", invitationTokenRoutes);
+router.use("/api/v1/workspaces/:workspaceId/invitations", invitationWorkspaceRoutes);
 
 export default router;

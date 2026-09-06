@@ -22,15 +22,28 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  passwordHash String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  // A nullable timestamp, never a boolean: "when was this proved" answers
+  // every question "is this proved" does, and one more that matters during an
+  // incident — how long ago. A boolean throws that away and cannot be
+  // reconstructed. Plan 3.1.
+  emailVerifiedAt DateTime?
+  // Null for OAuth-only accounts, which have no password to hash.
+  passwordHash    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  memberships     Membership[]
-  sentInvitations Invitation[] @relation("InvitationInvitedBy")
+  memberships         Membership[]
+  sentInvitations     Invitation[]        @relation("InvitationInvitedBy")
+  // Invitations this user redeemed. Separate from sentInvitations: the
+  // inviter and the acceptor are different people on the same row.
+  acceptedInvitations Invitation[]        @relation("InvitationAcceptedBy")
+  oauthAccounts       OAuthAccount[]
+  refreshTokens       RefreshToken[]
+  loginCodes          LoginCode[]
+  verificationTokens  VerificationToken[]
 
   @@map("users")
 }
@@ -67,22 +80,150 @@ model Membership {
 }
 
 model Invitation {
-  id          String    @id @default(cuid())
-  email       String
-  workspaceId String
-  role        Role      @default(MEMBER)
-  token       String    @unique
-  invitedById String
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  email        String
+  workspaceId  String
+  role         Role      @default(MEMBER)
+  // The SHA-256 of the token, never the token. A leaked database dump of raw
+  // invitation tokens is a set of working links into every workspace; a dump
+  // of hashes is not. The raw value exists only in the email and in the job
+  // payload that sent it.
+  tokenHash    String    @unique
+  invitedById  String
+  expiresAt    DateTime
+  // The four terminal states are timestamps, not a status column, because
+  // "when" is auditable and a derived status cannot drift out of sync with
+  // the write that caused it. Order of precedence lives in invitation.dto.js.
+  acceptedAt   DateTime?
+  acceptedById String?
+  declinedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  invitedBy User      @relation("InvitationInvitedBy", fields: [invitedById], references: [id])
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy  User      @relation("InvitationInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  acceptedBy User?     @relation("InvitationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
 
-  // One live invitation per email per workspace — re-inviting replaces the
-  // row rather than piling up tokens that all still work.
-  @@unique([email, workspaceId])
+  // NOTE: there is deliberately no @@unique([email, workspaceId]) here.
+  // Unconditional, it makes "revoke, then re-invite the same person" fail
+  // forever on a row nobody can see. The constraint that is actually wanted —
+  // one *live* invitation per address per workspace — is a partial unique
+  // index, which Prisma cannot express, so it is hand-written into the
+  // migration: invitations_live_email_workspace. Sprint 1 section 1.2.
   @@index([workspaceId])
+  @@index([email])
   @@map("invitations")
+}
+
+// Values must stay in sync with config.oauth in src/config/env.js and the
+// provider column of oauth_accounts.
+enum OAuthProvider {
+  GOOGLE
+  GITHUB
+}
+
+// One purpose per token. A token minted to verify an address must never be
+// redeemable to reset a password: both are "a link we emailed you", and
+// without this column the two endpoints accept each other s tokens. Plan 3.5.
+enum TokenPurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+// One row per linked provider identity — a table, not googleId/githubId
+// columns on User. A column per provider needs a migration for every new
+// provider and cannot represent one person linking two of them. Plan 3.2.
+model OAuthAccount {
+  id                String        @id @default(cuid())
+  userId            String
+  provider          OAuthProvider
+  // The provider s own stable id (Google sub, GitHub id). Lookups go through
+  // this, never through email: an email at the provider can change hands, the
+  // subject identifier cannot.
+  providerAccountId String
+  createdAt         DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+// Refresh tokens, rotated on every use. Plan 3.3.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  // SHA-256 hex, not bcrypt. The token is 256 bits of CSPRNG output, so there
+  // is no low-entropy secret to slow an attacker down — and refresh runs on
+  // every access-token expiry, where a deliberate 100ms KDF is a tax paid on
+  // every active session for no gain.
+  tokenHash    String    @unique
+  // Every token descended from one sign-in shares a familyId. Revoking a
+  // family is what turns a single detected replay into "that whole stolen
+  // session is dead" rather than "that one token is dead".
+  familyId     String
+  // Set when this row is rotated out, pointing at its successor. The 10-second
+  // grace window in the refresh flow keys on this: a revoked token that has a
+  // replacement is a racing browser tab, one without is a logout.
+  replacedById String?   @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  // Captured for incident forensics — which device, from where. Never used for
+  // an authorization decision: both are client-controlled strings.
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken? @relation("TokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   RefreshToken? @relation("TokenRotation")
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// Six-digit sign-in codes. Plan 3.4.
+model LoginCode {
+  id         String    @id @default(cuid())
+  userId     String
+  // bcrypt, NOT SHA-256 — the opposite choice from RefreshToken, for the
+  // opposite reason. Six digits is 10^6 possibilities; a SHA-256 of that space
+  // is enumerable in milliseconds on a stolen dump, so here the deliberately
+  // slow KDF is the entire defence.
+  codeHash   String
+  // The attempt counter lives on the row rather than in Redis: a cap that
+  // resets on deploy or eviction is not a cap. 10^6 is small enough that this
+  // counter, not the code length, is what makes the code safe.
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("login_codes")
+}
+
+// Email-verification and password-reset links. Plan 3.5.
+model VerificationToken {
+  id         String       @id @default(cuid())
+  userId     String
+  tokenHash  String       @unique
+  purpose    TokenPurpose
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Lookups are always (user, purpose) — "the outstanding verification token
+  // for this user" — never userId alone, which would mix the two purposes.
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("verification_tokens")
 }

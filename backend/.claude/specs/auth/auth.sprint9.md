@@ -37,8 +37,9 @@ Same skill, same depth as `auth.md`
 - [ ] `src/lib/demo-invites.ts` → real calls
 - [ ] Every request sends **`credentials: 'include'`**, or no cookie is ever sent
 - [ ] Error unwrapping reads **`body.data.code`**, not `body.error.code` (§2.2)
-- [ ] `social-buttons.tsx`: `/api/v1/auth/oauth/{provider}/start`, and drop
-      `aria-disabled` (§2.3)
+- [ ] `social-buttons.tsx`: `/api/v1/auth/{provider}/start` — no `/oauth`
+      segment, the path is pinned by the provider console (sprint 5 §5.6) — and
+      drop `aria-disabled` (§2.3)
 - [ ] Add `INVITE_EMAIL_MISMATCH` to `AUTH_ERROR_CODES` and `AUTH_ERROR_COPY`
 - [ ] A `401 TOKEN_EXPIRED` triggers one `/refresh` and one retry — and **never
       loops**: a second 401 after a refresh must sign the user out

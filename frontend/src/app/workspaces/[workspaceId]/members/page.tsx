@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { MembersPageHeader } from "@/components/members/members-page-header";
 import { MembersPanel } from "@/components/members/members-panel";
 import { getCurrentUser, getWorkspace } from "@/lib/demo-data";
-import { getPendingInvitations } from "@/lib/demo-invites";
+import { getPendingInvitations } from "@/lib/invites";
 import { getWorkspaceMembers } from "@/lib/demo-members";
 
 export async function generateMetadata({

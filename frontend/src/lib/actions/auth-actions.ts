@@ -6,7 +6,6 @@ import {
   login,
   register,
   requestLoginCode,
-  startSession,
   verifyLoginCode,
 } from "@/lib/auth";
 import { BOARD_HOME } from "@/lib/session-cookie";
@@ -76,7 +75,11 @@ export async function signInAction(
 ): Promise<AuthFormState> {
   const email = normaliseEmail(String(formData.get("email") ?? ""));
   const mode = formData.get("mode") === "password" ? "password" : "code";
-  const remember = formData.get("remember") === "on";
+  /* "Remember me" is read by the form but no longer acted on here. Session
+     lifetime is REFRESH_TOKEN_TTL_DAYS on the API, which is the only side that
+     can enforce it rather than merely suggest it — a client-set maxAge is a
+     hint the server never sees. Wiring the checkbox through is a backend
+     change (a per-session TTL on /login), not a frontend one. */
   const next = safeNextPath(String(formData.get("next") ?? "")) ?? BOARD_HOME;
 
   const emailError = validateEmail(email);
@@ -87,7 +90,11 @@ export async function signInAction(
     : codeSignIn(email, String(formData.get("code") ?? "")));
 
   if ("state" in result) return result.state;
-  await startSession(result.user, remember);
+
+  /* No startSession call: the API set tizello_access and tizello_refresh on the
+     sign-in response and lib/api-client.ts forwarded them onto this one. There
+     is no second session for this app to mint, and minting one would mean two
+     notions of "signed in" with only one of them revocable. */
   redirect(next);
 }
 

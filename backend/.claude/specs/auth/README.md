@@ -44,9 +44,36 @@ Non-negotiable, from the repo's own docs. A sprint is not done if it breaks one.
 **Sprint 3 before sprint 4** is deliberate: rotation is the part most likely to
 need rework, and every later flow issues tokens through it.
 
-## The blocker that affects sprints 2, 4, 7 and 8
+## Status — all nine sprints are built
 
-There is **no mail transport**. `src/workers/email.worker.js` has a `TODO` where
-the send goes. Until it is wired, verification links, login codes and invitation
-links are readable only in the worker log. Every sprint below that depends on
-email says so in its Definition of Done.
+Every sprint in the table above is implemented and its Definition of Done
+verified against a running server and the live database. The two contract docs
+exist: [`docs/api/auth.md`](../../../docs/api/auth.md) and
+[`docs/api/invitation.md`](../../../docs/api/invitation.md).
+
+Three decisions changed during implementation. Each is recorded in
+[`.claude/plan/authentication.md`](../../plan/authentication.md) §13 and in the
+section it contradicts, not only here:
+
+1. **`/logout` identifies the session from a `fid` claim on the access token**,
+   not from the refresh cookie — which its `path` scoping means the browser never
+   sends to `/logout`. Plan §4.4.
+2. **The OAuth routes are `/api/v1/auth/<provider>/(start|callback)`** — no
+   `/oauth` segment, because the provider consoles pin the path. Plan §9.
+3. **Rate-limit keys collapse IPv6 to its subnet** via `ipKeyGenerator`. Sprint 6
+   §6.2 specified IP + email; without the subnet collapse an IPv6 client takes a
+   fresh /128 per request and every limit becomes advisory.
+
+## The one remaining blocker — operational, not architectural
+
+The mail transport is wired: Nodemailer over SMTP in
+`src/shared/utils/mailer.js`, all four job types handled in
+`src/workers/email.worker.js`, and the worker verifies the transport at startup
+rather than discovering it is broken on the first real send.
+
+**The Gmail App Password in `.env` is rejected** — `534 5.7.9 WebLoginRequired`,
+which means Google is treating it as an ordinary account password, so the App
+Password has been revoked or 2-Step Verification is off on the sending account.
+Regenerate it; no code change is needed. Until then, verification links, login
+codes and invitation links are readable from the BullMQ job payloads, which is
+how every sprint above was tested.

@@ -1,14 +1,120 @@
+/**
+ * Consumer side of the email queue — one BullMQ worker that routes a job name
+ * to the message it sends.
+ *
+ * The processor's contract with BullMQ is expressed entirely through its
+ * return value: returning marks the job completed and it is never retried,
+ * throwing schedules another attempt under the queue's exponential backoff
+ * (5 attempts, src/queues/email.queue.js). So the distinction below is not
+ * stylistic — a revoked or already-accepted invitation *returns*, because no
+ * number of retries will make it sendable, while an SMTP failure *throws*, so
+ * the mail is tried again a few seconds later.
+ *
+ * Job payloads carry only ids and raw secrets, never rendered mail: the row
+ * is read back here so the message reflects the workspace and inviter as they
+ * are at send time, not as they were when the request came in.
+ *
+ * See .claude/rules/logging.md, src/queues/email.queue.js
+ *      and src/shared/utils/mailer.js
+ */
+
 import { Worker } from 'bullmq';
 import { connection } from '../config/redis.js';
-import { EMAIL_QUEUE_NAME } from '../queues/email.queue.js';
+import { EMAIL_QUEUE_NAME, EMAIL_QUEUE_PREFIX } from '../queues/email.queue.js';
 import prisma from '../config/db.js';
+import config from '../config/env.js';
 import { createLogger } from '../config/logger.js';
+import { sendMail } from '../shared/utils/mailer.js';
+import {
+  invitationEmail,
+  verificationEmail,
+  loginCodeEmail,
+  passwordResetEmail,
+} from '../shared/utils/emailTemplates.js';
 
 const log = createLogger('email-worker');
 
+// Every job payload carries its raw credential — the verification token, the
+// login code, the reset token, the invitation token — because only the hash is
+// stored and the worker cannot reconstruct the link from the row. That makes
+// `job.data` the one place a live secret sits at rest outside the email, so
+// nothing here logs `job.data`, only the recipient.
+
+const handlers = {
+  async 'send-verification'({ userId, token }, job) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    // Account deleted between enqueue and run. Return rather than throw: no
+    // number of retries brings the row back, and a throw would burn all five
+    // attempts on a job that can never succeed.
+    if (!user) {
+      log.warn({ userId, jobId: job.id }, 'User no longer exists, skipping verification email');
+      return;
+    }
+
+    // Verified through another path — an invitation, or an OAuth link. The
+    // link would still work, but sending it now is noise about something
+    // already done.
+    if (user.emailVerifiedAt) {
+      log.warn({ userId, jobId: job.id }, 'User already verified, skipping');
+      return;
+    }
+
+    const mail = verificationEmail({
+      name: user.name,
+      verifyUrl: `${config.clientOrigin}/verify-email?token=${encodeURIComponent(token)}`,
+      expiresInHours: config.auth.emailVerifyTtlHours,
+    });
+
+    await sendMail({ to: user.email, ...mail });
+    log.info({ jobId: job.id, userId, email: user.email }, 'Verification email sent');
+  },
+
+  async 'send-login-code'({ userId, code }, job) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      log.warn({ userId, jobId: job.id }, 'User no longer exists, skipping login code');
+      return;
+    }
+
+    const mail = loginCodeEmail({
+      code,
+      expiresInMinutes: config.auth.loginCodeTtlMinutes,
+    });
+
+    // Recipient only. The code is the credential — the root logger redacts a
+    // field named `token`, and that is a safety net, not permission to hand it
+    // one.
+    await sendMail({ to: user.email, ...mail });
+    log.info({ jobId: job.id, userId, email: user.email }, 'Login code sent');
+  },
+
+  async 'send-reset'({ userId, token }, job) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      log.warn({ userId, jobId: job.id }, 'User no longer exists, skipping reset email');
+      return;
+    }
+
+    const mail = passwordResetEmail({
+      name: user.name,
+      resetUrl: `${config.clientOrigin}/reset-password?token=${encodeURIComponent(token)}`,
+      expiresInHours: config.auth.passwordResetTtlHours,
+    });
+
+    await sendMail({ to: user.email, ...mail });
+    log.info({ jobId: job.id, userId, email: user.email }, 'Password reset email sent');
+  },
+};
+
 const processEmailJob = async (job) => {
+  const handler = handlers[job.name];
+  if (handler) return handler(job.data, job);
+
   if (job.name === 'send-invitation') {
-    const { invitationId } = job.data;
+    const { invitationId, token } = job.data;
 
     const invitation = await prisma.invitation.findUnique({
       where: { id: invitationId },
@@ -29,13 +135,40 @@ const processEmailJob = async (job) => {
       return;
     }
 
-    // TODO: wire a real transport (Nodemailer / Resend / SES) and move the
-    // send behind shared/utils/mailer.js. Everything around it — the queue,
-    // the retry policy, the revoked/accepted guards above — is already
-    // production-shaped; only the send itself is stubbed.
+    // Expired between enqueue and delivery — sending a link that 410s on the
+    // first click is worse than sending nothing. Same reasoning as above:
+    // return, do not retry.
+    if (invitation.expiresAt <= new Date()) {
+      log.warn({ invitationId, jobId: job.id }, 'Invitation expired before send, skipping');
+      return;
+    }
+
+    // The raw token comes from the job payload, NOT from the row: only its
+    // SHA-256 is stored, so `invitation.tokenHash` cannot rebuild the link.
+    // A job enqueued before this change (or by a producer that forgot) has no
+    // token, and there is nothing to retry — the link is unrecoverable.
+    if (!token) {
+      log.error({ invitationId, jobId: job.id }, 'Invitation job carries no raw token, skipping');
+      return;
+    }
+
+    // The token is the credential. It is interpolated into the mail and never
+    // into a log line — the logger redacts a field named `token`, but it
+    // cannot see one spliced into a URL string.
+    const inviteUrl = `${config.clientOrigin}/invite/${encodeURIComponent(token)}`;
+
+    const { subject, html, text } = invitationEmail({
+      workspaceName: invitation.workspace.name,
+      inviterName: invitation.invitedBy.name,
+      inviteUrl,
+      expiresAt: invitation.expiresAt,
+    });
+
+    await sendMail({ to: invitation.email, subject, html, text });
+
     log.info(
-      { jobId: job.id, email: invitation.email, workspace: invitation.workspace.name },
-      'TODO send invitation email'
+      { jobId: job.id, invitationId, email: invitation.email, workspace: invitation.workspace.name },
+      'Invitation email sent'
     );
 
     return;
@@ -46,14 +179,37 @@ const processEmailJob = async (job) => {
   throw new Error(`Unsupported email job: ${job.name}`);
 };
 
-const emailWorker = new Worker(EMAIL_QUEUE_NAME, processEmailJob, { connection });
+// `autorun: false` is load-bearing. A Worker constructed with the default
+// starts pulling jobs the moment this module is imported — which is before
+// the entrypoint's `await`s have run, so the startup checks would race the
+// first job instead of gating it, and a worker with unusable SMTP credentials
+// would drain the queue into failed jobs while still "starting up".
+// run-email-worker.js calls `emailWorker.run()` once those checks pass.
+const emailWorker = new Worker(EMAIL_QUEUE_NAME, processEmailJob, {
+  connection,
+  // Must match the producer's prefix — see email.queue.js.
+  prefix: EMAIL_QUEUE_PREFIX,
+  autorun: false,
+});
 
 emailWorker.on('completed', (job) => {
   log.info({ jobId: job.id, jobName: job.name }, 'Job completed');
 });
 
 emailWorker.on('failed', (job, error) => {
-  log.error({ err: error, jobId: job?.id, jobName: job?.name }, 'Job failed');
+  // `attemptsMade` vs `attempts` is what separates "will be retried shortly"
+  // from "this mail is now permanently undelivered", and only the second one
+  // is worth waking someone for.
+  log.error(
+    {
+      err: error,
+      jobId: job?.id,
+      jobName: job?.name,
+      attemptsMade: job?.attemptsMade,
+      attemptsAllowed: job?.opts?.attempts,
+    },
+    'Job failed'
+  );
 });
 
 export default emailWorker;

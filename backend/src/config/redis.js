@@ -25,6 +25,24 @@ redisClient.on('connect', () => {
 // failing much later. Connecting here makes Redis fail at startup like the
 // database does.
 const connectRedis = async () => {
+  // Something else may already have woken this client: the rate-limit store
+  // (shared/middlewares/rateLimiter.js) issues a command as soon as it is
+  // constructed, and `lazyConnect` turns that first command into a connect. On
+  // an already-connecting or connected client ioredis THROWS rather than
+  // no-ops, so calling connect() unconditionally here took the whole server
+  // down at boot with "Redis connection failed" while Redis was perfectly
+  // healthy — the most misleading possible error.
+  if (redisClient.status === 'ready') return;
+
+  if (redisClient.status === 'connecting' || redisClient.status === 'connect') {
+    // Wait for the in-flight connect instead of racing it.
+    await new Promise((resolve, reject) => {
+      redisClient.once('ready', resolve);
+      redisClient.once('error', reject);
+    });
+    return;
+  }
+
   try {
     await redisClient.connect();
   } catch (error) {
