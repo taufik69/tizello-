@@ -63,7 +63,7 @@ export function SignInForm({ next }: { next?: string }) {
       <input type="hidden" name="mode" value={mode} />
       {step === 2 && remember && <input type="hidden" name="remember" value="on" />}
 
-      <AuthAlert code={state.code} />
+      <AuthAlert state={state} />
 
       {/* Keyed on the step AND the mode so a swap remounts — which is what
           re-runs `auth-enter`. Each step already owns its own focus, so the
