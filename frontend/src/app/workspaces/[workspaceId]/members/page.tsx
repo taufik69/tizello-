@@ -48,6 +48,7 @@ export default async function MembersPage({
         members={members}
         invitations={invitations}
         currentUserId={currentUser.id}
+        workspaceId={workspaceId}
         workspaceName={workspace.name}
       />
     </main>

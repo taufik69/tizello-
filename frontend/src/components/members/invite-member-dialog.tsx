@@ -20,19 +20,28 @@ import type { InvitableRole } from "@/types/workspace";
  * validation, same reset-and-close on success. `validateEmail` is the shared
  * rule from `lib/validation/auth.ts` — a second address regex would drift.
  *
- * Nothing is sent. The parent turns a submit into a PENDING invitation and
- * switches to the Pending tab — nobody joins the roster until they accept; see
- * the note in `members-panel.tsx`.
+ * The parent owns the send: it calls the Server Action, and only on success
+ * adds a PENDING row and switches to the Pending tab. Nobody joins the roster
+ * until they accept — see the note in `members-panel.tsx`.
+ *
+ * The dialog closes optimistically on submit, before the action resolves. A
+ * failure surfaces as a toast rather than by holding the dialog open: the
+ * reasons an invite is refused (already a member, already invited, no
+ * permission) are not things the user can fix in this form, so keeping it open
+ * would offer a retry that cannot succeed.
  */
 export function InviteMemberDialog({
   open,
   onOpenChange,
   workspaceName,
+  pending = false,
   onInvite,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workspaceName: string;
+  /** True while the parent's action is in flight. */
+  pending?: boolean;
   onInvite: (email: string, role: InvitableRole) => void;
 }) {
   const titleId = useId();
@@ -98,7 +107,9 @@ export function InviteMemberDialog({
             <Button variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button type="submit">Send Invite</Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Sending…" : "Send Invite"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </form>

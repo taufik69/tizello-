@@ -6,7 +6,6 @@ import { PermissionMatrix } from "@/components/permissions/permission-matrix";
 import { RoleCards } from "@/components/permissions/role-cards";
 import { RoleDialog } from "@/components/permissions/role-dialog";
 import { useRoles } from "@/components/permissions/use-roles";
-import { Toast } from "@/components/ui/toast";
 import type { PermissionGroup, RoleDefinition } from "@/types/permissions";
 import type { WorkspaceMember } from "@/types/workspace";
 
@@ -35,8 +34,6 @@ export function PermissionsBoard({
     roles,
     assignments,
     memberCounts,
-    notice,
-    clearNotice,
     createRole,
     updateRole,
     deleteRole,
@@ -91,8 +88,6 @@ export function PermissionsBoard({
           onSubmit={submitRole}
         />
       )}
-
-      <Toast message={notice} onDismiss={clearNotice} />
     </>
   );
 }

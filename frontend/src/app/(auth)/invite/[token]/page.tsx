@@ -91,6 +91,7 @@ export default async function InvitePage({ params }: PageProps<"/invite/[token]"
 
         {signedIn ? (
           <InviteAcceptActions
+            token={invitation.token}
             accountEmail={account.email}
             workspaceId={invitation.workspaceId}
             workspaceName={invitation.workspaceName}

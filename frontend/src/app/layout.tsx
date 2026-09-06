@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -34,7 +35,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        {/* One outlet for the whole app. Mounted here rather than per-screen so
+            a toast survives navigation — an action that redirects on success
+            (accepting an invitation, signing in) would otherwise unmount its own
+            confirmation before it could be read. */}
+        <Toaster />
+      </body>
     </html>
   );
 }

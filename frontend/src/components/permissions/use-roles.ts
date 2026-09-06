@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "@/lib/toast-store";
 import { draftRole } from "@/lib/demo-permissions";
 import type { RoleDefinition } from "@/types/permissions";
 import type { WorkspaceMember } from "@/types/workspace";
@@ -26,10 +27,8 @@ export function useRoles(
   const [assignments, setAssignments] = useState<Record<string, string>>(() =>
     Object.fromEntries(members.map((member) => [member.id, member.role])),
   );
-  const [notice, setNotice] = useState<string | null>(null);
-
+  
   /* Stable, so `Toast`'s dismiss timer is not re-armed on every render. */
-  const clearNotice = useCallback(() => setNotice(null), []);
 
   /* Derived, never authored: a card cannot quote a count the list disagrees
      with, and a role reassigned below updates both at once. */
@@ -44,7 +43,7 @@ export function useRoles(
   function createRole(name: string, allowed: readonly string[]) {
     const role = draftRole(name, allowed);
     setRoles((current) => [...current, role]);
-    setNotice(`${role.name} created`);
+    toast.success(`${role.name} created`);
   }
 
   function updateRole(id: string, name: string, allowed: readonly string[]) {
@@ -53,7 +52,7 @@ export function useRoles(
         role.id === id ? { ...role, name: name.trim(), allowed } : role,
       ),
     );
-    setNotice(`${name.trim()} updated`);
+    toast.success(`${name.trim()} updated`);
   }
 
   function deleteRole(role: RoleDefinition) {
@@ -67,7 +66,7 @@ export function useRoles(
         ]),
       ),
     );
-    setNotice(`${role.name} deleted`);
+    toast.success(`${role.name} deleted`);
   }
 
   /** One cell of the matrix. Built-in roles are read-only; the caller checks. */
@@ -89,15 +88,13 @@ export function useRoles(
   function assignRole(member: WorkspaceMember, role: RoleDefinition) {
     if (assignments[member.id] === role.id) return;
     setAssignments((current) => ({ ...current, [member.id]: role.id }));
-    setNotice(`${member.name} is now ${role.name}`);
+    toast.success(`${member.name} is now ${role.name}`);
   }
 
   return {
     roles,
     assignments,
     memberCounts,
-    notice,
-    clearNotice,
     createRole,
     updateRole,
     deleteRole,

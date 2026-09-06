@@ -1,7 +1,5 @@
 {
-  "enabledMcpjsonServers": [
-    "postgres"
-  ],
+  "enabledMcpjsonServers": ["postgres"],
   "permissions": {
     "allow": [
       "Bash(npx tsc --noEmit*)",
@@ -30,7 +28,6 @@
       "Bash(rm *)",
       "Bash(mv *)",
       "Bash(psql *)",
-      "Bash(docker *)",
       "Bash(npx prisma db push*)",
       "Bash(npx prisma db execute*)"
     ],

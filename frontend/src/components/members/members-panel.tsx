@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { InviteMemberDialog } from "@/components/members/invite-member-dialog";
 import { MembersList } from "@/components/members/members-list";
 import { MembersToolbar } from "@/components/members/members-toolbar";
 import { PendingInvitesPanel } from "@/components/members/pending-invites-panel";
 import { RemoveMemberDialog } from "@/components/members/remove-member-dialog";
 import { TabPanel, type TabDescriptor } from "@/components/ui/tabs";
+import {
+  inviteMemberAction,
+  revokeInvitationAction,
+} from "@/lib/actions/invitation-actions";
+import { inviteErrorCopy } from "@/lib/invite-error-copy";
 import { sortInvitations } from "@/lib/invite-sort";
+import { toast } from "@/lib/toast-store";
 import { sortMembers } from "@/lib/demo-members";
 import type {
   InvitableRole,
@@ -25,9 +31,15 @@ import type {
  * Both arrays live here rather than in their panels because the tab strip
  * renders their counts. The panels below own only their own dialogs.
  *
- * NOTHING PERSISTS. There is no API and no Server Action behind any of this —
- * every change lives in `useState` and is gone on refresh. When the real
- * endpoints land, each handler becomes an action call plus a revalidate.
+ * Invitations are REAL: invite and cancel call Server Actions, which call the
+ * API and revalidate this route. The list is still held in state so the row
+ * appears the instant the action resolves rather than after the router has
+ * finished refetching — the revalidate is what makes it survive a reload, the
+ * local update is what makes it feel immediate.
+ *
+ * Roster edits (role change, remove) are still `useState` only: there is no
+ * member module on the API yet, so those endpoints do not exist. That is the
+ * one thing on this screen that still does not persist.
  */
 const GROUP = "members";
 
@@ -35,11 +47,13 @@ export function MembersPanel({
   members: roster,
   invitations,
   currentUserId,
+  workspaceId,
   workspaceName,
 }: {
   members: WorkspaceMember[];
   invitations: PendingInvitation[];
   currentUserId: string;
+  workspaceId: string;
   workspaceName: string;
 }) {
   const [tab, setTab] = useState("members");
@@ -49,6 +63,7 @@ export function MembersPanel({
   const [pendingRemoval, setPendingRemoval] = useState<WorkspaceMember | null>(
     null,
   );
+  const [isPending, startTransition] = useTransition();
 
   const tabs: TabDescriptor[] = [
     { value: "members", label: "Members", count: members.length },
@@ -65,26 +80,61 @@ export function MembersPanel({
     );
   }
 
-  /* An invitation now creates a PENDING row rather than a member: nobody has
-     accepted, so nobody belongs on the roster yet. `Date.now()` is safe here —
-     this runs in an event handler, never during a render that the server also
-     performed, so there is nothing for hydration to disagree with. */
+  /* An invitation creates a PENDING row rather than a member: nobody has
+     accepted, so nobody belongs on the roster yet.
+
+     The row is added only AFTER the action succeeds, not optimistically. An
+     invite can fail for reasons the client cannot predict — already a member,
+     already invited, no permission — and showing a row that then disappears is
+     worse than a half-second wait. `new Date()` is safe here: this runs in an
+     event handler, never during a render the server also performed, so there is
+     nothing for hydration to disagree with. */
   function invite(email: string, role: InvitableRole) {
-    const invitation: PendingInvitation = {
-      id: crypto.randomUUID(),
-      email,
-      role,
-      invitedAt: new Date().toISOString(),
-      status: "PENDING",
-    };
-    setInvites((current) => sortInvitations([...current, invitation]));
-    setTab("pending");
+    startTransition(async () => {
+      const result = await inviteMemberAction({ workspaceId, email, role });
+
+      if (!result.ok) {
+        toast.error(inviteErrorCopy(result.code));
+        return;
+      }
+
+      setInvites((current) =>
+        sortInvitations([
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            email,
+            role,
+            invitedAt: new Date().toISOString(),
+            status: "PENDING",
+          },
+        ]),
+      );
+      setTab("pending");
+      toast.success(`Invitation sent to ${email}.`);
+    });
   }
 
   function cancelInvite(invitationId: string) {
-    setInvites((current) =>
-      current.filter((invitation) => invitation.id !== invitationId),
-    );
+    const cancelled = invites.find((entry) => entry.id === invitationId);
+
+    startTransition(async () => {
+      const result = await revokeInvitationAction(workspaceId, invitationId);
+
+      if (!result.ok) {
+        toast.error(inviteErrorCopy(result.code));
+        return;
+      }
+
+      setInvites((current) =>
+        current.filter((invitation) => invitation.id !== invitationId),
+      );
+      toast.success(
+        cancelled
+          ? `Invitation to ${cancelled.email} cancelled.`
+          : "Invitation cancelled.",
+      );
+    });
   }
 
   function confirmRemoval() {
@@ -116,6 +166,7 @@ export function MembersPanel({
       <TabPanel group={GROUP} value="pending" active={tab === "pending"}>
         <PendingInvitesPanel
           invitations={invites}
+          workspaceId={workspaceId}
           workspaceName={workspaceName}
           onCancel={cancelInvite}
         />
@@ -125,6 +176,7 @@ export function MembersPanel({
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceName={workspaceName}
+        pending={isPending}
         onInvite={invite}
       />
 
