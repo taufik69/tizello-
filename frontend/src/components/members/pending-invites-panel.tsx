@@ -5,7 +5,7 @@ import { CancelInviteDialog } from "@/components/members/cancel-invite-dialog";
 import { PendingInvitesList } from "@/components/members/pending-invites-list";
 import { resendInvitationAction } from "@/lib/actions/invitation-actions";
 import { inviteErrorCopy } from "@/lib/invite-error-copy";
-import { toast } from "@/lib/toast-store";
+import { toast } from "sonner";
 import type { PendingInvitation } from "@/types/workspace";
 
 /*

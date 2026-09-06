@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "@/lib/toast-store";
+import { toast } from "sonner";
 import { draftRole } from "@/lib/demo-permissions";
 import type { RoleDefinition } from "@/types/permissions";
 import type { WorkspaceMember } from "@/types/workspace";

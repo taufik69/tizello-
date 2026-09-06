@@ -13,7 +13,7 @@ import {
 } from "@/lib/actions/invitation-actions";
 import { inviteErrorCopy } from "@/lib/invite-error-copy";
 import { sortInvitations } from "@/lib/invite-sort";
-import { toast } from "@/lib/toast-store";
+import { toast } from "sonner";
 import { sortMembers } from "@/lib/demo-members";
 import type {
   InvitableRole,

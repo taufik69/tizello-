@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "@/lib/toast-store";
+import { toast } from "sonner";
 
 /*
  * "Resend", disabled for 60s with a visible countdown. Used wherever we have

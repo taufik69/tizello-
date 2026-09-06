@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AUTH_ERROR_COPY, type AuthFormState } from "@/types/auth";
-import { toast } from "@/lib/toast-store";
+import { toast } from "sonner";
 
 /*
  * Form-level failures. The UI never renders a raw server message — a code maps

@@ -8,7 +8,7 @@ import {
   declineInvitationAction,
 } from "@/lib/actions/invitation-actions";
 import { inviteErrorCopy } from "@/lib/invite-error-copy";
-import { toast } from "@/lib/toast-store";
+import { toast } from "sonner";
 
 /*
  * Accept and decline, for someone who is already signed in.
