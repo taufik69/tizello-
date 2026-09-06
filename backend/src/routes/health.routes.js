@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 
 const router = express.Router();
 
@@ -11,9 +11,9 @@ const router = express.Router();
 // It also touches neither Postgres nor Redis on purpose: this answers "is
 // the process up", which must stay true (and fast) even while a dependency
 // is degraded. A dependency-checking readiness probe is a separate route.
-router.get('/', (req, res) => {
+router.get("/", (req, res) => {
   res.status(200).json({
-    status: 'ok',
+    status: "ok",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });

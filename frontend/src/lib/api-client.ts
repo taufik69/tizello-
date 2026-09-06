@@ -124,7 +124,12 @@ type CallOptions = {
  */
 export async function apiCall<T>(
   path: string,
-  { method = "GET", body, forwardCookies = false, cache = "no-store" }: CallOptions = {},
+  {
+    method = "GET",
+    body,
+    forwardCookies = false,
+    cache = "no-store",
+  }: CallOptions = {},
 ): Promise<ApiResult<T>> {
   const jar = await cookies();
 
@@ -147,7 +152,18 @@ export async function apiCall<T>(
       // answering — see docs/api/auth.md §Caching.
       cache,
     });
-  } catch {
+  } catch (error) {
+    /* The API is unreachable — wrong port, not started, DNS, TLS. This is the
+       single most common cause of a bare "Something went wrong" on screen, and
+       swallowing it silently makes it undiagnosable: the UI shows a generic
+       sentence and the terminal shows nothing at all. Node nests the useful
+       part in `cause` (ECONNREFUSED, EAI_AGAIN), so both are printed. */
+    console.error(
+      `[api] ${method} ${API_BASE}${path} — request failed:`,
+      (error as Error)?.message,
+      (error as { cause?: unknown })?.cause ?? "",
+    );
+
     return { ok: false, status: 0, code: "SERVER_ERROR" };
   }
 
@@ -158,11 +174,29 @@ export async function apiCall<T>(
     return { ok: true, status: 204, data: undefined as T };
   }
 
+  // Read as text ONCE, then parse that text — never `response.json()` followed
+  // by `response.clone()` in the catch. `.json()` disturbs the body stream as
+  // it reads, and `Response.clone()` is only legal on a stream nothing has
+  // started reading yet: calling it after a failed `.json()` throws its own
+  // "Body has already been consumed" TypeError, which then masked the ORIGINAL
+  // parse failure and turned a diagnosable 404 into a raw 500 page.
+  const raw = await response.text();
+
   let envelope: ApiEnvelope<T> | null = null;
 
   try {
-    envelope = (await response.json()) as ApiEnvelope<T>;
+    envelope = JSON.parse(raw) as ApiEnvelope<T>;
   } catch {
+    /* Reached something that is not our API. The giveaway is almost always an
+       HTML error page — another service on the port, or a proxy — so the first
+       line of the body is logged: it identifies the impostor immediately,
+       where "SERVER_ERROR" identifies nothing. */
+    console.error(
+      `[api] ${method} ${API_BASE}${path} — HTTP ${response.status} but the body is not JSON. ` +
+        `Is something else listening on that port? Body starts: ` +
+        raw.slice(0, 120).replace(/\s+/g, " "),
+    );
+
     return { ok: false, status: response.status, code: "SERVER_ERROR" };
   }
 
