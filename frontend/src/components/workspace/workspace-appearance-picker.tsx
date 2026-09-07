@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { CheckIcon } from "@/components/ui/icons";
 import { EmojiPickerPopover } from "@/components/workspace/emoji-picker-popover";
 import { ShuffleIcon } from "@/components/workspace/workspace-appearance-icons";
@@ -45,6 +46,9 @@ export function WorkspaceAppearancePicker({
     const pool = RANDOM_ICON_POOL.filter((choice) => choice !== icon);
     onIconChange(pool[Math.floor(Math.random() * pool.length)] ?? RANDOM_ICON_POOL[0]);
   }
+
+  const isCustomColor = color !== "" && !COLOR_CHOICES.some((choice) => choice.hex === color);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -99,6 +103,40 @@ export function WorkspaceAppearancePicker({
               {color === choice.hex && <CheckIcon className="size-3.5" />}
             </button>
           ))}
+
+          {/*
+           * The one swatch whose fill isn't a design token on purpose: a
+           * conic rainbow is the standard "pick any colour" affordance, and
+           * once a custom colour is chosen the swatch shows that literal hex
+           * back — same "decorative, not semantic" exception `COLOR_CHOICES`
+           * already carries. The native `<input type="color">` is layered on
+           * top at `opacity-0` rather than hidden, so it stays a real hit
+           * target for the OS colour picker (a browser built-in — no new
+           * dependency, and it closes itself once a colour is picked).
+           */}
+          <button
+            type="button"
+            aria-pressed={isCustomColor}
+            aria-label="Choose a custom colour"
+            onClick={() => colorInputRef.current?.click()}
+            className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-on-brand transition-transform duration-100 ease-standard hover:scale-110"
+            style={{
+              background: isCustomColor
+                ? color
+                : "conic-gradient(from 180deg, #f87168, #f5cd47, #4bce97, #579dff, #9f8fef, #f87168)",
+            }}
+          >
+            {isCustomColor && <CheckIcon className="size-3.5" />}
+            <input
+              ref={colorInputRef}
+              type="color"
+              value={isCustomColor ? color : "#34c77b"}
+              onChange={(event) => onColorChange(event.target.value)}
+              aria-hidden="true"
+              tabIndex={-1}
+              className="absolute inset-0 size-full cursor-pointer opacity-0"
+            />
+          </button>
         </div>
       </fieldset>
     </>

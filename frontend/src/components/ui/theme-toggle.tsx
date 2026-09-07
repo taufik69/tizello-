@@ -60,9 +60,11 @@ const OPTIONS: { value: Theme; label: string; Icon: (props: SVGProps<SVGSVGEleme
  * request: `theme-toggle-glow`/`theme-toggle-active` in globals.css were the
  * glow-and-literal-blue version, superseded by plain `bg-brand-500` here).
  *
- * `my-1` on the outer shell is deliberate, not incidental spacing — flush
- * against `ContentStrip`'s top/bottom border, the capsule read as clipped
- * rather than sitting inside the strip.
+ * `my-1.5` on the outer shell is deliberate, not incidental spacing — the
+ * strip is a fixed `h-topbar` (48px), so the capsule's own box (button +
+ * padding + border) has to come in under that before a margin can show as a
+ * real gap rather than being clipped; `size-7` + `p-0.5` is what leaves the
+ * room. Matches `AccountMenuTrigger`'s pill for the same reason.
  *
  * The highlight is a separate absolutely-positioned span, not a background on
  * the active button — animating a background swap can only cross-fade, never
@@ -92,7 +94,7 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Colour theme"
-      className="my-1 inline-flex rounded-full border border-border bg-surface p-1"
+      className="my-1.5 inline-flex rounded-full border border-border bg-surface p-0.5"
     >
       <div className="relative grid grid-cols-3 gap-0.5">
         <span
@@ -112,11 +114,11 @@ export function ThemeToggle() {
               aria-label={option.label}
               onClick={() => applyTheme(option.value)}
               className={[
-                "relative z-10 flex size-8 items-center justify-center rounded-full transition-colors duration-150 ease-standard active:scale-95",
+                "relative z-10 flex size-7 items-center justify-center rounded-full transition-colors duration-150 ease-standard active:scale-95",
                 active ? "text-on-brand" : "text-text-muted hover:text-text",
               ].join(" ")}
             >
-              <option.Icon className="size-4 shrink-0" />
+              <option.Icon className="size-3.5 shrink-0" />
             </button>
           );
         })}

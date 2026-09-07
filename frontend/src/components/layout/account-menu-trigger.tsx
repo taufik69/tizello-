@@ -48,21 +48,24 @@ function SignOutMenuItem() {
  * than claiming a status the app cannot back), a chevron, and a menu holding
  * the name and the way out.
  *
- * The outer pill (`border border-border bg-surface`, `my-1` for the same
- * "don't touch the strip's own border" reason as `ThemeToggle`) matches that
- * control's shell so the two read as one family of controls, not two
- * unrelated shapes bolted together.
+ * The outer pill (`border border-border bg-surface`, `my-1.5 p-0.5` for the
+ * same "leave the fixed-height strip room to show a real gap" reason as
+ * `ThemeToggle` — see that file's header) matches that control's shell so the
+ * two read as one family of controls, not two unrelated shapes bolted
+ * together. The avatar itself carries its own `border-border` ring, since
+ * `bg-surface-sunken` alone doesn't read as a distinct disc against the
+ * pill's `bg-surface`.
  */
 export function AccountMenuTrigger({ name }: { name: string }) {
   return (
-    <DropdownMenu className="my-1 rounded-full border border-border bg-surface p-1">
+    <DropdownMenu className="my-1.5 rounded-full border border-border bg-surface p-0.5">
       <DropdownMenuTrigger
         className="flex items-center gap-1 rounded-full pr-1 transition-colors duration-100 ease-standard hover:bg-surface-hover"
         aria-label={`Account: ${name}. Open menu`}
       >
         <span className="relative inline-flex">
-          <Avatar className="size-8 bg-surface-sunken text-text-muted">
-            <AvatarFallback className="text-xs">
+          <Avatar className="size-7 border border-border bg-surface-sunken text-text-muted">
+            <AvatarFallback className="text-2xs">
               <span aria-hidden="true">{initials(name)}</span>
             </AvatarFallback>
           </Avatar>
