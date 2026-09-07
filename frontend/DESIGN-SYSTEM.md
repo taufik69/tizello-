@@ -238,24 +238,26 @@ the one place the dark values are written out in a separate block.
 
 | File | Role |
 | --- | --- |
-| `src/lib/theme.ts` | `Theme` type, `localStorage` read/write, `THEME_INIT_SCRIPT` |
+| `src/lib/theme.ts` | `Theme` type, the `tizello-theme` cookie read/write, `themeFromCookies` |
 | `src/components/ui/theme-toggle.tsx` | the Light / Dark / System control |
-| `src/app/layout.tsx` | inlines the init script into `<head>` |
+| `src/app/layout.tsx` | reads the cookie and stamps `data-theme` on `<html>` |
 
 Two details that are load-bearing:
 
-- **`THEME_INIT_SCRIPT` runs before first paint.** The server has no way to know
-  the preference, so SSR'd HTML carries no `data-theme`. Without a blocking
-  inline script, a user who forced dark gets one white frame. `<html>` therefore
-  carries `suppressHydrationWarning` — the script mutates the attribute between
-  SSR and hydration, and that is intentional.
-- **The toggle reads storage through `useSyncExternalStore`,** not an effect.
-  The server snapshot is `"system"`, the client snapshot is the stored value, and
-  React reconciles the difference during hydration without warning. Reading
-  `localStorage` in an effect and calling `setState` trips
+- **The preference is a cookie, not `localStorage`.** It is sent with the
+  document request, so the root layout stamps `data-theme` server-side and the
+  right palette is in the first byte of HTML. The alternative — storage plus a
+  blocking inline `<script>` in `<head>` — cost a `suppressHydrationWarning`
+  and tripped React 19's "Scripts inside React components are never executed
+  when rendering on the client" warning, which `next/script` does not avoid
+  (it is itself a Client Component).
+- **The toggle reads the cookie through `useSyncExternalStore`,** not an effect.
+  The server snapshot is `"system"` and the client snapshot is the stored value;
+  only the toggle's own highlight reconciles on hydration, since the palette was
+  already correct. Reading it in an effect and calling `setState` trips
   `react-hooks/set-state-in-effect`.
 
-Picking **System** clears the stored value and removes the attribute, handing
+Picking **System** clears the cookie and removes the attribute, handing
 control back to `color-scheme: light dark`.
 
 ### What does not change

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 import { CheckIcon, DashIcon } from "@/components/ui/icons";
@@ -36,7 +37,28 @@ import {
 const TOAST_BASE =
   "flex items-start gap-2.5 rounded-md border border-border bg-surface px-3 py-2.5 text-sm text-text shadow-overlay w-full";
 
+/*
+ * The `(auth)` route group, matched by URL because a route group leaves no
+ * trace in the path. These screens are a single centred card on an empty page,
+ * so a bottom-centre toast lands under the form it is talking about — top right
+ * keeps it clear of the card and of the submit button the user is aiming at.
+ * Everywhere else keeps bottom-centre.
+ */
+const AUTH_ROUTES = [
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/invite",
+];
+
 export function Toaster(props: ToasterProps) {
+  const pathname = usePathname();
+  const onAuthPage = AUTH_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+
   /* Same store `ThemeToggle` reads: the server renders "system" (no
      preference is knowable yet), the client swaps in the real value during
      hydration, and sonner's own theme prop takes it from there — an explicit
@@ -48,7 +70,7 @@ export function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme={theme}
-      position="bottom-center"
+      position={onAuthPage ? "top-right" : "bottom-center"}
       closeButton
       icons={{
         success: <CheckIcon className="size-3.5 shrink-0 text-success" />,

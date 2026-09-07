@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { REFRESH_COOKIE } from "@/lib/session-cookie";
 
 /*
  * The one place the frontend talks to the backend.
@@ -58,20 +59,32 @@ function splitSetCookie(header: string): string[] {
 /**
  * Copies the API's `Set-Cookie` headers onto the response Next is building.
  *
- * The attributes are read back off each cookie rather than re-invented, so the
- * `path` scoping the backend chose survives — `tizello_refresh` is deliberately
- * scoped to `/api/v1/auth/refresh`, and re-setting it at `/` here would quietly
- * undo the single highest-value line in the backend's design.
+ * Attributes are read back off each cookie rather than re-invented, with one
+ * deliberate exception: **the refresh cookie is re-scoped to `path=/`.**
+ *
+ * The backend scopes `tizello_refresh` to `/api/v1/auth/refresh` so a browser
+ * talking straight to the API sends it to that one endpoint. Nothing here talks
+ * straight to the API — the browser talks to Next, Next talks to the API — so
+ * on *this* origin that path matches no route the browser will ever request,
+ * which means the cookie is never sent back to Next, never forwarded on, and
+ * the refresh call silently authenticates as nobody. The session then dies with
+ * the access token instead of living as long as the refresh token, and the user
+ * is asked to sign in every fifteen minutes.
+ *
+ * It stays `httpOnly` and `secure`, so page JavaScript still cannot read it —
+ * the narrow path bought nothing across an origin the API doesn't serve.
  */
-async function forwardSetCookies(response: Response): Promise<void> {
+const PATH_SCOPED_TO_API = /^\/api\//;
+async function forwardSetCookies(response: Response): Promise<string> {
   const raw =
     typeof response.headers.getSetCookie === "function"
       ? response.headers.getSetCookie()
       : splitSetCookie(response.headers.get("set-cookie") ?? "");
 
-  if (raw.length === 0) return;
+  if (raw.length === 0) return "";
 
   const jar = await cookies();
+  const pairs: string[] = [];
 
   for (const line of raw) {
     const [pair, ...attributes] = line.split(";");
@@ -88,7 +101,7 @@ async function forwardSetCookies(response: Response): Promise<void> {
       const flag = key.trim().toLowerCase();
       const detail = rest.join("=").trim();
 
-      if (flag === "path") options.path = detail;
+      if (flag === "path") options.path = PATH_SCOPED_TO_API.test(detail) ? "/" : detail;
       else if (flag === "domain") options.domain = detail;
       else if (flag === "max-age") options.maxAge = Number(detail);
       else if (flag === "expires") options.expires = new Date(detail);
@@ -99,8 +112,21 @@ async function forwardSetCookies(response: Response): Promise<void> {
       }
     }
 
-    jar.set(name, value, options);
+    pairs.push(`${name}=${value}`);
+
+    try {
+      jar.set(name, value, options);
+    } catch {
+      /* Next only allows a cookie write from a Server Action or Route Handler.
+         A silent renewal fired from a Server *Component* render therefore
+         cannot persist the new pair — but it is still valid for the rest of
+         this request, which is what the returned header is for. The browser
+         keeps the old cookies and renews again on the next action. Throwing
+         here instead would turn "the access token lapsed" into a 500 page. */
+    }
   }
+
+  return pairs.join("; ");
 }
 
 type CallOptions = {
@@ -113,6 +139,15 @@ type CallOptions = {
    */
   forwardCookies?: boolean;
   cache?: RequestCache;
+  /**
+   * Sent instead of this request's own cookies. Used for the one retry after a
+   * refresh: the renewed pair may not have been writable to the jar (see
+   * `forwardSetCookies`), so the retry has to carry it explicitly or it just
+   * replays the expired token and 401s again.
+   */
+  cookieOverride?: string;
+  /** Receives the cookies this response set, as a `Cookie` header value. */
+  onCookies?: (header: string) => void;
 };
 
 /**
@@ -129,14 +164,18 @@ export async function apiCall<T>(
     body,
     forwardCookies = false,
     cache = "no-store",
+    cookieOverride,
+    onCookies,
   }: CallOptions = {},
 ): Promise<ApiResult<T>> {
   const jar = await cookies();
 
-  const cookieHeader = jar
-    .getAll()
-    .map(({ name, value }) => `${name}=${value}`)
-    .join("; ");
+  const cookieHeader =
+    cookieOverride ??
+    jar
+      .getAll()
+      .map(({ name, value }) => `${name}=${value}`)
+      .join("; ");
 
   let response: Response;
 
@@ -167,7 +206,7 @@ export async function apiCall<T>(
     return { ok: false, status: 0, code: "SERVER_ERROR" };
   }
 
-  if (forwardCookies) await forwardSetCookies(response);
+  if (forwardCookies) onCookies?.(await forwardSetCookies(response));
 
   // 204 has no body; parsing it throws.
   if (response.status === 204) {
@@ -218,7 +257,7 @@ export async function apiCall<T>(
 }
 
 /**
- * Calls the API and, on a `401 TOKEN_EXPIRED`, refreshes once and retries once.
+ * Calls the API and, on any 401, refreshes once and retries once.
  *
  * **Capped at exactly one retry, and that cap is the point.** The classic way
  * this cutover takes a site down is a refresh loop: every request 401s, each one
@@ -226,8 +265,12 @@ export async function apiCall<T>(
  * traffic. A second 401 after a successful refresh means the session is genuinely
  * gone, and the caller signs the user out.
  *
- * Only `TOKEN_EXPIRED` triggers it. `TOKEN_INVALID` means the token is not
- * renewable — retrying it is guaranteed to fail and would be the loop again.
+ * Every 401 is retried, not only `TOKEN_EXPIRED`. The access token is the short
+ * -lived half of the pair, so an expired *or* absent one — the browser drops the
+ * cookie at its own max-age, which produces a "no token" 401 rather than an
+ * "expired token" one — is exactly the case the refresh token exists to cover.
+ * Only the refresh token's own expiry ends the session; the retry cap is what
+ * keeps that from looping.
  */
 export async function apiCallWithRefresh<T>(
   path: string,
@@ -235,18 +278,28 @@ export async function apiCallWithRefresh<T>(
 ): Promise<ApiResult<T>> {
   const first = await apiCall<T>(path, options);
 
-  if (first.ok || first.status !== 401 || first.code !== "TOKEN_EXPIRED") {
+  if (first.ok || first.status !== 401) {
     return first;
   }
 
+  /* No refresh token, nothing to renew with — this is a signed-out visitor, not
+     a lapsed session, and firing the refresh call for them just adds a round
+     trip to every anonymous page load. */
+  const jar = await cookies();
+  if (!jar.has(REFRESH_COOKIE)) return first;
+
+  let renewed = "";
   const refreshed = await apiCall<unknown>("/auth/refresh", {
     method: "POST",
     forwardCookies: true,
+    onCookies: (header) => {
+      renewed = header;
+    },
   });
 
   if (!refreshed.ok) return first;
 
-  return apiCall<T>(path, options);
+  return apiCall<T>(path, { ...options, ...(renewed ? { cookieOverride: renewed } : {}) });
 }
 
 export { API_BASE };

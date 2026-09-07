@@ -129,9 +129,9 @@ palette; there is no duplicated dark block.
 | File | Role |
 | --- | --- |
 | `src/app/globals.css` | the `light-dark()` token values (block 3) |
-| `src/lib/theme.ts` | `Theme` type, storage, `THEME_INIT_SCRIPT` |
+| `src/lib/theme.ts` | `Theme` type, the `tizello-theme` cookie, `themeFromCookies` |
 | `src/components/ui/theme-toggle.tsx` | Light / Dark / System control |
-| `src/app/layout.tsx` | inlines the init script into `<head>` |
+| `src/app/layout.tsx` | reads the cookie, stamps `data-theme` on `<html>` |
 
 **Write markup once.** If a component needs a `dark:` utility, a semantic token
 is usually missing — add the token instead. Full mechanics, both neutral ramps,

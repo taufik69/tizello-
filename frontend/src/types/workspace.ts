@@ -103,6 +103,8 @@ export type WorkspaceFormState = {
 /** Copy for the `code`s `lib/workspaces.ts` can return. Unlike `AuthErrorCode`, this is not a closed union — the workspace API's failures are generic HTTP-ish codes, not a fixed enumeration a frontend type needs to track byte-for-byte. */
 export const WORKSPACE_ERROR_COPY: Record<string, string> = {
   VALIDATION_ERROR: "Check the fields below.",
+  UNAUTHORIZED: "Your session expired. Sign in again.",
+  TOKEN_EXPIRED: "Your session expired. Sign in again.",
   FORBIDDEN: "You don't have permission to do that.",
   NOT_FOUND: "That workspace is no longer available.",
   RATE_LIMITED: "Too many attempts. Try again in a few minutes.",
