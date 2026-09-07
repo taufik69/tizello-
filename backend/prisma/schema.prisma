@@ -49,15 +49,56 @@ model User {
   @@map("users")
 }
 
+// Values must stay in sync with WorkspacePlan usage in src/modules/workspace/.
+// Billing (SSLCommerz) is not implemented yet — these fields exist so the
+// column shape doesn't change under a later migration, but nothing in the
+// workspace module reads or writes plan/planExpiresAt/seatLimit/lastPaymentAt
+// today. Every workspace is FREE with everything else null until that lands.
+enum WorkspacePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
 model Workspace {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
+  id          String    @id @default(cuid())
+  name        String
+  // Auto-generated from name at create time (slugify + numeric suffix on
+  // collision), never accepted from the client — see docs/api/workspace.md
+  // §slug generation. Unique so it can double as a URL segment later.
+  slug        String    @unique
+  description String?
+  // A single emoji character, not an uploaded image — no file storage, no
+  // image pipeline, and it renders everywhere a workspace name does without
+  // a network request.
+  icon        String?
+  // Hex string for avatar/theme accents, e.g. "#6366f1". Free text at this
+  // layer; the frontend constrains it to a swatch.
+  color       String?
+
+  // --- billing (future — SSLCommerz). No logic anywhere reads these yet. ---
+  plan          WorkspacePlan @default(FREE)
+  planExpiresAt DateTime?
+  seatLimit     Int?
+  lastPaymentAt DateTime?
+
+  // Free-form workspace-level preferences (e.g. default board view). Json
+  // rather than columns because these are display preferences, not something
+  // any query filters or joins on — a column per setting would mean a
+  // migration for every new one.
+  settings   Json?
+  // Archived is reversible (hide from the default list); deletedAt is not
+  // (soft delete). Two different operations, two different columns — folding
+  // them into one status enum would make "archived AND deleted" ambiguous.
+  isArchived Boolean   @default(false)
+  deletedAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   memberships Membership[]
   invitations Invitation[]
+  projects    Project[]
 
   @@map("workspaces")
 }
@@ -256,4 +297,20 @@ model VerificationToken {
   @@index([userId, purpose])
   @@index([expiresAt])
   @@map("verification_tokens")
+}
+
+// Minimal stub so Workspace.projects compiles — the project module is not
+// built yet. Fields kept to the bare minimum on purpose: extend this model
+// when the project module actually lands rather than guessing its shape now.
+model Project {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("projects")
 }

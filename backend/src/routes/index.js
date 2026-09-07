@@ -9,6 +9,7 @@ import {
   workspaceRouter as invitationWorkspaceRoutes,
   tokenRouter as invitationTokenRoutes,
 } from "../modules/invitation/invitation.routes.js";
+import workspaceRoutes from "../modules/workspace/workspace.routes.js";
 
 const router = express.Router();
 
@@ -25,5 +26,6 @@ router.use("/api/v1/auth", authRoutes);
 // recipient routes are token-scoped because the recipient has no membership yet.
 router.use("/api/v1/invitations", invitationTokenRoutes);
 router.use("/api/v1/workspaces/:workspaceId/invitations", invitationWorkspaceRoutes);
+router.use("/api/v1/workspaces", workspaceRoutes);
 
 export default router;

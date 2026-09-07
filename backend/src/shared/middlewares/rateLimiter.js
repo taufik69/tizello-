@@ -200,6 +200,13 @@ const inviteLookupLimiter = failClosed(
   })
 );
 
+// Workspace creation — spam/farming prevention, not a plan-enforcement
+// mechanism (there is no seat/workspace cap yet). Ten per hour is generous
+// for a real user and cheap for an abuser to hit, which is the point.
+const workspaceCreateLimiter = failClosed(
+  limiter({ name: 'workspace-create', windowMs: 60 * 60 * 1000, max: 10, keyGenerator: ipKey })
+);
+
 export {
   apiLimiter,
   authLimiter,
@@ -210,4 +217,5 @@ export {
   oauthLimiter,
   inviteSendLimiter,
   inviteLookupLimiter,
+  workspaceCreateLimiter,
 };

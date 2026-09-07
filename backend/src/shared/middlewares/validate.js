@@ -29,7 +29,18 @@ const validate =
 
     // Write the validated (Joi-coerced and defaulted) value back so
     // downstream layers receive normalized data — string "20" becomes 20.
-    req[target] = value;
+    //
+    // `req.query` is special on Express 5: it is a getter on the prototype
+    // with no setter (a breaking change from Express 4), so a plain
+    // `req.query = value` throws "Cannot set property query of
+    // #<IncomingMessage> which has only a getter". Defining an own property
+    // shadows that getter for this request without touching `body` or
+    // `params`, which remain plain writable own properties already.
+    if (target === 'query') {
+      Object.defineProperty(req, 'query', { value, writable: true, configurable: true });
+    } else {
+      req[target] = value;
+    }
 
     next();
   };
