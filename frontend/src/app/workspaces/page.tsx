@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { WelcomeFireworks } from "@/components/layout/welcome-fireworks";
 import { WorkspaceGrid } from "@/components/workspace/workspace-grid";
 import { getSession } from "@/lib/auth";
 import { getWorkspaces } from "@/lib/workspaces";
 import { plural } from "@/lib/plural";
+import { WELCOME_PARAM } from "@/lib/session-cookie";
 
 export const metadata: Metadata = {
   title: "Workspaces",
@@ -17,14 +19,16 @@ export const metadata: Metadata = {
  * `proxy.ts`'s guard is optimistic (cookie presence only) — this redirect is
  * the real check, same as `/board/[boardId]`.
  */
-export default async function WorkspacesPage() {
+export default async function WorkspacesPage({ searchParams }: PageProps<"/workspaces">) {
   const user = await getSession();
   if (!user) redirect("/sign-in?next=/workspaces");
 
   const workspaces = await getWorkspaces();
+  const justSignedIn = (await searchParams)[WELCOME_PARAM] === "1";
 
   return (
     <main className="w-full px-4 py-8 sm:px-6">
+      {justSignedIn && <WelcomeFireworks />}
         <header className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight text-text">
             Workspaces

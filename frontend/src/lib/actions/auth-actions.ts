@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   endSession,
@@ -8,7 +9,7 @@ import {
   requestLoginCode,
   verifyLoginCode,
 } from "@/lib/auth";
-import { BOARD_HOME, homeWithWelcome } from "@/lib/session-cookie";
+import { HOME, homeWithWelcome } from "@/lib/session-cookie";
 import {
   normaliseEmail,
   safeNextPath,
@@ -82,7 +83,7 @@ export async function signInAction(
      can enforce it rather than merely suggest it — a client-set maxAge is a
      hint the server never sees. Wiring the checkbox through is a backend
      change (a per-session TTL on /login), not a frontend one. */
-  const next = safeNextPath(String(formData.get("next") ?? "")) ?? BOARD_HOME;
+  const next = safeNextPath(String(formData.get("next") ?? "")) ?? HOME;
 
   const emailError = validateEmail(email);
   if (emailError) return field("email", emailError);
@@ -97,7 +98,17 @@ export async function signInAction(
      sign-in response and lib/api-client.ts forwarded them onto this one. There
      is no second session for this app to mint, and minting one would mean two
      notions of "signed in" with only one of them revocable. */
-  redirect(next === BOARD_HOME ? homeWithWelcome() : next);
+/*
+ * Signing in or out changes what every page renders, and Next's client-side
+ * Router Cache does not know that: it keeps the RSC payload it already has, so
+ * the redirect lands, the URL changes, and the browser re-shows the *cached*
+ * pre-session render — a signed-in user staring at the sign-in form under a
+ * /workspaces URL. `revalidatePath("/", "layout")` drops every cached segment
+ * from the root down, which is the only granularity that covers a change this
+ * global.
+ */
+  revalidatePath("/", "layout");
+  redirect(next === HOME ? homeWithWelcome() : next);
 }
 
 async function passwordSignIn(email: string, password: string): Promise<StepResult> {
@@ -127,5 +138,6 @@ export async function requestSignInCodeAction(email: string): Promise<void> {
 /** A POST, never a link — a GET that mutates is CSRF-able and gets prefetched. */
 export async function signOutAction(): Promise<void> {
   await endSession();
+  revalidatePath("/", "layout");
   redirect("/sign-in");
 }

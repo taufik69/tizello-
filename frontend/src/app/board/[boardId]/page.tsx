@@ -3,14 +3,12 @@ import { AddCardForm } from "@/components/board/add-card-form";
 import { BoardColumn } from "@/components/board/board-column";
 import { BoardHeader } from "@/components/board/board-header";
 import { CardTile } from "@/components/board/card-tile";
-import { WelcomeFireworks } from "@/components/board/welcome-fireworks";
 import { BoardPageHeader } from "@/components/sprint-board/board-page-header";
 import { SprintBoardPanel } from "@/components/sprint-board/sprint-board-panel";
 import { getSession } from "@/lib/auth";
 import { getBoard } from "@/lib/boards";
 import { getBoardAssignees, getSprintBoard } from "@/lib/demo-board";
 import { DEMO_TODAY } from "@/lib/demo-projects";
-import { WELCOME_PARAM } from "@/lib/session-cookie";
 
 export async function generateMetadata({ params }: PageProps<"/board/[boardId]">) {
   const { boardId } = await params;
@@ -46,12 +44,8 @@ export async function generateMetadata({ params }: PageProps<"/board/[boardId]">
  * `h-full` fills the shell's content column exactly, which is what keeps the
  * column rail's horizontal scroll on the rail rather than on the page.
  */
-export default async function BoardPage({
-  params,
-  searchParams,
-}: PageProps<"/board/[boardId]">) {
+export default async function BoardPage({ params }: PageProps<"/board/[boardId]">) {
   const { boardId } = await params;
-  const query = await searchParams;
 
   /*
    * The proxy only checks that a session cookie EXISTS — that is an optimistic
@@ -68,7 +62,6 @@ export default async function BoardPage({
 
     return (
       <main className="flex h-full flex-col bg-surface-sunken">
-        {query[WELCOME_PARAM] === "1" && <WelcomeFireworks />}
         {/* The identity is static and stays on the server; everything that
             changes as a card is dragged lives in the panel below. */}
         <BoardPageHeader

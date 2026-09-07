@@ -206,7 +206,14 @@ export async function apiCall<T>(
     return { ok: false, status: 0, code: "SERVER_ERROR" };
   }
 
-  if (forwardCookies) onCookies?.(await forwardSetCookies(response));
+  /* Not `onCookies?.(await forwardSetCookies(response))` — an optional call
+     short-circuits its ARGUMENTS as well as the call, so with no `onCookies`
+     (every caller but the refresh retry) the forwarding never ran and sign-in
+     silently returned no cookies at all. */
+  if (forwardCookies) {
+    const forwarded = await forwardSetCookies(response);
+    onCookies?.(forwarded);
+  }
 
   // 204 has no body; parsing it throws.
   if (response.status === 204) {

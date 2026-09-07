@@ -6,7 +6,7 @@ import { AuthFooter } from "@/components/auth/auth-footer";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { getSession } from "@/lib/auth";
-import { BOARD_HOME } from "@/lib/session-cookie";
+import { HOME } from "@/lib/session-cookie";
 import { safeNextPath } from "@/lib/validation/auth";
 
 export const metadata = {
@@ -19,7 +19,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/sign-up">
   const target = safeNextPath(typeof next === "string" ? next : undefined);
 
   /* Reverse guard: an existing session has no business on this screen. */
-  if (await getSession()) redirect(target ?? BOARD_HOME);
+  if (await getSession()) redirect(target ?? HOME);
 
   return (
     <>

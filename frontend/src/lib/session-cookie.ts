@@ -28,21 +28,23 @@ export const SESSION_COOKIE = ACCESS_COOKIE;
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 /**
- * Where a signed-in user lands — the running sprint's board, which is spec §3's
- * `/board/sprint` now that the id resolves to the one ACTIVE sprint rather than
- * to a fixture board's key.
+ * Where a signed-in user lands: the workspace list, which is what the sidebar
+ * also calls Home (`lib/nav-links.ts`). It used to be `/board/sprint` — one
+ * hard-coded sprint board, which only makes sense for an account that already
+ * has that workspace, and left a new user staring at someone else's sprint
+ * instead of their own workspaces.
  */
-export const BOARD_HOME = "/board/sprint";
+export const HOME = "/workspaces";
 
-/** The query param `WelcomeFireworks` (`board/[boardId]/page.tsx`) looks for. */
+/** The query param `WelcomeFireworks` (`workspaces/page.tsx`) looks for. */
 export const WELCOME_PARAM = "welcome";
 
 /**
- * `BOARD_HOME`, flagged for the one-time fireworks. Used by every action that
- * just finished proving a credential — password/code sign-in, registration
- * code — so the celebration fires on a real login, not on every ordinary
- * visit to the board. Only ever applied when the destination *is* home: a
- * sign-in that deep-linked back to some other page (`next`) skips it, since
- * "just landed on home" is specifically what earns the moment.
+ * `HOME`, flagged for the one-time fireworks. Used by every action that just
+ * finished proving a credential — password/code sign-in, registration code —
+ * so the celebration fires on a real login, not on every ordinary visit.
+ * Only ever applied when the destination *is* home: a sign-in that deep-linked
+ * back to some other page (`next`) skips it, since "just landed on home" is
+ * specifically what earns the moment.
  */
-export const homeWithWelcome = () => `${BOARD_HOME}?${WELCOME_PARAM}=1`;
+export const homeWithWelcome = () => `${HOME}?${WELCOME_PARAM}=1`;
