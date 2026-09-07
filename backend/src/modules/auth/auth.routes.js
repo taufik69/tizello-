@@ -24,10 +24,10 @@ import { isProviderEnabled } from '../../config/passport.js';
 import {
   registerSchema,
   loginSchema,
-  verifyEmailSchema,
-  resendVerificationSchema,
   requestCodeSchema,
   verifyCodeSchema,
+  verifyRegistrationCodeSchema,
+  resendRegistrationCodeSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 } from './auth.validator.js';
@@ -53,17 +53,17 @@ router.post(
 );
 
 router.post(
-  '/verify-email',
+  '/verify-registration-code',
   authLimiter,
-  validate(verifyEmailSchema),
-  asyncHandler(controller.verifyEmail)
+  validate(verifyRegistrationCodeSchema),
+  asyncHandler(controller.verifyRegistrationCode)
 );
 
 router.post(
-  '/resend-verification',
+  '/resend-registration-code',
   resendLimiter,
-  validate(resendVerificationSchema),
-  asyncHandler(controller.resendVerification)
+  validate(resendRegistrationCodeSchema),
+  asyncHandler(controller.resendRegistrationCode)
 );
 
 router.post('/login', authLimiter, validate(loginSchema), asyncHandler(controller.login));

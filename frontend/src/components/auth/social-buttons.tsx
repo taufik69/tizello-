@@ -11,11 +11,11 @@ import { API_BASE } from "@/lib/api-client";
  * registered, so this cannot be a `fetch` and cannot be proxied through Next
  * without breaking the redirect chain.
  *
- * **The path carries no `/oauth` segment.** It is
- * `/api/v1/auth/<provider>/start`, matching the callback registered in the
- * GitHub OAuth App and the Google console — a provider compares the redirect URI
- * character for character, so this string and the console cannot disagree. See
- * backend docs/api/auth.md §12.
+ * **The path carries no `/oauth` segment.** `API_BASE` already includes the
+ * `/api/v1` prefix, so the full URL is `<API_BASE>/auth/<provider>/start`,
+ * matching the callback registered in the GitHub OAuth App and the Google
+ * console — a provider compares the redirect URI character for character, so
+ * this string and the console cannot disagree. See backend docs/api/auth.md §12.
  *
  * `next` is passed as a query parameter here and immediately moved *inside* the
  * signed `state` by the API, so it cannot be tampered with in flight.
@@ -33,7 +33,7 @@ export function SocialButtons({ next }: { next?: string }) {
       {PROVIDERS.map(({ id, label, Mark }) => (
         <a
           key={id}
-          href={`${API_BASE}/api/v1/auth/${id}/start${query}`}
+          href={`${API_BASE}/auth/${id}/start${query}`}
           className="flex h-10 items-center justify-center gap-2 rounded-sm border border-border bg-surface text-sm font-medium text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-hover hover:text-text"
         >
           <Mark />

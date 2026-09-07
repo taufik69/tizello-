@@ -34,14 +34,14 @@ const emailQueue = new Queue(EMAIL_QUEUE_NAME, {
 const enqueueInvitationEmail = ({ invitationId, token }) =>
   emailQueue.add('send-invitation', { invitationId, token });
 
-// Queues an email-verification link.
+// Queues a six-digit registration-verification code.
 //
-// The RAW token travels in the payload, and it has to: only its SHA-256 is
-// stored, so the worker cannot reconstruct the link from the row no matter what
-// it reads back. The same is true of the login code and the reset token below —
+// The RAW code travels in the payload, and it has to: only its bcrypt hash is
+// stored, so the worker cannot reconstruct it from the row no matter what it
+// reads back. The same is true of the login code and the reset token below —
 // each is passed once, at mint time, and never again.
-const enqueueVerificationEmail = ({ userId, token }) =>
-  emailQueue.add('send-verification', { userId, token });
+const enqueueRegistrationCodeEmail = ({ userId, code }) =>
+  emailQueue.add('send-registration-code', { userId, code });
 
 // Queues a six-digit sign-in code. The code itself is a credential: it must not
 // be logged, and the queue payload is the only place outside the email that
@@ -58,7 +58,7 @@ export {
   EMAIL_QUEUE_NAME,
   EMAIL_QUEUE_PREFIX,
   enqueueInvitationEmail,
-  enqueueVerificationEmail,
+  enqueueRegistrationCodeEmail,
   enqueueLoginCodeEmail,
   enqueuePasswordResetEmail,
 };

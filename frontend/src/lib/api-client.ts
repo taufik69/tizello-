@@ -23,7 +23,7 @@ import { cookies } from "next/headers";
  *    returns.
  */
 
-const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5000";
+const API_BASE = process.env.API_BASE_URL ?? "http://localhost:5000/api/v1";
 
 /** The API's envelope — identical for success and failure. */
 export type ApiEnvelope<T> = {
@@ -239,7 +239,7 @@ export async function apiCallWithRefresh<T>(
     return first;
   }
 
-  const refreshed = await apiCall<unknown>("/api/v1/auth/refresh", {
+  const refreshed = await apiCall<unknown>("/auth/refresh", {
     method: "POST",
     forwardCookies: true,
   });

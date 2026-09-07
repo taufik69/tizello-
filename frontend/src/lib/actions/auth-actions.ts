@@ -60,8 +60,10 @@ export async function signUpAction(
     return { code: result.code };
   }
 
-  /* Unverified accounts do not get a session — verification is a wall (§15). */
-  redirect(`/verify-email?pending=1&email=${encodeURIComponent(email)}`);
+  /* Unverified accounts do not get a session — verification is a wall. The
+     registration code was already sent as part of `register()`; this page
+     just collects it. */
+  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }
 
 /**

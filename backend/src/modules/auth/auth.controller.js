@@ -36,16 +36,22 @@ const register = async (req, res) => {
   const { tokens, ...result } = await service.register({ ...req.body, ...requestContext(req) });
 
   // Cookies only on the invited path: an ordinary registration issues no
-  // session, because the address has not been proved yet (spec §6.1).
+  // session, because the address has not been proved yet — that happens at
+  // verify-registration-code.
   if (tokens) setAuthCookies(res, tokens);
 
   return ApiResponse.success(res, httpStatus.CREATED, 'Account created', result);
 };
 
-const verifyEmail = async (req, res) => {
-  const result = await service.verifyEmail(req.body);
+const verifyRegistrationCode = async (req, res) => {
+  const { user, tokens } = await service.verifyRegistrationCodeAndSignIn({
+    ...req.body,
+    ...requestContext(req),
+  });
 
-  return ApiResponse.success(res, httpStatus.OK, 'Email verified', result);
+  setAuthCookies(res, tokens);
+
+  return ApiResponse.success(res, httpStatus.OK, 'Account verified', { user });
 };
 
 /**
@@ -55,10 +61,10 @@ const verifyEmail = async (req, res) => {
  * hides it in the clock, where an unpadded implementation leaks it just as
  * clearly. Both halves are required — see shared/utils/timing.js.
  */
-const resendVerification = async (req, res) => {
-  await withMinimumDuration(() => service.resendVerification(req.body));
+const resendRegistrationCode = async (req, res) => {
+  await withMinimumDuration(() => service.resendRegistrationCode(req.body));
 
-  return ApiResponse.success(res, httpStatus.ACCEPTED, 'If that address has an account, a link is on its way');
+  return ApiResponse.success(res, httpStatus.ACCEPTED, 'If that address has a pending verification, a code is on its way');
 };
 
 /**
@@ -191,8 +197,8 @@ export default {
   verifyLoginCode,
   forgotPassword,
   resetPassword,
-  verifyEmail,
-  resendVerification,
+  verifyRegistrationCode,
+  resendRegistrationCode,
   login,
   session,
   logout,

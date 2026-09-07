@@ -283,8 +283,10 @@ Below the fields:
 - Divider `— or —`, then Google / GitHub
 - Footer link: *Already have an account? Log in*
 
-On success → redirect to `/verify-email?pending=1` (the "check your inbox"
-state, §6.5), **not** to the board. The account exists but is unverified.
+On success → redirect to `/verify-email?email=<encoded>` (the code-entry
+state, §6.5), **not** to the board. The account exists but is unverified —
+`register()` already enqueued a 6-digit code to that address as part of this
+call.
 
 ### 6.2 `/sign-in` — two-step, code first
 
@@ -406,17 +408,28 @@ On success → `/sign-in?reset=1`, which shows a one-time success banner. Do not
 auto-sign-in from a reset link; possession of the link is not proof of identity
 strong enough for a session.
 
-### 6.5 `/verify-email`
+### 6.5 `/verify-email` — code entry, not a link
 
-Three states in one route:
+**Revised.** The original design consumed an emailed link and issued no
+session — the user then had to sign in separately, which for the code-first
+`/sign-in` this spec already adopted (§6.2) meant a *second* emailed secret
+before reaching the app. This route now redeems a 6-digit code instead,
+reusing `/sign-in` step 2's own components (`CodeInput`, `ResendButton`), and
+success signs the user in directly — no separate "verified" screen, no second
+credential.
+
+Two states, keyed on whether `email` is known:
 
 | Trigger | State | Shows |
 | --- | --- | --- |
-| `?pending=1` | **Check your inbox** | Address, *Resend* (60s cooldown), *Wrong address? Sign up again* |
-| `?token=…` valid | **Verified** | Success, then auto-redirect to `/board/sprint` after 2s, plus an explicit *Continue* link for anyone who does not want to wait |
-| `?token=…` invalid/expired | **Link expired** | *Send a new link* button |
+| `?email=<address>` | **Check your inbox** | "We sent a 6-digit code to `<address>`. It expires in 5 minutes.", `CodeInput`, *Resend code* (60s cooldown), *Wrong address? Sign up again* |
+| no `email` | **Verify your email** | A single email field + submit — reached only via `AuthAlert`'s "Resend code" on a failed `EMAIL_NOT_VERIFIED` login, which has no address in hand. Submitting sends the code and redirects to the state above. |
 
-Token consumption happens in a Server Action on load, not in an effect.
+`CodeInput` auto-submits on the sixth digit, same as `/sign-in`. A correct
+code calls the API, which sets `emailVerifiedAt` and issues a session in the
+same request — the Server Action's success path is `redirect("/board/sprint")`,
+never a rendered "verified" state, mirroring `codeSignIn` in
+`auth-actions.ts`.
 
 ### 6.6 Social buttons — a grid
 
@@ -508,8 +521,8 @@ this repo.** Base path `/api/v1/auth`. JSON in, JSON out.
 | POST | `/login/verify-code` | `{ email, code, remember }` | `200 { user }` + `Set-Cookie` | 401 `CODE_INVALID`, 410 `CODE_EXPIRED`, 429 |
 | POST | `/logout` | — | `204` + cookie cleared | — |
 | GET | `/session` | — | `200 { user }` / `401` | — |
-| POST | `/verify-email` | `{ token }` | `200 { user }` | 400, 410 |
-| POST | `/resend-verification` | `{ email }` | `202` *(always)* | 429 |
+| POST | `/verify-registration-code` | `{ email, code }` | `200 { user }` + `Set-Cookie` | 401 `CODE_INVALID`, 410 `CODE_EXPIRED`, 429 |
+| POST | `/resend-registration-code` | `{ email }` | `202` *(always)* | 429 |
 | POST | `/forgot-password` | `{ email }` | `202` *(always)* | 429 |
 | POST | `/reset-password` | `{ token, password }` | `200` | 400, 410, 422 |
 | GET | `/oauth/{provider}/start` | — | `302` to provider | — |
@@ -526,12 +539,17 @@ Requirements on the backend, to be honoured when it is written:
 - Session: **httpOnly, Secure, SameSite=Lax** cookie. `Path=/`. 30 days with
   "remember me", session cookie without. The token is never readable by JS and
   never placed in `localStorage`.
-- Reset and verification tokens: single-use, ≥128 bits of entropy, stored
-  hashed. Reset expires in **1 hour**, verification in **24 hours**.
-- **Login codes: 6 digits, cryptographically random, stored hashed, single-use,
-  10-minute expiry.** Invalidated by a successful sign-in or a newer request.
-  Cap attempts at **5 per code**, then burn it — six digits is only 10⁶, so
-  without an attempt cap a code is brute-forceable in seconds.
+- Reset tokens: single-use, ≥128 bits of entropy, stored hashed, **1 hour**
+  expiry.
+- **Login codes and registration codes: 6 digits, cryptographically random,
+  bcrypt-hashed, single-use.** Login codes expire in **10 minutes**,
+  registration codes in **5** (entered in the same sitting as sign-up, not
+  retrieved hours later). Both invalidated by a successful redemption or a
+  newer request. Cap attempts at **5 per code**, then burn it — six digits is
+  only 10⁶, so without an attempt cap a code is brute-forceable in seconds.
+  Redeeming a registration code sets `emailVerifiedAt` and issues a session in
+  the same step, exactly like a login code — there is no separate "now log in"
+  request.
 - `/login/request-code` returns `202` for unknown addresses, same as
   `/forgot-password`, and pads response time to a constant.
 - **Account linking:** an OAuth identity whose verified email matches an existing

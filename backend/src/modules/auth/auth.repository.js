@@ -111,6 +111,33 @@ const consumeOutstandingLoginCodes = (userId, tx = prisma) =>
     data: { consumedAt: new Date() },
   });
 
+/* ── Registration codes ────────────────────────────────────────────────── */
+
+const createRegistrationCode = (data, tx = prisma) => tx.registrationCode.create({ data });
+
+// The newest unconsumed, unexpired code for a user. `orderBy` is load-bearing:
+// a user who requested twice in quick succession has two rows, and only the
+// latest one was actually delivered to them.
+const findLatestRegistrationCode = (userId, tx = prisma) =>
+  tx.registrationCode.findFirst({
+    where: { userId, consumedAt: null },
+    orderBy: { createdAt: 'desc' },
+  });
+
+const incrementRegistrationCodeAttempts = (id, tx = prisma) =>
+  tx.registrationCode.update({ where: { id }, data: { attempts: { increment: 1 } } });
+
+const consumeRegistrationCode = (id, tx = prisma) =>
+  tx.registrationCode.update({ where: { id }, data: { consumedAt: new Date() } });
+
+// A new request invalidates the old code. Done as part of issuing, not lazily
+// at verify time, so there is never a window with two live codes.
+const consumeOutstandingRegistrationCodes = (userId, tx = prisma) =>
+  tx.registrationCode.updateMany({
+    where: { userId, consumedAt: null },
+    data: { consumedAt: new Date() },
+  });
+
 /* ── OAuth accounts (sprint 5) ─────────────────────────────────────────── */
 
 const findOAuthAccount = (provider, providerAccountId, tx = prisma) =>
@@ -141,6 +168,11 @@ export default {
   incrementLoginCodeAttempts,
   consumeLoginCode,
   consumeOutstandingLoginCodes,
+  createRegistrationCode,
+  findLatestRegistrationCode,
+  incrementRegistrationCodeAttempts,
+  consumeRegistrationCode,
+  consumeOutstandingRegistrationCodes,
   findOAuthAccount,
   createOAuthAccount,
 };

@@ -68,17 +68,20 @@ it.
 ### Legal transitions
 
 ```
-unverified ──verify-email──────────► verified
-           ──login-code redeemed───►          (the code proved the address)
-           ──reset-password────────►          (the link proved the address)
-           ──invitation accepted───►          (the invite proved the address)
-           ──OAuth link (verified)─►
+unverified ──registration code redeemed─► verified  (the code proved the address)
+           ──login-code redeemed────────►          (the code proved the address)
+           ──reset-password─────────────►          (the link proved the address)
+           ──invitation accepted────────►          (the invite proved the address)
+           ──OAuth link (verified)──────►
 ```
 
-Verification is one-way: nothing sets `emailVerifiedAt` back to null. Four
+Verification is one-way: nothing sets `emailVerifiedAt` back to null. Five
 separate paths set it, and they all rest on the same argument — *a secret was
-delivered to that address and came back*, which is precisely what a verification
-email establishes.
+delivered to that address and came back*, which is precisely what a
+registration code (or any of the others) establishes. Redeeming the
+registration code additionally issues a session in the same step — see
+*OTP* below — so there is no separate "now log in" round-trip after
+verifying.
 
 ---
 
@@ -177,28 +180,42 @@ itself information.
 
 ---
 
-## OTP — login codes
+## OTP — login codes and registration codes
 
-| Setting | Env var | Default |
-|---|---|---|
-| Code length | *code constant* | 6 digits |
-| TTL | `LOGIN_CODE_TTL_MINUTES` | `10` |
-| Max attempts | `LOGIN_CODE_MAX_ATTEMPTS` | `5` |
+Two tables, same shape, different table for the reason given in
+`.claude/plan/authentication.md` §3.4: a low-entropy, attempt-capped secret
+must not share a table with the high-entropy, single-shot `VerificationToken`
+below, so it gets its own rather than a purpose column bolted onto either.
+
+| Setting | Env var | Default | Table |
+|---|---|---|---|
+| Code length | *code constant* | 6 digits | both |
+| Login TTL | `LOGIN_CODE_TTL_MINUTES` | `10` | `LoginCode` |
+| Login max attempts | `LOGIN_CODE_MAX_ATTEMPTS` | `5` | `LoginCode` |
+| Registration TTL | `REGISTRATION_CODE_TTL_MINUTES` | `5` | `RegistrationCode` |
+| Registration max attempts | `REGISTRATION_CODE_MAX_ATTEMPTS` | `5` | `RegistrationCode` |
+
+The registration TTL is shorter because that code is entered in the same
+sitting as sign-up, not retrieved hours later.
 
 Six digits is 10⁶ possibilities, so **the attempt cap, not the length, is what
-makes the code safe.** Two consequences follow.
+makes either code safe.** Two consequences follow.
 
-First, codes are **bcrypt**-hashed, unlike every other token here: a SHA-256 of a
+First, both are **bcrypt**-hashed, unlike every other token here: a SHA-256 of a
 10⁶ space falls to a dictionary in milliseconds on a stolen dump, so the slow KDF
 is the entire defence.
 
-Second, **the attempt counter lives on the `LoginCode` row, never in Redis.** A
-cap that resets on deploy or on cache eviction is not a cap. The counter is
-incremented on the row for a wrong guess, so an attacker cannot reset their
-budget by interleaving guesses against a different address.
+Second, **the attempt counter lives on the row, never in Redis.** A cap that
+resets on deploy or on cache eviction is not a cap. The counter is incremented
+on the row for a wrong guess, so an attacker cannot reset their budget by
+interleaving guesses against a different address.
 
 Requesting a new code consumes any outstanding one at issue time rather than
-lazily at verification, so there is never a window in which two live codes exist.
+lazily at verification, so there is never a window in which two live codes
+exist. Redeeming either code sets `emailVerifiedAt` if it was null and issues a
+session in the same step — see `issueSession` in `auth.service.js` — which is
+also what the registration-code redemption route does, rather than a separate
+"now log in" step.
 
 ---
 
@@ -212,10 +229,10 @@ is never limited at all.
 
 | Limiter | Window / max | Endpoints | Why |
 |---|---|---|---|
-| `authLimiter` | 15m / 10 | login, verify-code, verify-email, reset-password | credential guessing; the tightest budget |
+| `authLimiter` | 15m / 10 | login, verify-code, verify-registration-code, reset-password | credential guessing; the tightest budget |
 | `registerLimiter` | 1h / 5 | register | account farming, and the duplicate-email `409` is an enumeration oracle this bounds |
 | `recoveryLimiter` | 1h / 5 | forgot-password, request-code | mails a credential to an address the caller merely claims |
-| `resendLimiter` | 1h / 3 | resend-verification | tightest of the mail paths: pure re-send, no other purpose |
+| `resendLimiter` | 1h / 3 | resend-registration-code | tightest of the mail paths: pure re-send, no other purpose |
 | `refreshLimiter` | 15m / 60 | refresh | a timed background call from every open tab, not a guess |
 | `oauthLimiter` | 15m / 20 | provider start + callback | bounds state-guessing and provider round trips |
 
@@ -260,8 +277,9 @@ into two honest messages. It is defended in three layers:
 3. the verified check runs *after* the password check, so an anonymous caller
    is never told "this address exists but is unverified".
 
-**`202` always, on the mail paths.** `resend-verification`, `login/request-code`
-and `forgot-password` answer identically whether or not the address exists, and
+**`202` always, on the mail paths.** `resend-registration-code`,
+`login/request-code` and `forgot-password` answer identically whether or not
+the address exists, and
 each is padded to a constant ~250ms floor by `withMinimumDuration`
 (`shared/utils/timing.js`). The uniform status hides *whether*; the padding hides
 it in the clock, and only both together close the oracle.
@@ -360,11 +378,12 @@ is a worse outcome than an extra click.
 }
 ```
 
-**No session is issued** (spec §6.1) — the address has not been proved yet, and
-the frontend redirects to `/verify-email?pending=1`. The one exception is a valid
-`inviteToken`, which sets `emailVerified: true`, adds `"inviteApplied": true` to
-`data`, and *does* set both cookies: possession of the emailed token already
-proves the address. See [invitation.md](./invitation.md) §*The deadlock*.
+**No session is issued** — the address has not been proved yet, and the
+frontend redirects to `/verify-email?email=…` to collect the 6-digit code this
+call just enqueued. The one exception is a valid `inviteToken`, which sets
+`emailVerified: true`, adds `"inviteApplied": true` to `data`, and *does* set
+both cookies: possession of the emailed token already proves the address. See
+[invitation.md](./invitation.md) §*The deadlock*.
 
 `data.user` never contains `passwordHash`, a token, or the raw `emailVerifiedAt`
 timestamp — `auth.dto.js` whitelists five fields rather than deleting unwanted
@@ -381,21 +400,23 @@ ones, so a column added to the model later cannot leak by default.
 
 ---
 
-## 2. `POST /api/v1/auth/verify-email`
+## 2. `POST /api/v1/auth/verify-registration-code`
 
-Redeems an email-verification link. Public. `authLimiter` (15m / 10).
+Redeems the 6-digit registration code and signs the user in. Public.
+`authLimiter` (15m / 10).
 
 | Field | Rules |
 |---|---|
-| `token` | string, ≤200, required |
+| `email` | string, ≤254, valid, normalized |
+| `code` | string, exactly 6 digits |
 
-**`200`**
+**`200`**, `Set-Cookie` for both `tizello_access` and `tizello_refresh`.
 
 ```json
 {
   "success": true,
   "statusCode": 200,
-  "message": "Email verified",
+  "message": "Account verified",
   "data": {
     "user": {
       "id": "cmtpakkau0000r2j2fvq8c44r",
@@ -408,41 +429,40 @@ Redeems an email-verification link. Public. `authLimiter` (15m / 10).
 }
 ```
 
-The lookup is by `tokenHash` **and `purpose: EMAIL_VERIFY`**. The hash alone is
-unique, so the purpose filter looks redundant — it is not: it is what stops a
-password-reset token from verifying an address and vice versa. The filter lives
-in the repository, not in a caller's `if`, so no future caller can omit it.
-
-An already-verified account whose token is still live gets `200`, not an error:
-the desired end state holds, and failing would be a lie about the account's
-condition. This is what makes the endpoint safe to retry.
+Same shape as `login/verify-code` (§6): dummy-hash burn when no code is
+outstanding, the attempt cap checked and burned *before* the comparison, a
+single-use consume on success. Redeeming the code sets `emailVerifiedAt` if it
+was null and calls `issueSession` in the same step — there is no separate
+"now log in" request, which is what this replaces the old link-plus-separate-
+sign-in flow with.
 
 **Errors**
 
 | Status | When |
 |---|---|
-| `400` | `TOKEN_INVALID` — unknown or already consumed. |
-| `410` | `TOKEN_EXPIRED` — **not `400`**. The frontend offers "send me a new link" for this and not for a token that never existed; collapsing them removes the only signal that distinguishes a recoverable state from a dead one. |
+| `400` | Validation failed. |
+| `401` | `CODE_INVALID` — wrong code, no outstanding code, or the attempt cap was hit. |
+| `410` | `CODE_EXPIRED`. |
 | `429` | `RATE_LIMITED`. |
 
 ---
 
-## 3. `POST /api/v1/auth/resend-verification`
+## 3. `POST /api/v1/auth/resend-registration-code`
 
-Re-sends a verification link. Public. `resendLimiter` (1h / 3).
+Re-sends a registration code. Public. `resendLimiter` (1h / 3).
 
 | Field | Rules |
 |---|---|
 | `email` | string, ≤254, valid, normalized |
 
-**`202`** — always, including for an address with no account, and always after
-the same elapsed time.
+**`202`** — always, including for an address with no account or one already
+verified, and always after the same elapsed time.
 
 ```json
 {
   "success": true,
   "statusCode": 202,
-  "message": "If that address has an account, a link is on its way",
+  "message": "If that address has a pending verification, a code is on its way",
   "data": null
 }
 ```

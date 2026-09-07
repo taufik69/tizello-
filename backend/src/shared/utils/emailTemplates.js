@@ -156,44 +156,35 @@ const invitationEmail = ({ workspaceName, inviterName, inviteUrl, expiresAt }) =
 };
 
 /**
- * Email verification — the mail behind the `send-verification` job.
+ * Six-digit registration code — the mail behind `send-registration-code`.
  *
- * `verifyUrl` carries the raw token and is the credential; it is rendered here
- * and logged nowhere.
+ * Same visual treatment as `loginCodeEmail` below (large monospace code,
+ * subject carries it too) since it is the same shape of secret; the copy is
+ * "confirm your account" rather than "sign in."
  */
-const verificationEmail = ({ name, verifyUrl, expiresInHours }) => {
-  const greeting = name ? `Hi ${escapeHtml(name)},` : 'Hi,';
+const registrationCodeEmail = ({ code, expiresInMinutes }) => {
+  const safeCode = escapeHtml(code);
 
-  const subject = `Confirm your email for ${BRAND}`;
+  const subject = `${code} is your ${BRAND} confirmation code`;
 
   const html = layout({
-    title: 'Confirm your email address',
-    preheader: `Confirm your email to finish setting up your ${BRAND} account.`,
+    title: 'Confirm your account',
+    preheader: `${code} — expires in ${expiresInMinutes} minutes.`,
     bodyHtml: `
-      <p style="margin:0;">${greeting}</p>
-      <p style="margin:12px 0 0 0;">
-        Confirm this address to finish setting up your ${BRAND} account.
-      </p>
-      ${button({ href: verifyUrl, label: 'Confirm email' })}
-      <p style="margin:0 0 8px 0;font-size:13px;color:#6b778c;">
-        Or paste this link into your browser:
-      </p>
-      <p style="margin:0 0 24px 0;font-size:13px;word-break:break-all;">
-        <a href="${escapeHtml(verifyUrl)}" style="color:#0052cc;">${escapeHtml(verifyUrl)}</a>
+      <p style="margin:0;">Enter this code to finish creating your account.</p>
+      <p style="margin:28px 0;font-size:34px;font-weight:700;letter-spacing:10px;color:#172b4d;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">
+        ${safeCode}
       </p>
       <p style="margin:0;font-size:13px;color:#6b778c;">
-        This link expires in ${expiresInHours} hours. If you did not create an
-        account, you can ignore this email.
+        The code expires in ${expiresInMinutes} minutes and can be used once. If
+        you did not create an account, you can ignore this email.
       </p>`,
   });
 
   const text = [
-    `${name ? `Hi ${name},` : 'Hi,'}`,
+    `Your ${BRAND} confirmation code is ${code}`,
     '',
-    `Confirm this address to finish setting up your ${BRAND} account:`,
-    verifyUrl,
-    '',
-    `This link expires in ${expiresInHours} hours.`,
+    `It expires in ${expiresInMinutes} minutes and can be used once.`,
     'If you did not create an account, you can ignore this email.',
   ].join('\n');
 
@@ -286,7 +277,7 @@ const passwordResetEmail = ({ name, resetUrl, expiresInHours }) => {
 
 export {
   invitationEmail,
-  verificationEmail,
+  registrationCodeEmail,
   loginCodeEmail,
   passwordResetEmail,
   layout,

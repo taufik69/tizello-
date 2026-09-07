@@ -32,16 +32,16 @@ import {
   verifyAccessTokenIgnoringExpiry,
   mintOpaqueToken,
   hashToken,
-  mintLoginCode,
-  hashLoginCode,
-  verifyLoginCode,
+  mintSixDigitCode,
+  hashSixDigitCode,
+  verifySixDigitCode,
   hashPassword,
   verifyPassword,
   mintFamilyId,
   DUMMY_PASSWORD_HASH,
 } from '../../shared/utils/tokens.js';
 import {
-  enqueueVerificationEmail,
+  enqueueRegistrationCodeEmail,
   enqueueLoginCodeEmail,
   enqueuePasswordResetEmail,
 } from '../../queues/email.queue.js';
@@ -85,40 +85,40 @@ const issueSession = async ({ user, userAgent, ip }, tx = prisma) => {
 };
 
 /**
- * Mints an email-verification token and queues the mail.
+ * Mints a registration-verification code and queues the mail.
  *
- * Outstanding tokens of the same purpose are consumed first, so a resend leaves
- * exactly one working link rather than a growing set of them.
+ * Outstanding codes for the user are consumed first, so a resend (or a retry
+ * of the invite-fallback path in `register`) leaves exactly one working code
+ * rather than a growing set of them.
  *
- * The **raw** token goes into the job payload; only the hash is stored. The
- * worker cannot recover it from the row, so passing it at enqueue time is the
- * only way the email can contain a working link.
+ * The **raw** code goes into the job payload; only the bcrypt hash is stored.
+ * The worker cannot recover it from the row, so passing it at enqueue time is
+ * the only way the email can contain a working code.
  */
-const issueVerificationToken = async (user, tx = prisma) => {
-  await repository.consumeOutstandingVerificationTokens(user.id, 'EMAIL_VERIFY', tx);
+const issueRegistrationCode = async (user, tx = prisma) => {
+  await repository.consumeOutstandingRegistrationCodes(user.id, tx);
 
-  const token = mintOpaqueToken();
+  const code = mintSixDigitCode();
 
-  await repository.createVerificationToken(
+  await repository.createRegistrationCode(
     {
       userId: user.id,
-      tokenHash: hashToken(token),
-      purpose: 'EMAIL_VERIFY',
-      expiresAt: new Date(Date.now() + config.auth.emailVerifyTtlHours * HOUR),
+      codeHash: await hashSixDigitCode(code),
+      expiresAt: new Date(Date.now() + config.auth.registrationCodeTtlMinutes * MINUTE),
     },
     tx
   );
 
-  return token;
+  return code;
 };
 
 /**
  * Creates an account.
  *
- * Returns `201 { user }` and **no session** (spec §6.1): the address has not
- * been proved yet, and the frontend sends the user to `/verify-email?pending=1`.
- * The one exception is the invitation path in sprint 8, where possession of the
- * emailed token already proves the address.
+ * Returns `201 { user }` and **no session**: the address has not been proved
+ * yet, and the frontend sends the user to `/verify-email?email=…` to enter the
+ * code just emailed. The one exception is the invitation path in sprint 8,
+ * where possession of the emailed invite token already proves the address.
  *
  * The duplicate-email `409` is an accepted enumeration leak (spec §8) —
  * registration cannot both refuse a duplicate and stay silent about why. Rate
@@ -178,67 +178,86 @@ const register = async ({ name, email, password, inviteToken, userAgent, ip }) =
     // Undo the optimistic verification and fall back to the ordinary flow —
     // the account survives, which is the whole point.
     const downgraded = await repository.updateUser(result.created.id, { emailVerifiedAt: null });
-    const verifyToken = await issueVerificationToken(downgraded);
-    await enqueueVerificationEmail({ userId: downgraded.id, token: verifyToken });
+    const code = await issueRegistrationCode(downgraded);
+    await enqueueRegistrationCodeEmail({ userId: downgraded.id, code });
 
     return { user: dto.toUser(downgraded), inviteApplied: false };
   }
 
   const user = await repository.createUser({ name, email, passwordHash });
 
-  const token = await issueVerificationToken(user);
-  await enqueueVerificationEmail({ userId: user.id, token });
+  const code = await issueRegistrationCode(user);
+  await enqueueRegistrationCodeEmail({ userId: user.id, code });
 
   return { user: dto.toUser(user) };
 };
 
 /**
- * Redeems an email-verification token.
+ * Redeems a registration code and signs the user straight in.
  *
- * The lookup is by hash **and purpose** — a password-reset token must not
- * verify an address, and vice versa. `TOKEN_INVALID` (400) and `TOKEN_EXPIRED`
- * (410) stay distinct because the frontend offers "send me a new link" for one
- * and not the other.
+ * Same shape as `verifyLoginCodeAndSignIn` below — dummy-hash burn on a
+ * missing record, expiry check, attempt-cap-then-burn, single-use consume —
+ * because a registration code is the exact same low-entropy, attempt-capped
+ * secret a login code is. Redeeming it proves the address exactly as a login
+ * code or an emailed link would, so it sets `emailVerifiedAt` and issues a
+ * session in the same step: there is no reason to make a newly-verified user
+ * turn around and sign in again.
  */
-const verifyEmail = async ({ token }) => {
-  const record = await repository.findVerificationToken(hashToken(token), 'EMAIL_VERIFY');
+const verifyRegistrationCodeAndSignIn = async ({ email, code, userAgent, ip }) => {
+  const invalid = () =>
+    new AppError(httpStatus.UNAUTHORIZED, "That code isn't right", AUTH_CODES.CODE_INVALID);
 
-  if (!record || record.consumedAt) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'This link is no longer valid', AUTH_CODES.TOKEN_INVALID);
+  const user = await repository.findUserByEmail(email);
+  const record = user ? await repository.findLatestRegistrationCode(user.id) : null;
+
+  if (!record) {
+    await verifySixDigitCode(code, DUMMY_PASSWORD_HASH);
+    throw invalid();
   }
 
   if (record.expiresAt <= new Date()) {
-    throw new AppError(httpStatus.GONE, 'This link has expired', AUTH_CODES.TOKEN_EXPIRED);
+    await repository.consumeRegistrationCode(record.id);
+    throw new AppError(httpStatus.GONE, 'That code has expired', AUTH_CODES.CODE_EXPIRED);
   }
 
-  // Already verified through another path (an invitation, an OAuth link).
-  // Consume the token and report success: the desired end state holds, and an
-  // error here would be a lie about the account's condition.
-  const user = record.user.emailVerifiedAt
-    ? record.user
-    : await repository.updateUser(record.userId, { emailVerifiedAt: new Date() });
+  if (record.attempts >= config.auth.registrationCodeMaxAttempts) {
+    await repository.consumeRegistrationCode(record.id);
+    throw invalid();
+  }
 
-  await repository.consumeVerificationToken(record.id);
+  if (!(await verifySixDigitCode(code, record.codeHash))) {
+    await repository.incrementRegistrationCodeAttempts(record.id);
+    throw invalid();
+  }
 
-  return { user: dto.toUser(user) };
+  await repository.consumeRegistrationCode(record.id);
+
+  const verified = user.emailVerifiedAt
+    ? user
+    : await repository.updateUser(user.id, { emailVerifiedAt: new Date() });
+
+  const tokens = await issueSession({ user: verified, userAgent, ip });
+
+  return { user: dto.toUser(verified), tokens };
 };
 
 /**
- * Re-sends a verification link.
+ * Re-sends a registration code.
  *
- * Returns nothing and throws nothing for an unknown address — the controller
- * answers `202` either way. The status hides *whether*; the padding in the
- * controller hides *how long*, which is the half that is easy to forget.
+ * Returns nothing and throws nothing for an unknown or already-verified
+ * address — the controller answers `202` either way. The status hides
+ * *whether*; the padding in the controller hides *how long*, which is the
+ * half that is easy to forget.
  */
-const resendVerification = async ({ email }) => {
+const resendRegistrationCode = async ({ email }) => {
   const user = await repository.findUserByEmail(email);
 
   // No account, or already verified: silently do nothing. Re-sending to a
   // verified address would let anyone use us to mail a stranger on demand.
   if (!user || user.emailVerifiedAt) return;
 
-  const token = await issueVerificationToken(user);
-  await enqueueVerificationEmail({ userId: user.id, token });
+  const code = await issueRegistrationCode(user);
+  await enqueueRegistrationCodeEmail({ userId: user.id, code });
 };
 
 /**
@@ -301,11 +320,11 @@ const requestLoginCode = async ({ email }) => {
   // shoulder-surfed — still works.
   await repository.consumeOutstandingLoginCodes(user.id);
 
-  const code = mintLoginCode();
+  const code = mintSixDigitCode();
 
   await repository.createLoginCode({
     userId: user.id,
-    codeHash: await hashLoginCode(code),
+    codeHash: await hashSixDigitCode(code),
     expiresAt: new Date(Date.now() + config.auth.loginCodeTtlMinutes * MINUTE),
   });
 
@@ -332,7 +351,7 @@ const verifyLoginCodeAndSignIn = async ({ email, code, userAgent, ip }) => {
   if (!record) {
     // No user, or no outstanding code. Burn the same time a real comparison
     // costs so the two are indistinguishable from outside.
-    await verifyLoginCode(code, DUMMY_PASSWORD_HASH);
+    await verifySixDigitCode(code, DUMMY_PASSWORD_HASH);
     throw invalid();
   }
 
@@ -348,7 +367,7 @@ const verifyLoginCodeAndSignIn = async ({ email, code, userAgent, ip }) => {
     throw invalid();
   }
 
-  if (!(await verifyLoginCode(code, record.codeHash))) {
+  if (!(await verifySixDigitCode(code, record.codeHash))) {
     // Increment on the row, not on a per-IP counter: otherwise an attacker
     // resets their budget by interleaving guesses against another address.
     await repository.incrementLoginCodeAttempts(record.id);
@@ -630,12 +649,11 @@ export default {
   verifyLoginCodeAndSignIn,
   forgotPassword,
   resetPassword,
-  verifyEmail,
-  resendVerification,
+  verifyRegistrationCodeAndSignIn,
+  resendRegistrationCode,
   login,
   logout,
   getSession,
   issueSession,
-  issueVerificationToken,
   REFRESH_GRACE_MS,
 };

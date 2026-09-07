@@ -45,8 +45,8 @@ export function AuthAlert({ state }: { state: AuthFormState }) {
       {code === "EMAIL_NOT_VERIFIED" && (
         <>
           {" "}
-          <Link href="/verify-email?pending=1" className="font-semibold underline">
-            Resend link
+          <Link href="/verify-email" className="font-semibold underline">
+            Resend code
           </Link>
         </>
       )}

@@ -27,7 +27,7 @@ export type AuthResult =
   | { ok: false; code: AuthErrorCode };
 
 /** Narrows an API error code to the closed union the UI can render. */
-function asAuthError(code: string): AuthErrorCode {
+export function asAuthError(code: string): AuthErrorCode {
   return (
     [
       "INVALID_CREDENTIALS",
@@ -57,7 +57,7 @@ function asAuthError(code: string): AuthErrorCode {
  * bouncing them to sign-in. Capped at one retry: see `api-client.ts`.
  */
 export async function getSession(): Promise<User | null> {
-  const result = await apiCallWithRefresh<{ user: User }>("/api/v1/auth/session");
+  const result = await apiCallWithRefresh<{ user: User }>("/auth/session");
 
   return result.ok ? result.data.user : null;
 }
@@ -69,7 +69,7 @@ export async function getSession(): Promise<User | null> {
  * if the call fails.
  */
 export async function endSession(): Promise<void> {
-  await apiCall("/api/v1/auth/logout", { method: "POST", forwardCookies: true });
+  await apiCall("/auth/logout", { method: "POST", forwardCookies: true });
 
   const jar = await cookies();
   jar.delete(ACCESS_COOKIE);
@@ -92,7 +92,7 @@ export async function register(input: {
   inviteToken?: string;
 }): Promise<AuthResult & { inviteApplied?: boolean }> {
   const result = await apiCall<{ user: User; inviteApplied?: boolean }>(
-    "/api/v1/auth/register",
+    "/auth/register",
     {
       method: "POST",
       body: {
@@ -120,7 +120,7 @@ export async function login(input: {
   email: string;
   password: string;
 }): Promise<AuthResult> {
-  const result = await apiCall<{ user: User }>("/api/v1/auth/login", {
+  const result = await apiCall<{ user: User }>("/auth/login", {
     method: "POST",
     body: { email: normaliseEmail(input.email), password: input.password },
     forwardCookies: true,
@@ -136,7 +136,7 @@ export async function login(input: {
  * response carries no signal, and the server pads its timing to match.
  */
 export async function requestLoginCode(rawEmail: string): Promise<void> {
-  await apiCall("/api/v1/auth/login/request-code", {
+  await apiCall("/auth/login/request-code", {
     method: "POST",
     body: { email: normaliseEmail(rawEmail) },
   });
@@ -147,7 +147,7 @@ export async function verifyLoginCode(input: {
   email: string;
   code: string;
 }): Promise<AuthResult> {
-  const result = await apiCall<{ user: User }>("/api/v1/auth/login/verify-code", {
+  const result = await apiCall<{ user: User }>("/auth/login/verify-code", {
     method: "POST",
     body: { email: normaliseEmail(input.email), code: input.code },
     forwardCookies: true,

@@ -40,7 +40,7 @@ export async function getPendingInvitations(
   if (!workspaceId) return [];
 
   const result = await apiCallWithRefresh<{ invitations: ApiInvitation[] }>(
-    `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/invitations`,
+    `/workspaces/${encodeURIComponent(workspaceId)}/invitations`,
   );
 
   if (!result.ok) return [];
@@ -65,7 +65,7 @@ export async function getPendingInvitations(
  */
 export async function getInvitation(token: string): Promise<InvitationLookup> {
   const result = await apiCall<{ invitation: WorkspaceInvitation }>(
-    `/api/v1/invitations/${encodeURIComponent(token)}`,
+    `/invitations/${encodeURIComponent(token)}`,
   );
 
   if (result.ok) {
@@ -82,7 +82,7 @@ export async function createInvitation(input: {
   role: InvitableRole;
 }): Promise<{ ok: true } | { ok: false; code: string }> {
   const result = await apiCallWithRefresh(
-    `/api/v1/workspaces/${encodeURIComponent(input.workspaceId)}/invitations`,
+    `/workspaces/${encodeURIComponent(input.workspaceId)}/invitations`,
     { method: "POST", body: { email: input.email, role: input.role } },
   );
 
@@ -100,7 +100,7 @@ export async function revokeInvitation(
   invitationId: string,
 ): Promise<boolean> {
   const result = await apiCallWithRefresh(
-    `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}`,
+    `/workspaces/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}`,
     { method: "DELETE" },
   );
 
@@ -113,7 +113,7 @@ export async function resendInvitation(
   invitationId: string,
 ): Promise<boolean> {
   const result = await apiCallWithRefresh(
-    `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}/resend`,
+    `/workspaces/${encodeURIComponent(workspaceId)}/invitations/${encodeURIComponent(invitationId)}/resend`,
     { method: "POST" },
   );
 
@@ -130,7 +130,7 @@ export async function acceptInvitation(
   token: string,
 ): Promise<{ ok: true; workspaceId: string } | { ok: false; code: string }> {
   const result = await apiCallWithRefresh<{ workspaceId: string }>(
-    `/api/v1/invitations/${encodeURIComponent(token)}/accept`,
+    `/invitations/${encodeURIComponent(token)}/accept`,
     { method: "POST" },
   );
 
@@ -142,7 +142,7 @@ export async function acceptInvitation(
 /** `POST /invitations/:token/decline`. */
 export async function declineInvitation(token: string): Promise<boolean> {
   const result = await apiCallWithRefresh(
-    `/api/v1/invitations/${encodeURIComponent(token)}/decline`,
+    `/invitations/${encodeURIComponent(token)}/decline`,
     { method: "POST" },
   );
 

@@ -9,9 +9,10 @@
  *     low-entropy input to slow an attacker down, and refresh runs on every
  *     access-token expiry — a 100ms KDF there is a tax on every active session
  *     bought for nothing.
- *   - `hashLoginCode` is bcrypt, for the 6-digit codes. 10^6 candidates fall to
- *     a SHA-256 dictionary in milliseconds, so here the slow KDF is the whole
- *     defence.
+ *   - `hashSixDigitCode` is bcrypt, for the 6-digit codes — shared by login
+ *     codes and registration codes, since both are the same low-entropy
+ *     shape. 10^6 candidates fall to a SHA-256 dictionary in milliseconds, so
+ *     here the slow KDF is the whole defence.
  *
  * Reversing those two is the mistake this header exists to prevent. Neither is
  * a style choice.
@@ -118,7 +119,8 @@ const mintOpaqueToken = () => crypto.randomBytes(32).toString('base64url');
 const hashToken = (raw) => crypto.createHash('sha256').update(raw).digest('hex');
 
 /**
- * A six-digit login code, zero-padded.
+ * A six-digit code, zero-padded — used for both login codes and registration
+ * codes, which are the same shape.
  *
  * `crypto.randomInt` rather than `Math.random`: the latter is a seeded PRNG
  * whose output is predictable from previous values, which for a credential is
@@ -126,19 +128,19 @@ const hashToken = (raw) => crypto.createHash('sha256').update(raw).digest('hex')
  * (0, 1000000) is exactly 000000–999999 — and the padding matters, because
  * `'004213'` is a valid code that `String(4213)` would corrupt.
  */
-const mintLoginCode = () => String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+const mintSixDigitCode = () => String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
 
 /**
- * bcrypt-hashes a login code. See the file header for why this is not
+ * bcrypt-hashes a six-digit code. See the file header for why this is not
  * `hashToken`.
  */
-const hashLoginCode = (code) => bcrypt.hash(code, config.bcryptCost);
+const hashSixDigitCode = (code) => bcrypt.hash(code, config.bcryptCost);
 
 /**
  * Compares a submitted code against a stored bcrypt hash in constant time
  * relative to the hash — bcrypt's own comparison, not `===`.
  */
-const verifyLoginCode = (code, codeHash) => bcrypt.compare(code, codeHash);
+const verifySixDigitCode = (code, codeHash) => bcrypt.compare(code, codeHash);
 
 /**
  * Password hashing, kept beside the code helpers so every KDF call in the
@@ -168,9 +170,9 @@ export {
   verifyAccessTokenIgnoringExpiry,
   mintOpaqueToken,
   hashToken,
-  mintLoginCode,
-  hashLoginCode,
-  verifyLoginCode,
+  mintSixDigitCode,
+  hashSixDigitCode,
+  verifySixDigitCode,
   hashPassword,
   verifyPassword,
   mintFamilyId,

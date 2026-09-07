@@ -7,6 +7,14 @@
 An account can be created, its email proved, and a session opened and closed
 with a password. The `auth` module exists as six files.
 
+> **§2.3–2.4 superseded.** The link-based `/verify-email` + `/resend-verification`
+> built here were later replaced by a 6-digit code — `POST
+> /verify-registration-code` + `POST /resend-registration-code` — that also
+> signs the user in on success, removing the separate login step this sprint's
+> design still required. This section is left as-built history; the current
+> contract is `docs/api/auth.md` §2–3 and the correction note under
+> `.claude/plan/authentication.md` §7.
+
 ## Tasks
 
 ### 2.1 Module skeleton — `src/modules/auth/`

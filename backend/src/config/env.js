@@ -59,7 +59,11 @@ const config = {
     // makes the code safe. Both are enforced on the LoginCode row.
     loginCodeTtlMinutes: Number(process.env.LOGIN_CODE_TTL_MINUTES) || 10,
     loginCodeMaxAttempts: Number(process.env.LOGIN_CODE_MAX_ATTEMPTS) || 5,
-    emailVerifyTtlHours: Number(process.env.EMAIL_VERIFY_TTL_HOURS) || 24,
+    // Same shape as the login code above, shorter-lived: registration
+    // verification is expected to happen in the same sitting as sign-up, not
+    // hours later.
+    registrationCodeTtlMinutes: Number(process.env.REGISTRATION_CODE_TTL_MINUTES) || 5,
+    registrationCodeMaxAttempts: Number(process.env.REGISTRATION_CODE_MAX_ATTEMPTS) || 5,
     passwordResetTtlHours: Number(process.env.PASSWORD_RESET_TTL_HOURS) || 1,
   },
 

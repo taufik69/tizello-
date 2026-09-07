@@ -1,17 +1,19 @@
 import { apiCall } from "@/lib/api-client";
 import { normaliseEmail } from "@/lib/validation/auth";
-import type { AuthResult } from "@/lib/auth";
-import type { AuthErrorCode, User } from "@/types/auth";
+import { asAuthError, type AuthResult } from "@/lib/auth";
+import type { User } from "@/types/auth";
 
 /*
- * The token half of spec §9 — email verification and password recovery. Split
- * out of `src/lib/auth.ts` only because the two together exceed the 150-line
- * cap; the calls are the same shape.
+ * The token half — registration-code verification and password recovery.
+ * Split out of `src/lib/auth.ts` only because the two together exceed the
+ * 150-line cap; the calls are the same shape.
  *
- * `TOKEN_INVALID` and `TOKEN_EXPIRED` stay distinct all the way to the UI,
- * which is why nothing here collapses them: the verify and reset screens offer
- * "send me a new link" for one and not for the other, and a token that never
- * existed has no new link to offer.
+ * `TOKEN_INVALID` and `TOKEN_EXPIRED` stay distinct all the way to the UI for
+ * password reset: the reset screen offers "send me a new link" for one and
+ * not for the other, and a token that never existed has no new link to offer.
+ * Registration verification uses `CODE_INVALID`/`CODE_EXPIRED` instead — the
+ * same codes the login-code flow already uses, since it is the same shape of
+ * secret.
  */
 
 const TOKEN_CODES = ["TOKEN_EXPIRED", "TOKEN_INVALID"] as const;
@@ -22,41 +24,42 @@ const asTokenCode = (code: string): TokenCode =>
   (TOKEN_CODES as readonly string[]).includes(code) ? (code as TokenCode) : "TOKEN_INVALID";
 
 /**
- * `POST /verify-email`. The token comes from the emailed link; an absent one is
- * a malformed visit, not a server error.
+ * `POST /verify-registration-code`. Redeeming the code proves the address and
+ * signs the user in, same as the login-code flow — the caller just redirects
+ * on success rather than showing a separate "verified" screen.
  */
-export async function verifyEmailToken(
-  token: string | undefined,
-): Promise<AuthResult> {
-  if (!token) return { ok: false, code: "TOKEN_INVALID" };
-
-  const result = await apiCall<{ user: User }>("/api/v1/auth/verify-email", {
+export async function verifyRegistrationCode(input: {
+  email: string;
+  code: string;
+}): Promise<AuthResult> {
+  const result = await apiCall<{ user: User }>("/auth/verify-registration-code", {
     method: "POST",
-    body: { token },
+    body: input,
+    forwardCookies: true,
   });
 
   return result.ok
     ? { ok: true, user: result.data.user }
-    : { ok: false, code: asTokenCode(result.code) as AuthErrorCode };
+    : { ok: false, code: asAuthError(result.code) };
 }
 
 /**
- * `POST /resend-verification` and `POST /forgot-password` share a shape: both
- * return 202 for an unknown address so neither can be used to test whether an
- * account exists. Nothing is returned to the caller but the fact it finished.
- *
- * Neither inspects the result, deliberately — branching on it here would
- * reintroduce, in the UI, exactly the distinction the 202 exists to hide.
+ * `POST /resend-registration-code`. Always resolves, known address or not —
+ * the response carries no signal, and the server pads its timing to match.
  */
-export async function requestVerificationEmail(rawEmail: string): Promise<void> {
-  await apiCall("/api/v1/auth/resend-verification", {
+export async function resendRegistrationCode(rawEmail: string): Promise<void> {
+  await apiCall("/auth/resend-registration-code", {
     method: "POST",
     body: { email: normaliseEmail(rawEmail) },
   });
 }
 
+/**
+ * `POST /forgot-password`. Shares the 202-for-unknown-address shape above —
+ * nothing is returned to the caller but the fact it finished.
+ */
 export async function requestPasswordReset(rawEmail: string): Promise<void> {
-  await apiCall("/api/v1/auth/forgot-password", {
+  await apiCall("/auth/forgot-password", {
     method: "POST",
     body: { email: normaliseEmail(rawEmail) },
   });
@@ -73,7 +76,7 @@ export async function resetPassword(input: {
 }): Promise<{ ok: true } | { ok: false; code: TokenCode | "WEAK_PASSWORD" }> {
   if (!input.token) return { ok: false, code: "TOKEN_INVALID" };
 
-  const result = await apiCall("/api/v1/auth/reset-password", {
+  const result = await apiCall("/auth/reset-password", {
     method: "POST",
     body: { token: input.token, password: input.password },
   });

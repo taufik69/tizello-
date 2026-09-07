@@ -18,21 +18,21 @@
  *      and src/shared/utils/mailer.js
  */
 
-import { Worker } from 'bullmq';
-import { connection } from '../config/redis.js';
-import { EMAIL_QUEUE_NAME, EMAIL_QUEUE_PREFIX } from '../queues/email.queue.js';
-import prisma from '../config/db.js';
-import config from '../config/env.js';
-import { createLogger } from '../config/logger.js';
-import { sendMail } from '../shared/utils/mailer.js';
+import { Worker } from "bullmq";
+import { connection } from "../config/redis.js";
+import { EMAIL_QUEUE_NAME, EMAIL_QUEUE_PREFIX } from "../queues/email.queue.js";
+import prisma from "../config/db.js";
+import config from "../config/env.js";
+import { createLogger } from "../config/logger.js";
+import { sendMail } from "../shared/utils/mailer.js";
 import {
   invitationEmail,
-  verificationEmail,
+  registrationCodeEmail,
   loginCodeEmail,
   passwordResetEmail,
-} from '../shared/utils/emailTemplates.js';
+} from "../shared/utils/emailTemplates.js";
 
-const log = createLogger('email-worker');
+const log = createLogger("email-worker");
 
 // Every job payload carries its raw credential — the verification token, the
 // login code, the reset token, the invitation token — because only the hash is
@@ -41,40 +41,51 @@ const log = createLogger('email-worker');
 // nothing here logs `job.data`, only the recipient.
 
 const handlers = {
-  async 'send-verification'({ userId, token }, job) {
+  async "send-registration-code"({ userId, code }, job) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
     // Account deleted between enqueue and run. Return rather than throw: no
     // number of retries brings the row back, and a throw would burn all five
     // attempts on a job that can never succeed.
     if (!user) {
-      log.warn({ userId, jobId: job.id }, 'User no longer exists, skipping verification email');
+      log.warn(
+        { userId, jobId: job.id },
+        "User no longer exists, skipping registration code",
+      );
       return;
     }
 
     // Verified through another path — an invitation, or an OAuth link. The
-    // link would still work, but sending it now is noise about something
+    // code would still work, but sending it now is noise about something
     // already done.
     if (user.emailVerifiedAt) {
-      log.warn({ userId, jobId: job.id }, 'User already verified, skipping');
+      log.warn({ userId, jobId: job.id }, "User already verified, skipping");
       return;
     }
 
-    const mail = verificationEmail({
-      name: user.name,
-      verifyUrl: `${config.clientOrigin}/verify-email?token=${encodeURIComponent(token)}`,
-      expiresInHours: config.auth.emailVerifyTtlHours,
+    const mail = registrationCodeEmail({
+      code,
+      expiresInMinutes: config.auth.registrationCodeTtlMinutes,
     });
 
+    // Recipient only. The code is the credential — the root logger redacts a
+    // field named `token`, and that is a safety net, not permission to hand it
+    // one.
     await sendMail({ to: user.email, ...mail });
-    log.info({ jobId: job.id, userId, email: user.email }, 'Verification email sent');
+    log.info(
+      { jobId: job.id, userId, email: user.email },
+      "Registration code sent",
+    );
   },
 
-  async 'send-login-code'({ userId, code }, job) {
+  async "send-login-code"({ userId, code }, job) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
-      log.warn({ userId, jobId: job.id }, 'User no longer exists, skipping login code');
+      log.warn(
+        { userId, jobId: job.id },
+        "User no longer exists, skipping login code",
+      );
       return;
     }
 
@@ -87,14 +98,17 @@ const handlers = {
     // field named `token`, and that is a safety net, not permission to hand it
     // one.
     await sendMail({ to: user.email, ...mail });
-    log.info({ jobId: job.id, userId, email: user.email }, 'Login code sent');
+    log.info({ jobId: job.id, userId, email: user.email }, "Login code sent");
   },
 
-  async 'send-reset'({ userId, token }, job) {
+  async "send-reset"({ userId, token }, job) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
     if (!user) {
-      log.warn({ userId, jobId: job.id }, 'User no longer exists, skipping reset email');
+      log.warn(
+        { userId, jobId: job.id },
+        "User no longer exists, skipping reset email",
+      );
       return;
     }
 
@@ -105,7 +119,10 @@ const handlers = {
     });
 
     await sendMail({ to: user.email, ...mail });
-    log.info({ jobId: job.id, userId, email: user.email }, 'Password reset email sent');
+    log.info(
+      { jobId: job.id, userId, email: user.email },
+      "Password reset email sent",
+    );
   },
 };
 
@@ -113,7 +130,7 @@ const processEmailJob = async (job) => {
   const handler = handlers[job.name];
   if (handler) return handler(job.data, job);
 
-  if (job.name === 'send-invitation') {
+  if (job.name === "send-invitation") {
     const { invitationId, token } = job.data;
 
     const invitation = await prisma.invitation.findUnique({
@@ -126,12 +143,18 @@ const processEmailJob = async (job) => {
     // retry, and a thrown error would burn all five attempts on a job that
     // can never succeed.
     if (!invitation) {
-      log.warn({ invitationId, jobId: job.id }, 'Invitation no longer exists, skipping');
+      log.warn(
+        { invitationId, jobId: job.id },
+        "Invitation no longer exists, skipping",
+      );
       return;
     }
 
     if (invitation.acceptedAt) {
-      log.warn({ invitationId, jobId: job.id }, 'Invitation already accepted, skipping');
+      log.warn(
+        { invitationId, jobId: job.id },
+        "Invitation already accepted, skipping",
+      );
       return;
     }
 
@@ -139,7 +162,10 @@ const processEmailJob = async (job) => {
     // first click is worse than sending nothing. Same reasoning as above:
     // return, do not retry.
     if (invitation.expiresAt <= new Date()) {
-      log.warn({ invitationId, jobId: job.id }, 'Invitation expired before send, skipping');
+      log.warn(
+        { invitationId, jobId: job.id },
+        "Invitation expired before send, skipping",
+      );
       return;
     }
 
@@ -148,7 +174,10 @@ const processEmailJob = async (job) => {
     // A job enqueued before this change (or by a producer that forgot) has no
     // token, and there is nothing to retry — the link is unrecoverable.
     if (!token) {
-      log.error({ invitationId, jobId: job.id }, 'Invitation job carries no raw token, skipping');
+      log.error(
+        { invitationId, jobId: job.id },
+        "Invitation job carries no raw token, skipping",
+      );
       return;
     }
 
@@ -167,8 +196,13 @@ const processEmailJob = async (job) => {
     await sendMail({ to: invitation.email, subject, html, text });
 
     log.info(
-      { jobId: job.id, invitationId, email: invitation.email, workspace: invitation.workspace.name },
-      'Invitation email sent'
+      {
+        jobId: job.id,
+        invitationId,
+        email: invitation.email,
+        workspace: invitation.workspace.name,
+      },
+      "Invitation email sent",
     );
 
     return;
@@ -192,11 +226,11 @@ const emailWorker = new Worker(EMAIL_QUEUE_NAME, processEmailJob, {
   autorun: false,
 });
 
-emailWorker.on('completed', (job) => {
-  log.info({ jobId: job.id, jobName: job.name }, 'Job completed');
+emailWorker.on("completed", (job) => {
+  log.info({ jobId: job.id, jobName: job.name }, "Job completed");
 });
 
-emailWorker.on('failed', (job, error) => {
+emailWorker.on("failed", (job, error) => {
   // `attemptsMade` vs `attempts` is what separates "will be retried shortly"
   // from "this mail is now permanently undelivered", and only the second one
   // is worth waking someone for.
@@ -208,7 +242,7 @@ emailWorker.on('failed', (job, error) => {
       attemptsMade: job?.attemptsMade,
       attemptsAllowed: job?.opts?.attempts,
     },
-    'Job failed'
+    "Job failed",
   );
 });
 

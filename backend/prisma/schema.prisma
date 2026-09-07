@@ -43,6 +43,7 @@ model User {
   oauthAccounts       OAuthAccount[]
   refreshTokens       RefreshToken[]
   loginCodes          LoginCode[]
+  registrationCodes   RegistrationCode[]
   verificationTokens  VerificationToken[]
 
   @@map("users")
@@ -209,7 +210,36 @@ model LoginCode {
   @@map("login_codes")
 }
 
+// Six-digit registration-verification codes. Same shape as LoginCode
+// (low-entropy, attempt-capped, bcrypt) and deliberately its own table rather
+// than a purpose column on LoginCode or a revived VerificationToken row: the
+// plan's own rule for VerificationToken (§3.5) is that low-entropy
+// attempt-capped codes must not share a table with high-entropy single-shot
+// tokens, and merging this into LoginCode would mean every login-code query
+// has to filter out registration rows and vice versa.
+model RegistrationCode {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("registration_codes")
+}
+
 // Email-verification and password-reset links. Plan 3.5.
+//
+// EMAIL_VERIFY is no longer issued — registration verification moved to
+// RegistrationCode above — but the purpose value stays in the enum rather
+// than being dropped: existing rows already reference it, and dropping an
+// enum value Postgres rows still reference means recreating the type. This
+// model still serves PASSWORD_RESET.
 model VerificationToken {
   id         String       @id @default(cuid())
   userId     String

@@ -48,22 +48,26 @@ const loginSchema = Joi.object({
   password: Joi.string().max(128).required(),
 });
 
-const verifyEmailSchema = Joi.object({
-  token: Joi.string().max(200).required(),
-});
-
-const resendVerificationSchema = Joi.object({ email });
-
 const requestCodeSchema = Joi.object({ email });
+
+// Exactly six digits, as a string. A Joi `number` would accept `4213` and
+// strip the leading zero from `004213`, turning a valid code into a wrong one.
+// Shared shape for login codes and registration codes.
+const sixDigitCode = Joi.string()
+  .pattern(/^[0-9]{6}$/)
+  .required();
 
 const verifyCodeSchema = Joi.object({
   email,
-  // Exactly six digits, as a string. A Joi `number` would accept `4213` and
-  // strip the leading zero from `004213`, turning a valid code into a wrong one.
-  code: Joi.string()
-    .pattern(/^[0-9]{6}$/)
-    .required(),
+  code: sixDigitCode,
 });
+
+const verifyRegistrationCodeSchema = Joi.object({
+  email,
+  code: sixDigitCode,
+});
+
+const resendRegistrationCodeSchema = Joi.object({ email });
 
 const forgotPasswordSchema = Joi.object({ email });
 
@@ -75,10 +79,10 @@ const resetPasswordSchema = Joi.object({
 export {
   registerSchema,
   loginSchema,
-  verifyEmailSchema,
-  resendVerificationSchema,
   requestCodeSchema,
   verifyCodeSchema,
+  verifyRegistrationCodeSchema,
+  resendRegistrationCodeSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 };

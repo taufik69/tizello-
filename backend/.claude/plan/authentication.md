@@ -888,12 +888,24 @@ carries `data.code` from the frontend's closed union (§2.2).
 | 5 | POST | **`/refresh`** | — | 60/15m | `200 { user }` + rotated cookies | `TOKEN_INVALID` 401, `TOKEN_EXPIRED` 401 |
 | 6 | POST | `/logout` | — | — | `204` + cookies cleared | — |
 | 7 | GET | `/session` | `authGuard` | — | `200 { user }` | `401` |
-| 8 | POST | `/verify-email` | — | 10/15m | `200 { user }` | `TOKEN_INVALID` 400, `TOKEN_EXPIRED` 410 |
-| 9 | POST | `/resend-verification` | — | 3/hr | **`202` always** | `RATE_LIMITED` 429 |
+| 8 | POST | `/verify-registration-code` | — | 10/15m | `200 { user }` + cookies | `CODE_INVALID` 401, `CODE_EXPIRED` 410 |
+| 9 | POST | `/resend-registration-code` | — | 3/hr | **`202` always** | `RATE_LIMITED` 429 |
 | 10 | POST | `/forgot-password` | — | 5/hr | **`202` always** | `RATE_LIMITED` 429 |
 | 11 | POST | `/reset-password` | — | 10/15m | `200` | `TOKEN_INVALID` 400, `TOKEN_EXPIRED` 410, `WEAK_PASSWORD` 422 |
 | 12 | GET | `/:provider/start` | — | 20/15m | `302` to provider | — |
 | 13 | GET | `/:provider/callback` | — | 20/15m | `302` + cookies | `302 /sign-in?error=…` |
+
+**Rows 8–9 redeem a 6-digit code, not a link, and that is a correction.** They
+read `/verify-email` + `/resend-verification`, redeeming an emailed
+`VerificationToken` and issuing no session — the frontend then sent the user to
+sign in separately, which for the code-first sign-in flow this same plan
+adopted (§1) meant a *second* emailed secret before reaching the app. Rows 8–9
+now mint a `RegistrationCode` (§3.4's shape, its own table) and, on success,
+call `issueSession` directly — the same "a secret was delivered and came back"
+argument §6.4 already makes for invites, just applied to the ordinary sign-up
+path too. `docs/api/auth.md` §2–3 is the current contract; this row is kept
+updated but the narrative in §2 and §6.4 below still describes the original
+link design.
 
 **Rows 12–13 carry no `/oauth` segment, and that is a correction.** They read
 `/oauth/:provider/*` until the GitHub OAuth App was registered at
@@ -969,10 +981,10 @@ Add to `src/shared/middlewares/rateLimiter.js` — no route invents its own wind
 
 | Limiter | Window / max | Endpoints | Why |
 |---|---|---|---|
-| `authLimiter` *(exists)* | 15 min / 10 | login, verify-code, verify-email, reset-password | matches spec §9 |
+| `authLimiter` *(exists)* | 15 min / 10 | login, verify-code, verify-registration-code, reset-password | matches spec §9 |
 | `registerLimiter` | 1 hr / 5 | register | account-creation spam, and it is the one enumeration leak we accept |
 | `recoveryLimiter` | 1 hr / 5 | forgot-password, request-code | each one sends an email to a third party |
-| `resendLimiter` | 1 hr / 3 | resend-verification | tightest — pure email amplification |
+| `resendLimiter` | 1 hr / 3 | resend-registration-code | tightest — pure email amplification |
 | `refreshLimiter` | 15 min / 60 | refresh | a background call, not a guess |
 | `oauthLimiter` | 15 min / 20 | oauth start + callback | — |
 | `inviteSendLimiter` | 1 hr / 50 **per workspace** | create + resend invitation | an admin mass-inviting sends mail from *our* domain to strangers; this is the spam-reputation guard, and it is keyed on the workspace because that is the unit doing the sending |
@@ -1089,7 +1101,8 @@ Add to `.env.example` and `REQUIRED_ENV_VARS` in `src/config/env.js`.
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | refresh token TTL |
 | `LOGIN_CODE_TTL_MINUTES` | `10` | spec §9 |
 | `LOGIN_CODE_MAX_ATTEMPTS` | `5` | spec §9 |
-| `EMAIL_VERIFY_TTL_HOURS` | `24` | spec §9 |
+| `REGISTRATION_CODE_TTL_MINUTES` | `5` | replaces `EMAIL_VERIFY_TTL_HOURS` — see the row-8–9 correction under §7 |
+| `REGISTRATION_CODE_MAX_ATTEMPTS` | `5` | same shape as `LOGIN_CODE_MAX_ATTEMPTS` |
 | `PASSWORD_RESET_TTL_HOURS` | `1` | spec §9 |
 | `BCRYPT_COST` | `12` | spec §9 minimum |
 | `INVITE_TTL_DAYS` | `7` | must match the shipped copy *"Invitation links last seven days"* (§3.6) |

@@ -26,6 +26,11 @@ real limit is `max × instances` and it resets on every deploy.
 | `registerLimiter` | 1h / 5 | register |
 | `recoveryLimiter` | 1h / 5 | forgot-password, request-code |
 | `resendLimiter` | 1h / 3 | resend-verification |
+
+> `verify-email` / `resend-verification` were later renamed to
+> `verify-registration-code` / `resend-registration-code` when the flow moved
+> from a link to a 6-digit code — same limiters, same window/max, see
+> `docs/api/auth.md` §*Rate limiting*.
 | `refreshLimiter` | 15m / 60 | refresh — a background call, not a guess |
 | `oauthLimiter` | 15m / 20 | oauth start + callback |
 
