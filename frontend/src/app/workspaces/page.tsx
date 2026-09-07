@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { WorkspaceGrid } from "@/components/workspace/workspace-grid";
-import { getCurrentUser, getWorkspaces } from "@/lib/demo-data";
+import { getSession } from "@/lib/auth";
+import { getWorkspaces } from "@/lib/workspaces";
 import { plural } from "@/lib/plural";
 
 export const metadata: Metadata = {
@@ -11,12 +13,15 @@ export const metadata: Metadata = {
 /**
  * A Server Component. The shell around it comes from `workspaces/layout.tsx`;
  * this page renders page content only.
+ *
+ * `proxy.ts`'s guard is optimistic (cookie presence only) — this redirect is
+ * the real check, same as `/board/[boardId]`.
  */
 export default async function WorkspacesPage() {
-  const [workspaces, user] = await Promise.all([
-    getWorkspaces(),
-    getCurrentUser(),
-  ]);
+  const user = await getSession();
+  if (!user) redirect("/sign-in?next=/workspaces");
+
+  const workspaces = await getWorkspaces();
 
   return (
     <main className="w-full px-4 py-8 sm:px-6">

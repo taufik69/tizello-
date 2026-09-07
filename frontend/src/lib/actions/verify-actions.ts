@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { resendRegistrationCode, verifyRegistrationCode } from "@/lib/auth-tokens";
-import { BOARD_HOME } from "@/lib/session-cookie";
+import { homeWithWelcome } from "@/lib/session-cookie";
 import { normaliseEmail, validateCode, validateEmail } from "@/lib/validation/auth";
 import type { AuthFormState } from "@/types/auth";
 
@@ -24,7 +24,7 @@ export async function verifyRegistrationCodeAction(
   const result = await verifyRegistrationCode({ email, code });
   if (!result.ok) return { code: result.code };
 
-  redirect(BOARD_HOME);
+  redirect(homeWithWelcome());
 }
 
 /**

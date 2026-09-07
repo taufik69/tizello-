@@ -19,7 +19,7 @@ export async function generateMetadata({
 
   return {
     title: workspace.name,
-    description: `${plural(workspace.projects.length, "project", "projects")} in ${workspace.name}.`,
+    description: `${plural((workspace.projects ?? []).length, "project", "projects")} in ${workspace.name}.`,
   };
 }
 
@@ -34,7 +34,7 @@ export default async function WorkspacePage({
     <main className="w-full px-4 py-8 sm:px-6">
       <WorkspaceDetailHeader workspace={workspace} />
       <ProjectGrid
-        projects={workspace.projects}
+        projects={workspace.projects ?? []}
         workspaceName={workspace.name}
       />
     </main>

@@ -3,18 +3,20 @@ import {
   MobileSidebarClose,
   SidebarCollapseButton,
 } from "@/components/layout/sidebar-buttons";
-import { SidebarAccount } from "@/components/layout/sidebar-account";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { SidebarWorkspace } from "@/components/layout/sidebar-workspace";
 import { PRIMARY_ITEMS, SIDEBAR_SECTIONS } from "@/lib/nav-links";
 
 /**
- * The sidebar's contents: pinned switcher, scrolling nav, pinned account row.
+ * The sidebar's contents: pinned switcher, scrolling nav.
  *
- * A Server Component, and synchronous — the two parts that need data sit behind
- * their own `<Suspense>` so the frame paints immediately. It knows nothing about
- * where it is rendered; `SidebarFrame` places it in the desktop column and in
- * the mobile drawer alike.
+ * The account row that used to be pinned here (`SidebarAccount`) moved to
+ * `ContentStrip`, beside `ThemeToggle` — see `AccountMenu`.
+ *
+ * A Server Component, and synchronous — the switcher sits behind its own
+ * `<Suspense>` so the frame paints immediately. It knows nothing about where
+ * it is rendered; `SidebarFrame` places it in the desktop column and in the
+ * mobile drawer alike.
  */
 export function AppSidebar() {
   return (
@@ -35,12 +37,6 @@ export function AppSidebar() {
       </div>
 
       <SidebarNav primary={PRIMARY_ITEMS} sections={SIDEBAR_SECTIONS} />
-
-      <Suspense
-        fallback={<div className="h-28 shrink-0 border-t border-border" />}
-      >
-        <SidebarAccount />
-      </Suspense>
     </div>
   );
 }

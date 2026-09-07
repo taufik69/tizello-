@@ -24,7 +24,13 @@ const ANNOUNCE: Record<SignInMode, string> = {
 export function SignInForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(signInAction, EMPTY);
   const [step, setStep] = useState<1 | 2>(1);
-  const [mode, setMode] = useState<SignInMode>("code");
+  /* Password, not code, is the default: a code re-sends an email on every
+     ordinary login, which is friction an already-verified user shouldn't
+     pay repeatedly. Registration still uses a code — that one email proves
+     the address for the first time, which is a different job than signing
+     back in. "Use a login code instead" (SignInPasswordStep) keeps the
+     option for anyone who wants it, or who never set a password. */
+  const [mode, setMode] = useState<SignInMode>("password");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | undefined>();
   const [remember, setRemember] = useState(false);

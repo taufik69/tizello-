@@ -27,10 +27,16 @@ and the right half is an animated illustration.
 | 6 | Sign out |
 | 7 | Route protection: `/board/*` requires a session |
 
-**The login code is the default path.** A code sent to the address just typed
-cannot be forgotten, which deletes the single largest cause of failed sign-ins
-rather than decorating it. The password stays as a fallback for anyone who set
-one, reachable from a link on the same screen.
+**Superseded — password is now the default path**, not the code. This
+section's original reasoning stands for *registration*: a code proves an
+address the first time, in the same sitting as sign-up (§6.5). It stops
+applying once someone is already verified and just signing back in — a code
+there re-sends an email on every ordinary login, which is friction repeated
+for no benefit rather than a one-time win. `SignInForm`'s default `mode` is
+now `"password"`; `"Use a login code instead"` keeps the code path available,
+just not first. `§6.2` below still describes the code-first shell because the
+two-mode slot and its components are unchanged — only which mode opens by
+default did.
 
 ### Out of scope (write down, build later)
 

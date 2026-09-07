@@ -15,7 +15,7 @@ import { cn } from "@/lib/cn";
  * `margin: auto` centring — hence the explicit `m-auto` below.
  */
 const PANEL =
-  "m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-xl border border-border bg-surface p-0 text-text shadow-modal backdrop:bg-scrim";
+  "dialog-enter m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-xl border border-border bg-surface p-0 text-text shadow-modal backdrop:bg-scrim";
 
 /* React strips `autoFocus` on the client and calls .focus() during commit —
    which is too early, because the dialog is still closed and hidden at that

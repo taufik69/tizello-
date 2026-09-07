@@ -8,7 +8,7 @@ import {
   requestLoginCode,
   verifyLoginCode,
 } from "@/lib/auth";
-import { BOARD_HOME } from "@/lib/session-cookie";
+import { BOARD_HOME, homeWithWelcome } from "@/lib/session-cookie";
 import {
   normaliseEmail,
   safeNextPath,
@@ -97,7 +97,7 @@ export async function signInAction(
      sign-in response and lib/api-client.ts forwarded them onto this one. There
      is no second session for this app to mint, and minting one would mean two
      notions of "signed in" with only one of them revocable. */
-  redirect(next);
+  redirect(next === BOARD_HOME ? homeWithWelcome() : next);
 }
 
 async function passwordSignIn(email: string, password: string): Promise<StepResult> {

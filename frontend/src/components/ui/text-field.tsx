@@ -90,7 +90,13 @@ export function TextField({
           onKeyDown={onKeyDown}
           className={[
             BASE,
-            message ? "border-danger" : "border-border",
+            // An invalid field is already carrying its own signal (the red
+            // border, plus the message below it) — layering the global brand
+            // `:focus-visible` ring on top of that reads as two competing
+            // borders. Suppressing the ring here, only while invalid, leaves
+            // exactly one border on screen; it returns the moment `message`
+            // clears, so a fixed field still gets the normal brand ring back.
+            message ? "border-danger focus-visible:outline-none" : "border-border",
             trailing ? "pr-16" : "",
           ].join(" ")}
         />

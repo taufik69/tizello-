@@ -79,10 +79,14 @@ export function CodeInput({
               className={[
                 BOX,
                 index === 2 ? "mr-2" : "",
-                focused && index === active
-                  ? "border-focus ring-2 ring-focus"
-                  : error
-                    ? "border-danger"
+                // Error outranks focus, not the other way round — an invalid
+                // code stays red on the active box too, the same rule
+                // `TextField` follows, rather than flashing green while the
+                // wrong code is still sitting there.
+                error
+                  ? "border-danger"
+                  : focused && index === active
+                    ? "border-focus ring-2 ring-focus"
                     : "border-border",
               ].join(" ")}
             >

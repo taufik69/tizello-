@@ -24,7 +24,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
     <>
       <AuthColumn
         heading="Log in to Tizello"
-        sub="Enter your email and we will send you a login code."
+        sub="Enter your email to continue."
       >
         {reset === "1" && (
           <p

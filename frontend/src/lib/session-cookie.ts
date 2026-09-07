@@ -33,3 +33,16 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
  * to a fixture board's key.
  */
 export const BOARD_HOME = "/board/sprint";
+
+/** The query param `WelcomeFireworks` (`board/[boardId]/page.tsx`) looks for. */
+export const WELCOME_PARAM = "welcome";
+
+/**
+ * `BOARD_HOME`, flagged for the one-time fireworks. Used by every action that
+ * just finished proving a credential — password/code sign-in, registration
+ * code — so the celebration fires on a real login, not on every ordinary
+ * visit to the board. Only ever applied when the destination *is* home: a
+ * sign-in that deep-linked back to some other page (`next`) skips it, since
+ * "just landed on home" is specifically what earns the moment.
+ */
+export const homeWithWelcome = () => `${BOARD_HOME}?${WELCOME_PARAM}=1`;

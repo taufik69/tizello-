@@ -31,14 +31,35 @@ export type Project = {
   taskCount: number;
 };
 
+/**
+ * `slug` through `updatedAt` mirror `backend/docs/api/workspace.md` exactly —
+ * every real workspace has them. `memberCount`, `accent` and `projects` are
+ * the opposite: fixture-only fields the detail/switcher screens still render
+ * from `demo-data.ts`, optional here because no real endpoint populates them
+ * yet (there is no project module and no member-count aggregate). A
+ * component reading a real, API-sourced `Workspace` must treat all three as
+ * absent, not zero/empty — `WorkspaceCard` is the reference for how to
+ * degrade when they're missing.
+ */
 export type Workspace = {
   id: string;
   name: string;
-  memberCount: number;
+  slug: string;
+  description: string | null;
+  /** A single emoji, or null — never an uploaded image. */
+  icon: string | null;
+  /** Hex string, e.g. "#6366f1", or null. */
+  color: string | null;
+  isArchived: boolean;
   /** The CURRENT user's role in this workspace, not the workspace's own. */
   role: WorkspaceRole;
-  accent: WorkspaceAccent;
-  projects: Project[];
+  createdAt: string;
+  updatedAt: string;
+
+  // --- fixture-only, see header note ---
+  memberCount?: number;
+  accent?: WorkspaceAccent;
+  projects?: Project[];
 };
 
 export type CurrentUser = {
@@ -65,6 +86,27 @@ export type WorkspaceMember = {
   name: string;
   email: string;
   role: WorkspaceRole;
+};
+
+/**
+ * What `createWorkspaceAction` (and later, an edit action) returns —
+ * shaped like `AuthFormState` in `types/auth.ts` for the same reason: a
+ * `useActionState` caller needs one serialisable result whether the write
+ * succeeded, failed a field, or failed at the form level.
+ */
+export type WorkspaceFormState = {
+  code?: string;
+  fieldErrors?: Record<string, string>;
+  done?: boolean;
+};
+
+/** Copy for the `code`s `lib/workspaces.ts` can return. Unlike `AuthErrorCode`, this is not a closed union — the workspace API's failures are generic HTTP-ish codes, not a fixed enumeration a frontend type needs to track byte-for-byte. */
+export const WORKSPACE_ERROR_COPY: Record<string, string> = {
+  VALIDATION_ERROR: "Check the fields below.",
+  FORBIDDEN: "You don't have permission to do that.",
+  NOT_FOUND: "That workspace is no longer available.",
+  RATE_LIMITED: "Too many attempts. Try again in a few minutes.",
+  SERVER_ERROR: "Something went wrong. Try again.",
 };
 
 /** Ownership is transferred, never granted by invitation. */

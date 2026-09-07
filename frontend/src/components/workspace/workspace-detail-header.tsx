@@ -28,7 +28,7 @@ export function WorkspaceDetailHeader({ workspace }: { workspace: Workspace }) {
           </h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <p className="text-sm text-text-muted">
-              {plural(workspace.memberCount, "member", "members")}
+              {plural(workspace.memberCount ?? 0, "member", "members")}
             </p>
             <RoleBadge role={workspace.role} />
           </div>

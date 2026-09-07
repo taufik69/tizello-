@@ -599,3 +599,32 @@
     animation: auth-enter 240ms var(--ease-standard) both;
   }
 }
+
+/* --------------------------------------------------------------------------
+   DIALOG — a small arrival for the native <dialog>'s panel and backdrop.
+   Native `showModal()` gives focus trapping and Esc-to-close for free
+   (ui/dialog.tsx) but no transition of its own: a dialog just appears. Going
+   from the UA's `display: none` to displayed retriggers a CSS animation on
+   the element, so a plain keyframe — no JS, no state to track — is enough to
+   replay this every time `open` flips true.
+   -------------------------------------------------------------------------- */
+@keyframes dialog-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes dialog-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+}
+@utility dialog-enter {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: dialog-panel-enter 180ms var(--ease-standard) both;
+
+    &::backdrop {
+      animation: dialog-backdrop-enter 180ms var(--ease-standard) both;
+    }
+  }
+}

@@ -61,7 +61,7 @@ export const AUTH_ERROR_COPY: Record<AuthErrorCode, string> = {
   SERVER_ERROR: "Something went wrong. Try again.",
 };
 
-/** Which credential step 2 of sign-in is asking for. Code is the default. */
+/** Which credential step 2 of sign-in is asking for. Password is the default — see the note in `.claude/specs/authentication.md` on why code stopped being it. */
 export type SignInMode = "code" | "password";
 
 /**

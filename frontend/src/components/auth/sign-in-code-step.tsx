@@ -6,9 +6,10 @@ import { CodeInput } from "@/components/ui/code-input";
 import { requestSignInCodeAction } from "@/lib/actions/auth-actions";
 
 /*
- * Step 2, code mode — the default path. A code sent to the address just typed
- * cannot be forgotten, which deletes the largest single cause of failed
- * sign-ins rather than decorating it.
+ * Step 2, code mode — the fallback, reached via "Use a login code instead"
+ * (password is `SignInForm`'s default now, see `.claude/specs/authentication.md`).
+ * Still useful for anyone who never set a password, or forgot it: a code
+ * sent to the address just typed cannot be forgotten the way a password can.
  *
  * The code request fires here, on entering step 2, never on step 1. The
  * endpoint answers 202 for every address, so it carries no signal about

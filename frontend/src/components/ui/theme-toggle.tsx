@@ -55,7 +55,14 @@ const OPTIONS: { value: Theme; label: string; Icon: (props: SVGProps<SVGSVGEleme
 ];
 
 /**
- * Light / Dark / System, as a segmented control with a sliding highlight.
+ * Light / Dark / System, as an icon-only capsule with a sliding highlight —
+ * a flat fill in this app's own brand mint, no glow (tried, and dropped on
+ * request: `theme-toggle-glow`/`theme-toggle-active` in globals.css were the
+ * glow-and-literal-blue version, superseded by plain `bg-brand-500` here).
+ *
+ * `my-1` on the outer shell is deliberate, not incidental spacing — flush
+ * against `ContentStrip`'s top/bottom border, the capsule read as clipped
+ * rather than sitting inside the strip.
  *
  * The highlight is a separate absolutely-positioned span, not a background on
  * the active button — animating a background swap can only cross-fade, never
@@ -63,6 +70,10 @@ const OPTIONS: { value: Theme; label: string; Icon: (props: SVGProps<SVGSVGEleme
  * same box the three equal-width buttons divide, and `translateX(n * 100%)`
  * then lands it exactly under button `n` with no measurement or JS layout
  * read required.
+ *
+ * Icon-only trades the visible "Light"/"Dark"/"System" labels for the
+ * reference's compact capsule — `aria-label` on each button is what keeps
+ * that a11y-neutral rather than a regression.
  */
 export function ThemeToggle() {
   /*
@@ -81,12 +92,12 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Colour theme"
-      className="inline-flex rounded-sm border border-border bg-surface p-0.5"
+      className="my-1 inline-flex rounded-full border border-border bg-surface p-1"
     >
-      <div className="relative grid grid-cols-3">
+      <div className="relative grid grid-cols-3 gap-0.5">
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-1/3 rounded-xs bg-brand-500 shadow-sm transition-transform duration-200 ease-standard motion-reduce:transition-none"
+          className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-brand-500 transition-transform duration-200 ease-standard motion-reduce:transition-none"
           style={{ transform: `translateX(${activeIndex * 100}%)` }}
         />
 
@@ -98,14 +109,14 @@ export function ThemeToggle() {
               type="button"
               role="radio"
               aria-checked={active}
+              aria-label={option.label}
               onClick={() => applyTheme(option.value)}
               className={[
-                "relative z-10 flex items-center justify-center gap-1.5 rounded-xs px-2.5 py-1 text-xs font-medium transition-colors duration-150 ease-standard active:scale-95",
-                active ? "font-semibold text-on-brand" : "text-text-muted hover:text-text",
+                "relative z-10 flex size-8 items-center justify-center rounded-full transition-colors duration-150 ease-standard active:scale-95",
+                active ? "text-on-brand" : "text-text-muted hover:text-text",
               ].join(" ")}
             >
-              <option.Icon className="size-3.5 shrink-0" />
-              {option.label}
+              <option.Icon className="size-4 shrink-0" />
             </button>
           );
         })}

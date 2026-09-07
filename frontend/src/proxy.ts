@@ -26,5 +26,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/board/:path*",
+  // `/workspaces` joined `/board` here once its data stopped being a fixture:
+  // an unauthenticated call to the real API 401s, and without this guard that
+  // read as "you have zero workspaces" instead of a sign-in redirect.
+  matcher: ["/board/:path*", "/workspaces/:path*"],
 };
