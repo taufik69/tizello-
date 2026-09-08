@@ -1,7 +1,13 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { EditProjectDrawer } from "@/components/projects/edit-project-drawer";
 import { Drawer } from "@/components/ui/drawer";
+import {
+  getSurfaceServerSnapshot,
+  readStoredSurface,
+  subscribeToSurface,
+} from "@/lib/project-surface";
 import type { ProjectRecord } from "@/types/project";
 import type { ProjectPropertyDef } from "@/types/project-property";
 
@@ -10,6 +16,11 @@ import type { ProjectPropertyDef } from "@/types/project-property";
  * `<dialog>` is what hands focus back to the trigger when it closes;
  * unmounting it would drop focus on the `<body>`. The FORM inside is remounted
  * instead, keyed on `updatedAt` and on `open`.
+ *
+ * Side panel or centred is ONE preference across both drawers, read from the
+ * same store `CreateProjectDrawer` reads. Editing a project and creating one
+ * are the same form; a layout that applied to only one of them would be a
+ * setting the user has to find twice.
  */
 export function EditProjectDrawerShell({
   project,
@@ -31,10 +42,22 @@ export function EditProjectDrawerShell({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const surface = useSyncExternalStore(
+    subscribeToSurface,
+    readStoredSurface,
+    getSurfaceServerSnapshot,
+  );
+
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} aria-label="Edit project">
+    <Drawer
+      open={open}
+      surface={surface}
+      onOpenChange={onOpenChange}
+      aria-label="Edit project"
+    >
       <EditProjectDrawer
         key={`${project.updatedAt}-${open}`}
+        surface={surface}
         project={project}
         workspaceId={workspaceId}
         today={today}

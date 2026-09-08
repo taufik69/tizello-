@@ -2,15 +2,16 @@ import { Suspense } from "react";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { PageLabel } from "@/components/layout/page-label";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import {
-  MobileSidebarTrigger,
-  SidebarExpandButton,
-} from "@/components/layout/sidebar-buttons";
+import { MobileSidebarTrigger } from "@/components/layout/sidebar-buttons";
 
 /**
- * The slim strip above the page. The page label on the left, behind the two
- * controls that put the sidebar back: the hamburger below `md`, and the expand
- * button above it whenever the sidebar is collapsed.
+ * The slim strip above the page. The page label on the left, behind the one
+ * control that puts the sidebar back: the hamburger, below `md`.
+ *
+ * There is no expand button here any more. It existed because collapsing HID
+ * the sidebar, so the only way back had to live somewhere else; the rail keeps
+ * its own toggle, and two controls for one thing in two places is worse than
+ * one where it belongs.
  *
  * The label is orientation only — the breadcrumb proper lives in the content
  * column, as the page's heading. The theme control and the account menu
@@ -26,7 +27,6 @@ export function ContentStrip() {
        than 4px apart. */
     <div className="flex h-topbar shrink-0 items-center gap-2 border-b border-border px-4 sm:px-6">
       <MobileSidebarTrigger />
-      <SidebarExpandButton />
       <PageLabel />
 
       <div className="ml-auto flex shrink-0 items-center gap-3">

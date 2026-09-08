@@ -151,6 +151,7 @@
      ---------------------------------------------------------------------- */
   --spacing-list: 17rem; /* 272px */
   --spacing-sidebar: 16rem; /* 256px */
+  --spacing-rail: 3.5rem; /* 56px — the collapsed sidebar, icons only */
   --spacing-topbar: 3rem; /* 48px  */
 
   /* MOTION — Trello's UI transitions are short and near-linear-out. */

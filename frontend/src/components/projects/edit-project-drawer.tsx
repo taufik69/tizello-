@@ -9,6 +9,8 @@ import {
   DrawerTitleField,
 } from "@/components/projects/drawer-title";
 import { ProjectPropertyList } from "@/components/projects/project-property-list";
+import { SurfaceMenu } from "@/components/projects/surface-menu";
+import type { ProjectSurface } from "@/lib/project-surface";
 import {
   shownPropertiesFor,
   type OptionalProperty,
@@ -41,6 +43,7 @@ import type {
 export function EditProjectDrawer({
   project,
   workspaceId,
+  surface,
   today,
   definitions,
   canManageProperties,
@@ -49,6 +52,8 @@ export function EditProjectDrawer({
 }: {
   project: ProjectRecord;
   workspaceId: string;
+  /** Drawn by `SurfaceMenu` in the header, which is also what changes it. */
+  surface: ProjectSurface;
   today: string;
   definitions: ProjectPropertyDef[];
   canManageProperties: boolean;
@@ -142,7 +147,8 @@ export function EditProjectDrawer({
         <p className="min-w-0 flex-1 truncate font-mono text-xs text-text-subtle">
           {project.key}
         </p>
-          <DrawerCloseButton onClose={onClose} />
+        <SurfaceMenu surface={surface} />
+        <DrawerCloseButton onClose={onClose} />
       </DrawerHeader>
 
       <DrawerBody>

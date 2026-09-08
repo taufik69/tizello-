@@ -1,15 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { CloseIcon, MenuIcon, PanelLeftIcon } from "@/components/ui/nav-icons";
 import { cn } from "@/lib/cn";
-import {
-  getSidebarServerSnapshot,
-  readSidebarCollapsed,
-  setMobileSidebarOpen,
-  setSidebarCollapsed,
-  subscribeToSidebarCollapsed,
-} from "@/lib/sidebar";
+import { setMobileSidebarOpen, setSidebarCollapsed } from "@/lib/sidebar";
 
 /*
  * The shell's four icon-only controls. One file because they are one mechanism
@@ -23,37 +16,30 @@ import {
 const ICON_BUTTON =
   "size-7 shrink-0 items-center justify-center rounded-sm text-text-subtle transition-colors duration-100 ease-standard hover:bg-surface-sunken hover:text-text";
 
-/** In the sidebar header, above `md`. Hides the sidebar entirely. */
-export function SidebarCollapseButton() {
+/**
+ * In the sidebar header, above `md`. A TOGGLE now, not a one-way collapse.
+ *
+ * Collapsing used to hide the column outright, which left no control inside it
+ * and put the way back in the content strip — a different place from the one
+ * the user just clicked. The rail keeps this button, so out and back are the
+ * same target.
+ */
+export function SidebarCollapseButton({ collapsed }: { collapsed: boolean }) {
   return (
     <button
       type="button"
-      aria-label="Collapse sidebar"
-      onClick={() => setSidebarCollapsed(true)}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-expanded={!collapsed}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      onClick={() => setSidebarCollapsed(!collapsed)}
       className={cn("hidden md:inline-flex", ICON_BUTTON)}
     >
-      <PanelLeftIcon className="size-4" />
-    </button>
-  );
-}
-
-/** In the content strip, above `md`. Only exists while the sidebar is hidden. */
-export function SidebarExpandButton() {
-  const collapsed = useSyncExternalStore(
-    subscribeToSidebarCollapsed,
-    readSidebarCollapsed,
-    getSidebarServerSnapshot,
-  );
-  if (!collapsed) return null;
-
-  return (
-    <button
-      type="button"
-      aria-label="Show sidebar"
-      onClick={() => setSidebarCollapsed(false)}
-      className={cn("hidden md:inline-flex", ICON_BUTTON)}
-    >
-      <PanelLeftIcon className="size-4" />
+      <PanelLeftIcon
+        className={cn(
+          "size-4 transition-transform duration-200 ease-standard motion-reduce:transition-none",
+          collapsed && "rotate-180",
+        )}
+      />
     </button>
   );
 }

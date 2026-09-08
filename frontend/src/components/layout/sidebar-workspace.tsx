@@ -1,4 +1,4 @@
-import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher";
+import { SidebarWorkspaceSlot } from "@/components/layout/sidebar-workspace-slot";
 import { getWorkspaces } from "@/lib/workspaces";
 
 /**
@@ -15,9 +15,8 @@ import { getWorkspaces } from "@/lib/workspaces";
 export async function SidebarWorkspace() {
   const workspaces = await getWorkspaces();
 
-  return (
-    <div className="min-w-0 flex-1">
-      <WorkspaceSwitcher workspaces={workspaces} />
-    </div>
-  );
+  /* The width and the compact flag both depend on whether the sidebar is
+     railed, which only a client component can know — see
+     `sidebar-workspace-slot.tsx`. */
+  return <SidebarWorkspaceSlot workspaces={workspaces} />;
 }
