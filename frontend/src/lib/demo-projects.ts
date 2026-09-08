@@ -48,100 +48,145 @@ const PEOPLE = {
  */
 const projects: ProjectRecord[] = [
   {
-    id: "TIZ-1",
+    id: "demo-project-1",
+    key: "TIZ1",
     name: "Website redesign",
-    status: "IN_PROGRESS",
+    description: null,
+    status: "ACTIVE",
+    ownerId: PEOPLE.wren.id,
     owner: PEOPLE.wren,
     collaborators: [PEOPLE.jonah, PEOPLE.priya, PEOPLE.tavi],
     startDate: "2026-08-10",
     endDate: "2026-10-02",
     priority: "HIGH",
-    createdBy: PEOPLE.wren,
-    createdTime: "2026-07-28T09:12:00.000Z",
+    icon: null,
+    color: null,
+    isArchived: false,
+    workspaceId: "demo-workspace",
+    viewerRole: "OWNER",
+    createdAt: "2026-07-28T09:12:00.000Z",
+    updatedAt: "2026-07-28T09:12:00.000Z",
   },
   {
-    id: "TIZ-2",
+    id: "demo-project-2",
+    key: "TIZ2",
     name: "Brand refresh",
-    status: "COMPLETE",
+    description: null,
+    status: "COMPLETED",
+    ownerId: PEOPLE.marisol.id,
     owner: PEOPLE.marisol,
     collaborators: [PEOPLE.wren],
     startDate: "2026-06-15",
     endDate: "2026-08-21",
     priority: "MEDIUM",
-    createdBy: PEOPLE.tavi,
-    createdTime: "2026-06-02T14:40:00.000Z",
+    icon: null,
+    color: null,
+    isArchived: false,
+    workspaceId: "demo-workspace",
+    viewerRole: "OWNER",
+    createdAt: "2026-06-02T14:40:00.000Z",
+    updatedAt: "2026-06-02T14:40:00.000Z",
   },
   {
     /* The longest name the UI should tolerate: it has to truncate in a table
        cell and wrap on a board card, never widen either. */
-    id: "TIZ-3",
+    id: "demo-project-3",
+    key: "TIZ3",
     name: "Motion planning SDK v3 migration and deprecation plan",
+    description: null,
     status: "PLANNING",
+    ownerId: PEOPLE.jonah.id,
     owner: PEOPLE.jonah,
     collaborators: [PEOPLE.wren, PEOPLE.marisol],
     startDate: "2026-09-14",
     endDate: "2026-12-04",
     priority: "HIGH",
-    createdBy: PEOPLE.marisol,
-    createdTime: "2026-08-19T07:05:00.000Z",
+    icon: null,
+    color: null,
+    isArchived: false,
+    workspaceId: "demo-workspace",
+    viewerRole: "OWNER",
+    createdAt: "2026-08-19T07:05:00.000Z",
+    updatedAt: "2026-08-19T07:05:00.000Z",
   },
   {
     /* No collaborators — the overlapping-avatar stack has to render nothing
        rather than an empty ring. */
-    id: "TIZ-4",
+    id: "demo-project-4",
+    key: "TIZ4",
     name: "Client onboarding",
-    status: "PAUSED",
+    description: null,
+    status: "ON_HOLD",
+    ownerId: PEOPLE.tavi.id,
     owner: PEOPLE.tavi,
     collaborators: [],
     startDate: "2026-08-24",
     endDate: "2026-09-18",
     priority: "LOW",
-    createdBy: PEOPLE.wren,
-    createdTime: "2026-08-11T11:26:00.000Z",
+    icon: null,
+    color: null,
+    isArchived: false,
+    workspaceId: "demo-workspace",
+    viewerRole: "OWNER",
+    createdAt: "2026-08-11T11:26:00.000Z",
+    updatedAt: "2026-08-11T11:26:00.000Z",
   },
   {
-    id: "TIZ-5",
+    id: "demo-project-5",
+    key: "TIZ5",
     name: "Fleet telemetry ingest",
-    status: "IN_PROGRESS",
+    description: null,
+    status: "ACTIVE",
+    ownerId: PEOPLE.priya.id,
     owner: PEOPLE.priya,
     collaborators: [PEOPLE.tavi, PEOPLE.jonah],
     startDate: "2026-09-01",
     endDate: "2026-11-13",
     priority: "MEDIUM",
-    createdBy: PEOPLE.priya,
-    createdTime: "2026-08-25T16:58:00.000Z",
+    icon: null,
+    color: null,
+    isArchived: false,
+    workspaceId: "demo-workspace",
+    viewerRole: "OWNER",
+    createdAt: "2026-08-25T16:58:00.000Z",
+    updatedAt: "2026-08-25T16:58:00.000Z",
   },
   {
     /* Filed, never scheduled. Both dates absent: the timeline must place no
        bar and say so, not compute an offset from `undefined`. */
-    id: "TIZ-6",
+    id: "demo-project-6",
+    key: "TIZ6",
     name: "Back-catalogue archive",
+    description: null,
     status: "BACKLOG",
+    ownerId: PEOPLE.wren.id,
     owner: PEOPLE.wren,
     collaborators: [PEOPLE.marisol],
+    startDate: null,
+    endDate: null,
     priority: "LOW",
-    createdBy: PEOPLE.jonah,
-    createdTime: "2026-05-30T08:00:00.000Z",
+    icon: null,
+    color: null,
+    isArchived: false,
+    workspaceId: "demo-workspace",
+    viewerRole: "OWNER",
+    createdAt: "2026-05-30T08:00:00.000Z",
+    updatedAt: "2026-05-30T08:00:00.000Z",
   },
 ];
 
-export function getWorkspaceProjects(
-  workspaceId: string,
-): Promise<ProjectRecord[]> {
-  /* The one set stands in for every workspace, so the id only guards the empty
-     case here. The real query filters on it. */
-  return settle(workspaceId ? projects : []);
-}
-
-/** The signed-in user, as a project cell needs them. Same id as `demo-data.ts`. */
-export function getProjectsCurrentUser(): Promise<ProjectPerson> {
-  return settle<ProjectPerson>(PEOPLE.wren);
-}
-
 /**
- * One project by its human key — `"TIZ-1"`. `undefined` is the signal for
- * `notFound()`; the backlog page must not render a shell around a project that
- * does not exist.
+ * One project by id. `undefined` is the signal for `notFound()`.
+ *
+ * **`/workspaces/:id/projects` no longer calls this** — it reads the real API
+ * through `lib/projects.ts`. What is left leaning on this file is the sprint,
+ * backlog and board surface, whose own modules do not exist server-side yet
+ * and which needs a `ProjectRecord` to head their pages with.
+ *
+ * `getWorkspaceProjects` and `getProjectsCurrentUser` are gone: both have real
+ * equivalents now (`lib/projects.ts` and `getSession`), and leaving a fixture
+ * with the same name next to them is how a screen ends up silently reading
+ * invented data.
  */
 export function getProject(
   projectId: string,

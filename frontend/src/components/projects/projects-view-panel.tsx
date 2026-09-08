@@ -5,6 +5,7 @@ import { StatusView } from "@/components/projects/status-view";
 import { TimelineView } from "@/components/projects/timeline-view";
 import { PROJECT_VIEW_LABEL, PROJECT_VIEW_SUMMARY } from "@/lib/project-view";
 import type { ProjectRecord, ProjectView } from "@/types/project";
+import type { WorkspaceRole } from "@/types/workspace";
 
 /*
  * Picks the view. A switch rather than a lookup object so TypeScript checks
@@ -19,11 +20,16 @@ export function ProjectsViewPanel({
   view,
   projects,
   currentUserId,
+  workspaceRole,
   today,
 }: {
   view: ProjectView;
   projects: ProjectRecord[];
   currentUserId: string;
+  /* The caller's WORKSPACE role. Passed to every view rather than resolved
+     per row: it is one fact about the person, not about the project, and the
+     actions menu needs it alongside each project's own `viewerRole`. */
+  workspaceRole: WorkspaceRole;
   today: string;
 }) {
   return (
@@ -31,7 +37,7 @@ export function ProjectsViewPanel({
       <h2 className="sr-only">
         {PROJECT_VIEW_LABEL[view]} &mdash; {PROJECT_VIEW_SUMMARY[view]}
       </h2>
-      {renderView(view, projects, currentUserId, today)}
+      {renderView(view, projects, currentUserId, workspaceRole, today)}
     </section>
   );
 }
@@ -40,6 +46,7 @@ function renderView(
   view: ProjectView,
   projects: ProjectRecord[],
   currentUserId: string,
+  workspaceRole: WorkspaceRole,
   today: string,
 ) {
   switch (view) {
@@ -48,10 +55,18 @@ function renderView(
     case "board":
       return <BoardView projects={projects} />;
     case "all":
-      return <AllView projects={projects} currentUserId={currentUserId} />;
+      return <AllView
+          projects={projects}
+          currentUserId={currentUserId}
+          workspaceRole={workspaceRole}
+        />;
     case "status":
       return <StatusView projects={projects} />;
     case "active":
-      return <ActiveView projects={projects} currentUserId={currentUserId} />;
+      return <ActiveView
+          projects={projects}
+          currentUserId={currentUserId}
+          workspaceRole={workspaceRole}
+        />;
   }
 }

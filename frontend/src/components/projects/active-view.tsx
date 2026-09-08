@@ -9,6 +9,7 @@ import { StatusGroupHeader } from "@/components/projects/status-group-header";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { groupByStatus, STATUS_LABEL } from "@/lib/project-groups";
 import type { ProjectRecord } from "@/types/project";
+import type { WorkspaceRole } from "@/types/workspace";
 
 /*
  * The default view: one table, grouped by status.
@@ -26,9 +27,11 @@ import type { ProjectRecord } from "@/types/project";
 export function ActiveView({
   projects,
   currentUserId,
+  workspaceRole,
 }: {
   projects: ProjectRecord[];
   currentUserId: string;
+  workspaceRole: WorkspaceRole;
 }) {
   const groups = groupByStatus(projects, { includeEmpty: false });
   if (groups.length === 0) return <ProjectsEmpty />;
@@ -57,6 +60,7 @@ export function ActiveView({
               key={project.id}
               project={project}
               currentUserId={currentUserId}
+              workspaceRole={workspaceRole}
             />
           ))}
 

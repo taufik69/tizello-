@@ -23,6 +23,15 @@ export type TextFieldProps = {
   type?: "text" | "email" | "password" | "date";
   autoComplete?: string;
   defaultValue?: string;
+  /** Hard cap, enforced by the platform — the right primitive for a length limit, so `transform` can stay a pure 1:1 map. */
+  maxLength?: number;
+  /**
+   * A value that exists and cannot be edited — a project key in the edit form.
+   * `disabled` rather than `readOnly` on purpose: read-only stays focusable and
+   * tabbable, which walks a keyboard user into a field they cannot change and
+   * gives them no signal why.
+   */
+  disabled?: boolean;
   placeholder?: string;
   helper?: string;
   /** From the Server Action. Outranks anything the browser worked out. */
@@ -32,6 +41,20 @@ export type TextFieldProps = {
   trailing?: ReactNode;
   inputRef?: Ref<HTMLInputElement>;
   onValueChange?: (value: string) => void;
+  /**
+   * Rewrites what the user typed, in place, before anything sees it — for a
+   * field whose stored form is narrower than what a keyboard produces (a
+   * project key is uppercase-only).
+   *
+   * This writes back to `event.target.value` rather than styling the input
+   * with `uppercase`, because the field is UNCONTROLLED: a CSS transform is
+   * display-only, so the form would still submit what was actually typed and
+   * the two would silently disagree. Must be a 1:1 character map — a
+   * transform that changes the string's LENGTH moves the caret to the end
+   * mid-word, since there is no controlled value to restore a selection
+   * against.
+   */
+  transform?: (value: string) => string;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   autoFocus?: boolean;
   required?: boolean;
@@ -46,6 +69,8 @@ export function TextField({
   type = "text",
   autoComplete,
   defaultValue,
+  maxLength,
+  disabled,
   placeholder,
   helper,
   error,
@@ -53,6 +78,7 @@ export function TextField({
   trailing,
   inputRef,
   onValueChange,
+  transform,
   onKeyDown,
   autoFocus,
   required = true,
@@ -76,6 +102,8 @@ export function TextField({
           ref={inputRef}
           autoComplete={autoComplete}
           defaultValue={defaultValue}
+          maxLength={maxLength}
+          disabled={disabled}
           placeholder={placeholder}
           autoFocus={autoFocus}
           required={required}
@@ -83,7 +111,17 @@ export function TextField({
           aria-describedby={message || helper ? messageId : undefined}
           onBlur={(event) => setLocal(validate?.(event.target.value) ?? null)}
           onChange={(event) => {
-            const { value } = event.target;
+            let { value } = event.target;
+
+            if (transform) {
+              const next = transform(value);
+              /* Only assign on a real change: writing the same string back
+                 still resets the caret to the end in Safari, which turns
+                 editing the middle of a value into a fight. */
+              if (next !== value) event.target.value = next;
+              value = next;
+            }
+
             if (local) setLocal(validate?.(value) ?? null);
             onValueChange?.(value);
           }}
@@ -97,6 +135,7 @@ export function TextField({
             // exactly one border on screen; it returns the moment `message`
             // clears, so a fixed field still gets the normal brand ring back.
             message ? "border-danger focus-visible:outline-none" : "border-border",
+            disabled ? "cursor-not-allowed bg-surface-sunken text-text-muted" : "",
             trailing ? "pr-16" : "",
           ].join(" ")}
         />

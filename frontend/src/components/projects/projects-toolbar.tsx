@@ -1,4 +1,5 @@
-import { ChevronDownIcon, SettingsIcon } from "@/components/ui/icons";
+import { SettingsIcon } from "@/components/ui/icons";
+import { CreateProjectButton } from "@/components/projects/create-project-button";
 import { LockedControl } from "@/components/ui/locked-control";
 import { SearchIcon } from "@/components/ui/nav-icons";
 import { FilterIcon, SortIcon } from "@/components/ui/table-icons";
@@ -6,21 +7,26 @@ import { FilterIcon, SortIcon } from "@/components/ui/table-icons";
 /*
  * The right-aligned controls above every view.
  *
- * None of them work, and every one is a `LockedControl` rather than a
- * `<button>` with no handler: the reason travels as a tooltip, as the tail of
- * the accessible name and as the dim, and inertness is the contract rather
+ * The four on the left do not work, and each is a `LockedControl` rather than
+ * a `<button>` with no handler: the reason travels as a tooltip, as the tail
+ * of the accessible name and as the dim, and inertness is the contract rather
  * than something the next caller has to remember.
  *
- * The New button does NOT reuse `buttonVariants`. Those carry `hover:` and
- * `active:` feedback, and a control that lights up under the cursor and then
- * does nothing is a worse lie than a plain dim one. Same tokens, no promise:
- * `bg-brand-500` carries `text-on-brand` at 7.1:1, never white.
+ * New is the exception and no longer locked: `POST /workspaces/:id/projects`
+ * exists, so it is a real button in its own client leaf. Everything beside it
+ * is still inert because no endpoint backs it — filtering and search would
+ * mean `?status=` / `?q=` round trips this toolbar does not build yet, even
+ * though `lib/projects.ts` already accepts both.
  */
 const ICON = "size-7 rounded-sm text-text-muted";
-const NEW =
-  "h-7 gap-1 rounded-sm bg-brand-500 pr-1.5 pl-2 text-xs font-semibold text-on-brand";
 
-export function ProjectsToolbar() {
+export function ProjectsToolbar({
+  workspaceId,
+  workspaceName,
+}: {
+  workspaceId: string;
+  workspaceName: string;
+}) {
   return (
     <div className="flex shrink-0 items-center gap-0.5">
       <LockedControl
@@ -55,14 +61,7 @@ export function ProjectsToolbar() {
         <SettingsIcon className="size-3.5" />
       </LockedControl>
 
-      <LockedControl
-        reason="Creating a project is not built yet"
-        label="New project"
-        className={NEW}
-      >
-        New
-        <ChevronDownIcon className="size-3.5" />
-      </LockedControl>
+      <CreateProjectButton workspaceId={workspaceId} workspaceName={workspaceName} />
     </div>
   );
 }

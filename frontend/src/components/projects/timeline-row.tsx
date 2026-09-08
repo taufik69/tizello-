@@ -1,3 +1,4 @@
+import { ProjectGlyph } from "@/components/projects/project-glyph";
 import { DateRange } from "@/components/projects/date-range";
 import { STATUS_BAR } from "@/components/projects/project-tone";
 import { cn } from "@/lib/cn";
@@ -41,8 +42,9 @@ export function TimelineRow({
 
   return (
     <li className="flex items-center">
-      <div className="w-52 shrink-0 truncate pr-3 pl-0.5 text-xs text-text-muted">
-        {project.name}
+      <div className="flex w-52 shrink-0 items-center gap-1.5 pr-3 pl-0.5 text-xs text-text-muted">
+        <ProjectGlyph icon={project.icon} color={project.color} size="sm" />
+        <span className="min-w-0 truncate">{project.name}</span>
       </div>
 
       <div className="relative h-9 flex-1">

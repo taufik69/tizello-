@@ -31,15 +31,20 @@ const IDLE =
 export function ProjectsViewNav({
   workspaceId,
   view,
+  archived,
 }: {
   workspaceId: string;
   view: ProjectView;
+  archived: boolean;
 }) {
   return (
     <nav aria-label="Project views" className="min-w-0">
       <ul className="scrollbar-board flex items-center gap-1 overflow-x-auto">
         {PROJECT_VIEWS.map((value) => {
-          const current = value === view;
+          /* Not `value === view` alone: with Archived in the same row, the
+             archived screen would otherwise light up two tabs at once — its
+             own, and whichever view it happens to be drawn in. */
+          const current = value === view && !archived;
           return (
             <li key={value}>
               <Link
@@ -53,6 +58,20 @@ export function ProjectsViewNav({
             </li>
           );
         })}
+
+        {/* A sixth tab, not a sixth view: it keeps whichever view is current
+            and flips `?archived=1`. Archived projects are excluded from every
+            other list by the API, so this is the only route back to one. */}
+        <li>
+          <Link
+            href={projectsHref(workspaceId, view, { archived: true })}
+            aria-current={archived ? "page" : undefined}
+            aria-label="Projects that have been archived."
+            className={archived ? ACTIVE : IDLE}
+          >
+            Archived
+          </Link>
+        </li>
       </ul>
     </nav>
   );

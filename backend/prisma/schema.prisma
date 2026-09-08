@@ -36,6 +36,8 @@ model User {
   updatedAt       DateTime  @updatedAt
 
   memberships         Membership[]
+  ownedProjects       Project[]           @relation("ProjectOwner")
+  projectMemberships  ProjectMember[]
   sentInvitations     Invitation[]        @relation("InvitationInvitedBy")
   // Invitations this user redeemed. Separate from sentInvitations: the
   // inviter and the acceptor are different people on the same row.
@@ -299,18 +301,106 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// Minimal stub so Workspace.projects compiles — the project module is not
-// built yet. Fields kept to the bare minimum on purpose: extend this model
-// when the project module actually lands rather than guessing its shape now.
+// The lifecycle of the work, NOT whether the project is filed away. There is
+// deliberately no ARCHIVED member here even though `isArchived` exists below:
+// two columns that can both claim "archived" make "status = ACTIVE and
+// isArchived = true" representable and meaningless. Same reasoning as the
+// Workspace archive/delete split. Plan .claude/plan/project.md §2.1.
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  BACKLOG
+  COMPLETED
+  CANCELLED
+}
+
+// Generically named on purpose: Task will want these exact four values, and
+// one enum beats a ProjectPriority plus a byte-identical TaskPriority. Plan
+// §2.7.
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// OWNER here MIRRORS Project.ownerId, which is the authoritative read — every
+// authorization decision goes to the column, never to this row. The row exists
+// so the member list is one query with one shape instead of a synthesized
+// owner special case, and the two are written in a single transaction. Plan
+// §2.4.
+enum ProjectRole {
+  OWNER
+  MANAGER
+  COLLABORATOR
+}
+
 model Project {
-  id          String   @id @default(cuid())
-  workspaceId String
+  id          String        @id @default(cuid())
   name        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // The human-facing task ID prefix — "TIZ" gives TIZ-1, TIZ-2. Unlike
+  // Workspace.slug this IS accepted from the client (teams care what their
+  // ticket prefix says) and is immutable afterwards: every task id already
+  // written into a commit message or a bookmark carries it. Plan §2.2.
+  key         String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  priority    Priority      @default(MEDIUM)
+  icon        String?
+  color       String?
+  startDate   DateTime?
+  endDate     DateTime?
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // --- task numbering (future — the Task module). Nothing reads or writes
+  // this yet. It ships now so `TIZ-1, TIZ-2, …` needs no migration later, and
+  // it must be incremented by an atomic UPDATE inside the task-creation
+  // transaction — `count(tasks) + 1` is wrong under concurrency and wrong
+  // after any delete. Same schema-ahead-of-logic bargain as Workspace's
+  // billing columns. Plan §2.3.
+  taskCounter Int           @default(0)
 
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Restrict, not Cascade or SetNull: deleting a user who still owns projects
+  // must fail loudly until ownership is transferred, rather than orphaning
+  // them silently.
+  ownerId     String
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  members     ProjectMember[]
+
+  // Archived is reversible (hidden from the default list); deletedAt is not.
+  // Neither is `status` — three independent axes, three columns.
+  isArchived  Boolean       @default(false)
+  deletedAt   DateTime?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Key is unique per workspace, not globally: two teams may both want "WEB".
+  // Named by Prisma as `workspaceId_key` — the constraint the P2002 retry in
+  // shared/utils/projectKey.js is catching.
+  @@unique([workspaceId, key])
   @@index([workspaceId])
+  @@index([ownerId])
+  // Every list query filters by workspace and usually also by status; the
+  // compound unique above cannot serve that.
+  @@index([workspaceId, status])
   @@map("projects")
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectRole @default(COLLABORATOR)
+  createdAt DateTime    @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@map("project_members")
 }

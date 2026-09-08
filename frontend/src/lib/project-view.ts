@@ -50,12 +50,35 @@ export function parseProjectView(
   return PROJECT_VIEWS.find((view) => view === value) ?? DEFAULT_PROJECT_VIEW;
 }
 
+/** The value `?archived=` has to carry to swap the list for the archived one. */
+const ARCHIVED_ON = "1";
+
+/** Anything but the literal `"1"` is off — including `"true"`, which no link here ever writes. */
+export function parseArchivedFilter(raw: string | string[] | undefined): boolean {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === ARCHIVED_ON;
+}
+
 /**
- * The default view is written WITHOUT the param, so the tab strip's first link
- * and the sidebar's Projects item point at the same URL and only one of them
- * can be `aria-current`.
+ * Defaults are written as ABSENCES — no `?view=active`, no `?archived=0` — so
+ * the tab strip's first link and the sidebar's Projects item point at the same
+ * URL and only one of them can be `aria-current`.
+ *
+ * `q` rides along so a search survives a view switch: dropping it would make
+ * clicking "Board" while filtered silently widen the result.
  */
-export function projectsHref(workspaceId: string, view: ProjectView): string {
+export function projectsHref(
+  workspaceId: string,
+  view: ProjectView,
+  { archived = false, q }: { archived?: boolean; q?: string } = {},
+): string {
   const base = `/workspaces/${workspaceId}/projects`;
-  return view === DEFAULT_PROJECT_VIEW ? base : `${base}?view=${view}`;
+  const params = new URLSearchParams();
+
+  if (view !== DEFAULT_PROJECT_VIEW) params.set("view", view);
+  if (archived) params.set("archived", ARCHIVED_ON);
+  if (q) params.set("q", q);
+
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }

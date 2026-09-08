@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table-icons";
 import { completeCount } from "@/lib/project-groups";
 import type { ProjectRecord } from "@/types/project";
+import type { WorkspaceRole } from "@/types/workspace";
 
 /* Six columns, ungrouped. The All view deliberately drops the ID and the
    creation metadata the Active view carries — that is most of what makes it
@@ -39,9 +40,11 @@ const COLUMNS: ReadonlyArray<{
 export function AllView({
   projects,
   currentUserId,
+  workspaceRole,
 }: {
   projects: ProjectRecord[];
   currentUserId: string;
+  workspaceRole: WorkspaceRole;
 }) {
   if (projects.length === 0) return <ProjectsEmpty />;
 
@@ -66,6 +69,7 @@ export function AllView({
             key={project.id}
             project={project}
             currentUserId={currentUserId}
+            workspaceRole={workspaceRole}
           />
         ))}
       </TableBody>

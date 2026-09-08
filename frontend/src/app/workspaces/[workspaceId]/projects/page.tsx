@@ -1,15 +1,17 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ProjectsPageHeader } from "@/components/projects/projects-page-header";
 import { ProjectsToolbar } from "@/components/projects/projects-toolbar";
 import { ProjectsViewNav } from "@/components/projects/projects-view-nav";
 import { ProjectsViewPanel } from "@/components/projects/projects-view-panel";
+import { getSession } from "@/lib/auth";
+import { getWorkspaceProjects } from "@/lib/projects";
 import { getWorkspace } from "@/lib/workspaces";
+import { todayIso } from "@/lib/today";
 import {
-  DEMO_TODAY,
-  getProjectsCurrentUser,
-  getWorkspaceProjects,
-} from "@/lib/demo-projects";
-import { parseProjectView, PROJECT_VIEW_LABEL } from "@/lib/project-view";
+  parseArchivedFilter,
+  parseProjectView,
+  PROJECT_VIEW_LABEL,
+} from "@/lib/project-view";
 
 export async function generateMetadata({
   params,
@@ -40,14 +42,27 @@ export default async function ProjectsPage({
      unrecognised — a junk query string is a typo, not a 500. */
   const [{ workspaceId }, query] = await Promise.all([params, searchParams]);
   const view = parseProjectView(query.view);
+  /* `?q=` and `?archived=1` reach the FETCH, not a filter over the result: the
+     API matches `q` against name and key server-side, and omits archived rows
+     from the payload entirely unless asked. Neither is something a `.filter()`
+     here could reproduce. A repeated param arrives as an array — take the
+     first rather than throwing, since a junk query string is a typo. */
+  const q = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() || undefined;
+  const archived = parseArchivedFilter(query.archived);
+
+  const user = await getSession();
+  if (!user) redirect(`/sign-in?next=/workspaces/${workspaceId}/projects`);
 
   const workspace = await getWorkspace(workspaceId);
   if (!workspace) notFound();
 
-  const [projects, currentUser] = await Promise.all([
-    getWorkspaceProjects(workspaceId),
-    getProjectsCurrentUser(),
-  ]);
+  /* `GET /workspaces/:id/projects` — every project in the workspace, including
+     ones the caller is not a member of (project.md §*Guards* step 4). */
+  /* `includeArchived` returns archived AND active rows — the API has no
+     archived-only filter — so the archived view narrows the result here. The
+     same shape `/workspaces?archived=1` already uses. */
+  const all = await getWorkspaceProjects(workspaceId, { q, includeArchived: archived });
+  const projects = archived ? all.filter((project) => project.isArchived) : all;
 
   return (
     <main className="w-full px-4 py-8 sm:px-6">
@@ -56,17 +71,24 @@ export default async function ProjectsPage({
       {/* The strip wraps rather than scrolls: at 360px the five view links
           take the first line and the toolbar drops below them. */}
       <div className="mt-6 flex flex-wrap items-end justify-between gap-3 border-b border-border">
-        <ProjectsViewNav workspaceId={workspace.id} view={view} />
+        <ProjectsViewNav workspaceId={workspace.id} view={view} archived={archived} />
         <div className="pb-1.5">
-          <ProjectsToolbar />
+          <ProjectsToolbar
+            workspaceId={workspace.id}
+            workspaceName={workspace.name}
+          />
         </div>
       </div>
 
       <ProjectsViewPanel
         view={view}
         projects={projects}
-        currentUserId={currentUser.id}
-        today={DEMO_TODAY}
+        currentUserId={user.id}
+        workspaceRole={workspace.role}
+        /* Resolved on the server and passed down, never read from a clock in a
+           component — see `lib/today.ts` for why that distinction is
+           load-bearing rather than stylistic. */
+        today={todayIso()}
       />
 
       <p className="sr-only">

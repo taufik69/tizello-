@@ -207,6 +207,15 @@ const workspaceCreateLimiter = failClosed(
   limiter({ name: 'workspace-create', windowMs: 60 * 60 * 1000, max: 10, keyGenerator: ipKey })
 );
 
+// Project creation — same abuse-prevention purpose as the workspace limiter,
+// three times the budget. Projects are created far more often than workspaces
+// (a workspace is a place you set up once; a project is a thing you start), so
+// ten per hour would bite a real team spinning up a quarter's work in one
+// sitting. This is abuse protection, not a quota.
+const projectCreateLimiter = failClosed(
+  limiter({ name: 'project-create', windowMs: 60 * 60 * 1000, max: 30, keyGenerator: ipKey })
+);
+
 export {
   apiLimiter,
   authLimiter,
@@ -218,4 +227,5 @@ export {
   inviteSendLimiter,
   inviteLookupLimiter,
   workspaceCreateLimiter,
+  projectCreateLimiter,
 };

@@ -328,3 +328,31 @@ members + ownership transfer + full verification (4).
    set `deletedAt` on its projects — they become unreachable via the API
    because every project read goes through workspace membership, but the rows
    stay live. Revisit with the purge policy, not before.
+
+## 12. Built — the design held, one validator bug and one environment constraint
+
+All four sprints shipped. Nothing in §§1-11 changed shape during
+implementation: the two-layer ladder, the `ownerId`-authoritative /
+mirrored-row arrangement, the derived-vs-supplied key split, the three
+independent axes, and the schema-only `taskCounter` are all in the code as
+described, and `docs/api/project.md` documents them as such.
+
+Two things this plan did not anticipate, both recorded in
+`.claude/specs/project/README.md` §Status:
+
+1. **`Joi.ref` cannot express the date rule on a PATCH.** §8 said
+   `endDate < startDate` is "a shape rule and the validator is where shape
+   rules live". That is true of a create, where both dates are in one request,
+   and false of a patch, where they arrive one at a time — the ref resolves to
+   nothing and rejects a legal request. The rule is now split by operation:
+   the validator owns create, the service owns update. Sprint 3 found it, the
+   DoD rather than a reading.
+
+2. **Status codes: `400`, not `422`.** §8's table predicted `422` for
+   validation failures. `shared/middlewares/validate.js` has answered `400`
+   since the auth module, and matching the plan would have meant one endpoint
+   family disagreeing with every sibling. `422` survives for the two checks a
+   schema structurally cannot make: a patch date against a stored date, and
+   "is this user in the workspace at all".
+
+Everything in §11 is still open, unchanged.

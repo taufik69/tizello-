@@ -1,11 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { CreateEntityDialog } from "@/components/workspace/create-entity-dialog";
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { CreateTile } from "@/components/workspace/create-tile";
 
-/** The client leaf on a workspace detail page. Same shape as the workspace one. */
-export function NewProjectCard({ workspaceName }: { workspaceName: string }) {
+/**
+ * The client leaf on a workspace detail page. Opens the SAME dialog the
+ * projects toolbar does — `CreateEntityDialog` (a bare name field that wrote
+ * nowhere) is no longer what this needs, and two create paths that disagree
+ * about which fields a project has is how one of them silently stops sending
+ * a status.
+ */
+export function NewProjectCard({
+  workspaceId,
+  workspaceName,
+}: {
+  workspaceId: string;
+  workspaceName: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,15 +27,11 @@ export function NewProjectCard({ workspaceName }: { workspaceName: string }) {
         description="Group related boards and tasks together."
         onClick={() => setOpen(true)}
       />
-      <CreateEntityDialog
+      <CreateProjectDialog
+        workspaceId={workspaceId}
+        workspaceName={workspaceName}
         open={open}
         onOpenChange={setOpen}
-        title="New project"
-        description={`This project will live in ${workspaceName}.`}
-        fieldLabel="Project name"
-        placeholder="e.g. Website redesign"
-        submitLabel="Create Project"
-        emptyMessage="Give your project a name."
       />
     </>
   );

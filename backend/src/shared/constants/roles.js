@@ -29,7 +29,21 @@ const PERMISSIONS = {
   MEMBER_REMOVE: 'member:remove',
   MEMBER_ROLE_UPDATE: 'member:role:update',
   BILLING_MANAGE: 'billing:manage',
+  PROJECT_VIEW: 'project:view',
+  PROJECT_CREATE: 'project:create',
+  // The workspace-admin escape hatch, expressed as a permission rather than a
+  // `role === 'ADMIN'` check inside the project module: without it an admin can
+  // be locked out of a project inside their own workspace by a collaborator who
+  // removes them, and the only recovery is direct database access. See
+  // .claude/plan/project.md §2.5.
+  PROJECT_MANAGE_ANY: 'project:manage:any',
 };
+
+// Project-level roles (ProjectRole in schema.prisma) are deliberately NOT in
+// ROLES or ROLE_ORDER above. Those are workspace roles, and `roleAtLeast` walks
+// one ladder — a second set of values in it would have it silently answering
+// the wrong question. The project ladder is resolved per project, by
+// shared/middlewares/project.js.
 
 // Role → permissions granted. Deliberately written out per role rather than
 // derived by inheritance: an explicit table is greppable, and it makes the
@@ -45,6 +59,9 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.MEMBER_REMOVE,
     PERMISSIONS.MEMBER_ROLE_UPDATE,
     PERMISSIONS.BILLING_MANAGE,
+    PERMISSIONS.PROJECT_VIEW,
+    PERMISSIONS.PROJECT_CREATE,
+    PERMISSIONS.PROJECT_MANAGE_ANY,
   ],
   [ROLES.ADMIN]: [
     PERMISSIONS.WORKSPACE_VIEW,
@@ -52,8 +69,20 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.MEMBER_VIEW,
     PERMISSIONS.MEMBER_INVITE,
     PERMISSIONS.MEMBER_REMOVE,
+    PERMISSIONS.PROJECT_VIEW,
+    PERMISSIONS.PROJECT_CREATE,
+    PERMISSIONS.PROJECT_MANAGE_ANY,
   ],
-  [ROLES.MEMBER]: [PERMISSIONS.WORKSPACE_VIEW, PERMISSIONS.MEMBER_VIEW],
+  // PROJECT_CREATE for a plain MEMBER is a deliberate default, not an
+  // oversight: "only admins may start a project" is a workflow decision no
+  // module should make unilaterally. Reversing it is deleting one line here,
+  // which is the entire reason this table is written out per role.
+  [ROLES.MEMBER]: [
+    PERMISSIONS.WORKSPACE_VIEW,
+    PERMISSIONS.MEMBER_VIEW,
+    PERMISSIONS.PROJECT_VIEW,
+    PERMISSIONS.PROJECT_CREATE,
+  ],
 };
 
 // Does `role` hold `permission`? Unknown roles and unknown permissions both

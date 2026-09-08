@@ -1,4 +1,5 @@
 import { apiCallWithRefresh } from "@/lib/api-client";
+import { fieldErrorsFrom } from "@/lib/field-errors";
 import type { Workspace } from "@/types/workspace";
 
 /*
@@ -120,25 +121,4 @@ export async function deleteWorkspace(workspaceId: string): Promise<ActionResult
   });
 
   return result.ok ? { ok: true, data: undefined } : { ok: false, code: result.code };
-}
-
-/** Joi's per-field `details` (from `validate.js`) → the `TextField` error-map shape. */
-function fieldErrorsFrom(details: unknown): Record<string, string> | undefined {
-  if (!Array.isArray(details)) return undefined;
-
-  const errors: Record<string, string> = {};
-  for (const entry of details) {
-    if (
-      entry &&
-      typeof entry === "object" &&
-      "field" in entry &&
-      "message" in entry &&
-      typeof entry.field === "string" &&
-      typeof entry.message === "string"
-    ) {
-      errors[entry.field] = entry.message;
-    }
-  }
-
-  return Object.keys(errors).length > 0 ? errors : undefined;
 }

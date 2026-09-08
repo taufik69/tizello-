@@ -3,6 +3,7 @@ import { ProjectGrid } from "@/components/workspace/project-grid";
 import { WorkspaceArchivedBanner } from "@/components/workspace/workspace-archived-banner";
 import { WorkspaceDetailFacts } from "@/components/workspace/workspace-detail-facts";
 import { WorkspaceDetailHeader } from "@/components/workspace/workspace-detail-header";
+import { getWorkspaceProjects } from "@/lib/projects";
 import { getWorkspace, getWorkspaces } from "@/lib/workspaces";
 
 export async function generateMetadata({
@@ -45,9 +46,13 @@ export default async function WorkspacePage({
 }: PageProps<"/workspaces/[workspaceId]">) {
   const { workspaceId } = await params;
 
-  const [workspace, workspaces] = await Promise.all([
+  const [workspace, workspaces, projects] = await Promise.all([
     getWorkspace(workspaceId),
     getWorkspaces({ includeArchived: true }),
+    /* Fetched in parallel with the workspace rather than after it: a 404 here
+       is the same 404 the workspace lookup returns, so there is nothing the
+       later call would learn by waiting. */
+    getWorkspaceProjects(workspaceId),
   ]);
   if (!workspace) notFound();
 
@@ -59,13 +64,11 @@ export default async function WorkspacePage({
 
       <WorkspaceDetailFacts workspace={workspace} />
 
-      {/* Still fixture-shaped: there is no project module on the API, so a
-          real workspace carries no `projects` and this renders the create tile
-          alone. It stays on the page because the grid is where projects will
-          land — see the Projects row in CLAUDE.md's build progress. */}
       <ProjectGrid
-        projects={workspace.projects ?? []}
+        projects={projects}
+        workspaceId={workspace.id}
         workspaceName={workspace.name}
+        workspaceRole={workspace.role}
       />
     </main>
   );

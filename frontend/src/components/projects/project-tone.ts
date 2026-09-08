@@ -25,11 +25,11 @@ import type { ProjectPriority, ProjectStatus } from "@/types/project";
 /** Chip fill + ink. Composed onto `BADGE_BASE`, which sets no colour. */
 export const STATUS_CHIP: Record<ProjectStatus, string> = {
   BACKLOG: "bg-surface-sunken text-text-muted",
-  TODO: "border border-border text-text-muted",
   PLANNING: "bg-accent-subtle text-text-muted",
-  IN_PROGRESS: "bg-info-subtle text-text-muted",
-  PAUSED: "bg-warning-subtle text-text-muted",
-  COMPLETE: "bg-success-subtle text-text-muted",
+  ACTIVE: "bg-info-subtle text-text-muted",
+  ON_HOLD: "bg-warning-subtle text-text-muted",
+  COMPLETED: "bg-success-subtle text-text-muted",
+  CANCELLED: "bg-danger-subtle text-text-muted",
 };
 
 /*
@@ -40,28 +40,29 @@ export const STATUS_CHIP: Record<ProjectStatus, string> = {
  * indicator needs, where on `surface` it is 3.06:1. Every header that uses one
  * is therefore untinted.
  *
- * BACKLOG and TODO are the two neutrals, separated by weight — `text-subtle`
- * is 3.68:1 on surface and `text-muted` is 6.45:1, so they read as two greys
- * rather than one. `border-strong` was the obvious third neutral and is 1.70:1;
- * it is not used for anything that carries meaning.
+ * BACKLOG is the one neutral — `text-subtle` is 3.68:1 on surface, which
+ * clears the 3:1 an indicator needs. (`border-strong` is 1.70:1 and is
+ * therefore not used for anything that carries meaning.) The set used to hold
+ * two greys because the fixture had both BACKLOG and TODO; the API has no
+ * TODO, and CANCELLED took the freed slot in `danger`.
  */
 export const STATUS_DOT: Record<ProjectStatus, string> = {
   BACKLOG: "bg-text-subtle",
-  TODO: "bg-text-muted",
   PLANNING: "bg-accent",
-  IN_PROGRESS: "bg-info",
-  PAUSED: "bg-warning",
-  COMPLETE: "bg-success",
+  ACTIVE: "bg-info",
+  ON_HOLD: "bg-warning",
+  COMPLETED: "bg-success",
+  CANCELLED: "bg-danger",
 };
 
 /** Donut arcs. Same values as the dots, as SVG strokes. */
 export const STATUS_ARC: Record<ProjectStatus, string> = {
   BACKLOG: "stroke-text-subtle",
-  TODO: "stroke-text-muted",
   PLANNING: "stroke-accent",
-  IN_PROGRESS: "stroke-info",
-  PAUSED: "stroke-warning",
-  COMPLETE: "stroke-success",
+  ACTIVE: "stroke-info",
+  ON_HOLD: "stroke-warning",
+  COMPLETED: "stroke-success",
+  CANCELLED: "stroke-danger",
 };
 
 /*
@@ -72,19 +73,26 @@ export const STATUS_ARC: Record<ProjectStatus, string> = {
  */
 export const STATUS_BAR: Record<ProjectStatus, string> = {
   BACKLOG: "bg-surface-sunken border-text-subtle",
-  TODO: "bg-surface-sunken border-text-muted",
   PLANNING: "bg-accent-subtle border-accent",
-  IN_PROGRESS: "bg-info-subtle border-info",
-  PAUSED: "bg-warning-subtle border-warning",
-  COMPLETE: "bg-success-subtle border-success",
+  ACTIVE: "bg-info-subtle border-info",
+  ON_HOLD: "bg-warning-subtle border-warning",
+  COMPLETED: "bg-success-subtle border-success",
+  CANCELLED: "bg-danger-subtle border-danger",
 };
 
 /*
- * Priority deliberately avoids `warning`: Paused already owns amber, and a
+ * Priority deliberately avoids `warning`: ON_HOLD already owns amber, and a
  * table showing both columns at once would read as two statements about the
  * same thing. Outline → neutral fill → red fill is a ramp of its own.
+ *
+ * URGENT and HIGH share the red family and separate by weight rather than hue:
+ * a seventh tint would leave the ramp with no visible step, and there is no
+ * "more than danger" token. `font-semibold` is already on `BADGE_BASE`, so the
+ * distinction is the border — URGENT is the only chip that is both filled and
+ * outlined.
  */
 export const PRIORITY_CHIP: Record<ProjectPriority, string> = {
+  URGENT: "border border-danger bg-danger-subtle text-text-muted",
   HIGH: "bg-danger-subtle text-text-muted",
   MEDIUM: "bg-surface-sunken text-text-muted",
   LOW: "border border-border text-text-muted",

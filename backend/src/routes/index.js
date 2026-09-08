@@ -9,6 +9,10 @@ import {
   workspaceRouter as invitationWorkspaceRoutes,
   tokenRouter as invitationTokenRoutes,
 } from "../modules/invitation/invitation.routes.js";
+import {
+  workspaceRouter as projectWorkspaceRoutes,
+  projectRouter as projectRoutes,
+} from "../modules/project/project.routes.js";
 import workspaceRoutes from "../modules/workspace/workspace.routes.js";
 
 const router = express.Router();
@@ -25,7 +29,13 @@ router.use("/api/v1/auth", authRoutes);
 // permission middleware resolves a membership from (userId, workspaceId), and
 // recipient routes are token-scoped because the recipient has no membership yet.
 router.use("/api/v1/invitations", invitationTokenRoutes);
+// Two mounts, one module, for the same reason invitations need two: create and
+// list are workspace-scoped because the permission middleware resolves a
+// membership from (userId, workspaceId); everything else is addressed by the
+// project's own globally unique id.
+router.use("/api/v1/projects", projectRoutes);
 router.use("/api/v1/workspaces/:workspaceId/invitations", invitationWorkspaceRoutes);
+router.use("/api/v1/workspaces/:workspaceId/projects", projectWorkspaceRoutes);
 router.use("/api/v1/workspaces", workspaceRoutes);
 
 export default router;
