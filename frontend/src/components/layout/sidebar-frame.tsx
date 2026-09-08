@@ -13,7 +13,13 @@ import {
  * grey against white in light, and the darker of the two neutrals against the
  * default surface in dark.
  */
-const ASIDE = "hidden w-sidebar shrink-0 border-r border-border bg-canvas md:block";
+/* `h-full overflow-hidden` rather than letting the column take its height from
+   its contents: the nav inside it owns the scrolling (`SidebarNav`), and an
+   aside that grows with a long nav would push the shell's own height past the
+   viewport — which is what puts a scrollbar on the document and carries the
+   top strip away with it. */
+const ASIDE =
+  "hidden h-full w-sidebar shrink-0 overflow-hidden border-r border-border bg-canvas md:block";
 
 /**
  * Places the sidebar at both breakpoints: a static column above `md`, an

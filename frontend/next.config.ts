@@ -42,6 +42,21 @@ const nextConfig: NextConfig = {
      * Remote hosts must be listed before next/image will optimise them.
      * Add entries here rather than reaching for `unoptimized`.
      * e.g. { protocol: "https", hostname: "images.example.com" }
+     *
+     * UPLOADED FILES ARE THE ONE EXCEPTION, and cannot be listed.
+     *
+     * They are served by the API's `/static` mount, which in development is
+     * `localhost:5001` — and Next's optimiser rejects loopback and private
+     * hosts outright as an SSRF guard, so a `remotePatterns` entry for one is
+     * accepted by the config and then refused at request time with `"url"
+     * parameter is not allowed`. Verified: an entry for `probe.example.com`
+     * matches (and fails on the unreachable host), the identical entry for
+     * `127.0.0.1:5001` does not match at all.
+     *
+     * `FilePreview` therefore renders attachments `unoptimized`, which works
+     * in every environment rather than only where the API has a public
+     * hostname. `fill` + `sizes` still give it the layout box, so there is no
+     * shift; what is given up is the resize and the AVIF/WebP re-encode.
      */
     remotePatterns: [],
   },

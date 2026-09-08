@@ -3,6 +3,7 @@ import { ProjectArchivedBanner } from "@/components/projects/project-archived-ba
 import { ProjectDetailFacts } from "@/components/projects/project-detail-facts";
 import { ProjectDetailHeader } from "@/components/projects/project-detail-header";
 import { ProjectMembersPanel } from "@/components/projects/project-members-panel";
+import { ProjectPropertiesPanel } from "@/components/projects/project-properties-panel";
 import { getSession } from "@/lib/auth";
 import { getProject } from "@/lib/projects";
 import { getProjectMembers } from "@/lib/project-members";
@@ -103,6 +104,10 @@ export default async function ProjectPage({
       )}
 
       <ProjectDetailFacts project={project} />
+
+      {/* The workspace's custom columns, with this project's values — the half
+          of the create drawer the page used to collect and never show. */}
+      <ProjectPropertiesPanel project={project} definitions={definitions} />
 
       <ProjectMembersPanel members={members} currentUserId={user.id} />
     </main>

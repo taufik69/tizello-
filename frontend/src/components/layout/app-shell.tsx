@@ -13,13 +13,31 @@ import { SidebarFrame } from "@/components/layout/sidebar-frame";
  * Everything here is a Server Component. The only parts that ship JavaScript
  * are the collapse frame, the nav list and the small controls in the strip.
  *
- * The root is `h-dvh` and does NOT clip: the workspace switcher's menu has to
- * escape the sidebar's width. Scrolling is delegated — the nav has its own
- * region inside the sidebar, and the content column has the one below.
+ * NOTHING HERE SCROLLS EXCEPT THE CONTENT COLUMN, and each piece of that is
+ * load-bearing:
+ *
+ * - `h-dvh overflow-hidden` on the root pins the shell to the viewport, so the
+ *   document itself can never gain a scrollbar. Without the clip, anything
+ *   that overflows — a wide table, a tall panel — grows `<body>` (which is
+ *   `min-h-full`) and takes the top strip up with it, which is exactly the bug
+ *   this replaces. The root used to be deliberately unclipped so the workspace
+ *   switcher's menu could escape the sidebar's width; that stopped being a
+ *   reason when `DropdownMenuContent` moved to a `document.body` portal with
+ *   `position: fixed`, so no menu is inside this box any more.
+ * - `shrink-0` on the sidebar and on `ContentStrip` is what keeps them at
+ *   their own size instead of being squeezed by a tall child.
+ * - `min-h-0` on the scroll region is what lets it be SHORTER than its
+ *   content. A flex item's default `min-height: auto` floors it at the
+ *   content's height, so `overflow-y-auto` would have nothing to scroll and
+ *   the overflow would push out of the shell instead.
+ *
+ * The sidebar has the same arrangement one level down: `AppSidebar` pins the
+ * switcher and gives `SidebarNav` the scroll region, so a long nav scrolls
+ * inside the column rather than moving it.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-dvh">
+    <div className="flex h-dvh overflow-hidden">
       <SidebarFrame>
         <AppSidebar />
       </SidebarFrame>
