@@ -52,10 +52,13 @@ against demo data in `src/lib/`, never that a backend is wired.
       `demo-projects.ts`, plus the grid and create dialog on the workspace page.
       The sidebar's Projects item is a disclosure over those same five URLs —
       chevron toggle, the five views as children, and locked `+` / `⋯` row
-      actions. Every control in the toolbar is a `LockedControl`: no create,
-      filter, sort, search or drag & drop. No project detail route, and boards are not
-      scoped to a project. `Project` (workspace tile) and `ProjectRecord`
-      (full record) are still two types.
+      actions. **Board drag & drop works** — `@dnd-kit/react`, pointer and
+      keyboard, and a drop into another column is a `PATCH /projects/:id` with
+      the new status. Only the COLUMN persists: `Project` has no rank field, so
+      the order a card is dropped at holds for the session and the server's
+      order returns on reload (`lib/project-board-order.ts`). Filter, sort and
+      search in the toolbar are still `LockedControl`s. `Project` (workspace
+      tile) and `ProjectRecord` (full record) are still two types.
 - [ ] **Backlog** — `/board/backlog` renders with a working card composer, but
       it is one global backlog, not per-project.
 - [ ] **Sprint** — `/workspaces/[workspaceId]/projects/[projectId]/sprints`
@@ -109,7 +112,7 @@ against demo data in `src/lib/`, never that a backend is wired.
 | Language   | TypeScript (strict)                           |
 | Styling    | Tailwind CSS v4 — CSS-first config, no `tailwind.config.js` |
 | Font       | Inter, via `next/font/google`                 |
-| Drag & drop| `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board only) |
+| Drag & drop| **Two, on purpose.** `@dnd-kit/react` + `@dnd-kit/helpers` (projects board) · `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board) — see below |
 | Alias      | `@/*` → `src/*`                               |
 
 ```bash
@@ -117,6 +120,20 @@ npm run dev     # http://localhost:3000
 npm run build
 npm run lint
 ```
+
+### Why two drag-and-drop libraries
+
+`@dnd-kit/react` is dnd-kit's newer API — a `DragDropProvider`, a `useSortable`
+that takes `index` + `group`, and a `move()` helper that returns the next
+column map. It sorts the REAL cards out of each other's way during a drag,
+where the older `core` + `sortable` pair needs a hand-drawn placeholder to say
+the same thing.
+
+The projects board (`?view=board`) is on the new one. The sprint board is still
+on the old one and works; migrating it is a separate job, not a side effect of
+this one. **Do not add a third**, and prefer `@dnd-kit/react` for anything new.
+
+It is `0.5.0` — pre-1.0, so the API can move between minors. Pin it.
 
 ## Design system
 

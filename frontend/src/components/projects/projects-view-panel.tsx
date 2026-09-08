@@ -57,7 +57,13 @@ function renderView(
     case "timeline":
       return <TimelineView projects={projects} today={today} scope={scope} />;
     case "board":
-      return <BoardView projects={projects} scope={scope} />;
+      return (
+        <BoardView
+          projects={projects}
+          scope={scope}
+          workspaceRole={workspaceRole}
+        />
+      );
     case "all":
       return (
         <AllView

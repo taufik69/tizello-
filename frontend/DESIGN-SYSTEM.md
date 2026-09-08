@@ -330,7 +330,17 @@ theme. Consequence: they don't compose with `shadow-<color>`, which we never do.
 | --- | --- |
 | `w-list` | `272px` — Trello's exact list column |
 | `w-sidebar` | `256px` |
+| `w-rail` | `56px` — the sidebar collapsed to icons |
 | `h-topbar` | `48px` |
+| `min-h-board` | `416px` — the kanban rail's floor |
+
+`min-h-board` is a drag-and-drop constraint wearing a layout token's clothes. A
+rail sized only by its tallest column changes height every time a card crosses
+between two — which moves the horizontal scrollbar under the cursor mid-drag
+and re-runs the collision that started the move, so the card oscillates. Paired
+with `items-stretch` on the rail and `flex-1` on each column's track, every
+column is the same height and that height has a floor, so an ordinary drop
+changes no box at all. Do not remove it to "let the board hug its content".
 
 The board canvas is neutral (`bg-canvas`) and the column track is untinted.
 Colour appears in two small places only: the column's status pill and the

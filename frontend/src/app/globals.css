@@ -152,6 +152,12 @@
   --spacing-list: 17rem; /* 272px */
   --spacing-sidebar: 16rem; /* 256px */
   --spacing-rail: 3.5rem; /* 56px — the collapsed sidebar, icons only */
+  /* 416px — the kanban rail's floor. Not a look: a rail sized only by its
+     tallest column changes height every time a card crosses between two, which
+     MOVES the horizontal scrollbar under the cursor mid-drag and re-runs the
+     collision that started the move. A floor tall enough for four cards means
+     an ordinary drop changes no box at all. */
+  --spacing-board: 26rem;
   --spacing-topbar: 3rem; /* 48px  */
 
   /* MOTION — Trello's UI transitions are short and near-linear-out. */
