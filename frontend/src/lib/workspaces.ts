@@ -33,6 +33,21 @@ type ApiWorkspace = {
 const toWorkspace = (row: ApiWorkspace): Workspace => row;
 
 /**
+ * One membership as the roster returns it.
+ *
+ * `id` is the membership, `userId` is the person — and `userId` is what every
+ * other endpoint takes (adding a project member, transferring ownership), so a
+ * caller that confuses the two gets a 404 rather than silent nonsense.
+ */
+export type WorkspaceMemberRow = {
+  id: string;
+  userId: string;
+  role: Workspace["role"];
+  createdAt: string;
+  user?: { id: string; name: string | null; email: string };
+};
+
+/**
  * `GET /workspaces`. 100 is the API's page-size ceiling — see workspace.md §2.
  *
  * `includeArchived` has to be a parameter rather than a filter on the result:
@@ -57,6 +72,25 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
   );
 
   return result.ok ? toWorkspace(result.data.workspace) : null;
+}
+
+/**
+ * `GET /workspaces/:id/members`. The roster, owner first.
+ *
+ * This is what resolves a `userId` to a name — the project list, the owner
+ * column and the collaborator picker all needed it and none of them had it
+ * until this endpoint existed. Returns `[]` on failure, including the `404` a
+ * non-member gets: the caller has already resolved the workspace, so a failure
+ * here is a picker with nobody in it rather than a thrown page.
+ */
+export async function getWorkspaceMembers(
+  workspaceId: string,
+): Promise<WorkspaceMemberRow[]> {
+  const result = await apiCallWithRefresh<{ members: WorkspaceMemberRow[] }>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/members`,
+  );
+
+  return result.ok ? result.data.members : [];
 }
 
 /** `POST /workspaces`. `slug` is never sent — the API generates it. */

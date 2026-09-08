@@ -64,6 +64,20 @@ const getWorkspace = async (workspaceId, membership) => {
   return dto.toWorkspace(workspace, membership.role);
 };
 
+/**
+ * `GET /workspaces/:id/members`. The roster the invite screen, the project
+ * collaborator picker and every "who owns this" lookup all read.
+ *
+ * No pagination: a workspace's membership is bounded by its seat count, and
+ * every caller wants the whole list to resolve names with. When that stops
+ * being true it gains `page`/`limit` like the others.
+ */
+const listMembers = async (workspaceId) => {
+  const rows = await repository.findWorkspaceMembers(workspaceId);
+
+  return rows.map(dto.toWorkspaceMember);
+};
+
 /** `PATCH /workspaces/:id`. Validator already rejected an empty `patch`. */
 const updateWorkspace = async (workspaceId, patch, membership) => {
   const workspace = await repository.findWorkspaceForMember(workspaceId, membership.userId);
@@ -93,6 +107,7 @@ const deleteWorkspace = async (workspaceId, membership) => {
 };
 
 export default {
+  listMembers,
   createWorkspace,
   listMyWorkspaces,
   getWorkspace,

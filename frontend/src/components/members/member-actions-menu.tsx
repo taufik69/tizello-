@@ -54,16 +54,16 @@ export function MemberActionsMenu({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        {/* Destructive, so it reads as destructive before it is clicked — and
-            it opens a confirmation rather than acting on the spot. The colour
-            sits on an inner span: `DropdownMenuItem` sets its own hover/focus
-            text colour, and two competing `hover:text-*` classes would leave
-            the stylesheet's order to decide the winner. */}
-        <DropdownMenuItem onSelect={onRemove}>
-          <span className="flex items-center gap-2 text-danger">
-            <TrashIcon className="size-3.5" />
-            Remove from workspace
-          </span>
+        {/* Destructive, so it reads as destructive before it is clicked —
+            hover included — and it opens a confirmation rather than acting on
+            the spot. See `TONE` in `ui/dropdown-menu-item.tsx` for why this is
+            a variant rather than a red span. */}
+        <DropdownMenuItem
+          variant="danger"
+          icon={<TrashIcon className="size-3.5" />}
+          onSelect={onRemove}
+        >
+          Remove from workspace
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

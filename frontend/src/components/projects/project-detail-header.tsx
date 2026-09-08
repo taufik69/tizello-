@@ -5,7 +5,10 @@ import { ProjectActionsMenu } from "@/components/projects/project-actions-menu";
 import { ProjectGlyph } from "@/components/projects/project-glyph";
 import { ProjectPriorityBadge } from "@/components/projects/project-priority-badge";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
-import type { ProjectRecord } from "@/types/project";
+import { ProjectMetaRows } from "@/components/projects/project-meta-rows";
+import { canWriteProject } from "@/lib/project-roles";
+import type { WorkspaceMemberRow } from "@/lib/workspaces";
+import type { ProjectMemberRecord, ProjectRecord } from "@/types/project";
 import type { WorkspaceRole } from "@/types/workspace";
 
 /**
@@ -23,11 +26,17 @@ export function ProjectDetailHeader({
   workspaceName,
   workspaceRole,
   scope,
+  members,
+  workspaceMembers,
 }: {
   project: ProjectRecord;
   workspaceName: string;
   workspaceRole: WorkspaceRole;
   scope: ProjectScope;
+  /** This project's collaborators. */
+  members: ProjectMemberRecord[];
+  /** Everyone in the workspace — the pool the collaborator picker offers. */
+  workspaceMembers: WorkspaceMemberRow[];
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
@@ -59,6 +68,17 @@ export function ProjectDetailHeader({
         project={project}
         workspaceRole={workspaceRole}
         scope={scope}
+        /* Only this page has the member list, so only this page can build the
+           facts block — see `EditProjectDrawer`'s `meta`. */
+        meta={
+          <ProjectMetaRows
+            project={project}
+            currentUserId={scope.currentUserId}
+            members={members}
+            workspaceMembers={workspaceMembers}
+            canWrite={canWriteProject(workspaceRole, project.viewerRole)}
+          />
+        }
       />
     </header>
   );

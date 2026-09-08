@@ -40,6 +40,8 @@ export function DateField({
   helper,
   error,
   placeholder = "Empty",
+  ghost,
+  hideLabel,
   onChange,
 }: {
   label: string;
@@ -50,6 +52,10 @@ export function DateField({
   helper?: string;
   error?: string;
   placeholder?: string;
+  /** The property-row look — see `ui/text-field.tsx`. */
+  ghost?: boolean;
+  /** Drops the visible label, keeping it as the accessible name, for a field inside a `PropertyRow`. */
+  hideLabel?: boolean;
   onChange: (value: string) => void;
 }) {
   const id = useId();
@@ -89,7 +95,12 @@ export function DateField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-text-muted">
+      <label
+        htmlFor={id}
+        className={
+          hideLabel ? "sr-only" : "block text-xs font-semibold text-text-muted"
+        }
+      >
         {label}
       </label>
 
@@ -102,8 +113,13 @@ export function DateField({
         aria-describedby={message ? messageId : undefined}
         onClick={openPanel}
         className={cn(
-          "mt-1 h-9 w-full rounded-sm border bg-surface px-2.5 text-left text-sm transition-colors duration-100 ease-standard",
-          error ? "border-danger focus-visible:outline-none" : "border-border",
+          "h-9 w-full rounded-sm border px-2.5 text-left text-sm transition-colors duration-100 ease-standard",
+          hideLabel ? "" : "mt-1",
+          error
+            ? "border-danger focus-visible:outline-none"
+            : ghost
+              ? "border-transparent bg-transparent hover:bg-surface-hover"
+              : "border-border bg-surface",
           value ? "text-text" : "text-text-subtle",
         )}
       >

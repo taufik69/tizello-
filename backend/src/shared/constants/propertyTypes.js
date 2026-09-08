@@ -17,10 +17,33 @@ const PHONE_MAX = 32;
 const EMAIL_MAX = 254;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_FILES = 20;
+/* The exact shape `shared/middlewares/upload.js` generates: a UUID and an
+   allowlisted extension. Anything else was not produced by this server. */
+const STORED_NAME = /^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/i;
 // Deliberately looser than the auth module's: this is a label on a project,
 // not a login, so a rejected address costs a user their data entry and buys
 // nothing. Shape only.
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * One entry of a FILES value.
+ *
+ * `url` is required to be exactly `/uploads/<storedName>` rather than merely a
+ * string: a client that could set an arbitrary url would be able to make the
+ * app render an image from anywhere, which is a tracking pixel at best.
+ */
+const isUploadedFile = (entry) =>
+  Boolean(entry) &&
+  typeof entry === 'object' &&
+  typeof entry.id === 'string' &&
+  typeof entry.name === 'string' &&
+  entry.name.length <= 260 &&
+  typeof entry.storedName === 'string' &&
+  STORED_NAME.test(entry.storedName) &&
+  entry.url === `/uploads/${entry.storedName}` &&
+  Number.isFinite(entry.size) &&
+  typeof entry.mime === 'string';
 
 /** `true` when the date is real — `2026-02-31` matches the pattern and is not a date. */
 const isRealDate = (value) => {
@@ -105,6 +128,25 @@ const PROPERTY_TYPES = {
       typeof value === 'string' && value.length <= EMAIL_MAX && EMAIL.test(value)
         ? null
         : 'must be an email address',
+  },
+  /*
+   * An array of upload metadata, not the bytes — `POST /uploads` writes the
+   * file and hands back exactly this shape, which the client then stores here.
+   *
+   * Every field is checked rather than trusted: this value arrives from the
+   * client, so a caller could put any `url` it liked in it and the frontend
+   * would render it. Constraining `storedName` to the generated shape and
+   * `url` to `/uploads/<storedName>` is what stops this property from being a
+   * way to point the app at somebody else's server.
+   */
+  FILES: {
+    hasOptions: false,
+    check: (value) => {
+      if (!Array.isArray(value)) return 'must be a list of files';
+      if (value.length > MAX_FILES) return `cannot hold more than ${MAX_FILES} files`;
+
+      return value.every(isUploadedFile) ? null : 'contains something that is not an uploaded file';
+    },
   },
   PHONE: {
     hasOptions: false,

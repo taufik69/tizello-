@@ -746,3 +746,36 @@
     }
   }
 }
+
+/* --------------------------------------------------------------------------
+   MENU — the arrival for a dropdown or a popover panel.
+
+   Shorter and smaller than the dialog's: a menu is a response to a click that
+   already happened, so anything long enough to notice reads as lag. 110ms, a
+   4px rise and a 2% scale, with the origin at the corner the menu hangs from
+   — a panel that grows from its own anchor reads as coming OUT of the trigger,
+   where one that scales from its centre reads as landing on top of it.
+
+   `transform-origin` is set per alignment by the two modifiers below, because
+   the panel does not know which corner it was placed against — `align="end"`
+   right-aligns it to the trigger, and growing that one from the left is the
+   one case where the effect inverts and looks wrong.
+   -------------------------------------------------------------------------- */
+@keyframes menu-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@utility menu-enter {
+  transform-origin: top left;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: menu-panel-enter 110ms var(--ease-standard) both;
+  }
+}
+
+@utility menu-enter-end {
+  transform-origin: top right;
+}

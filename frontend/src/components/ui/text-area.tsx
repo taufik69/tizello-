@@ -17,7 +17,11 @@ import { useId, useState } from "react";
  * layer, and one focus treatment is the house rule.
  */
 const BASE =
-  "w-full resize-y rounded-sm border bg-surface px-2.5 py-2 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
+  "w-full resize-y rounded-sm border px-2.5 py-2 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
+/* See `text-field.tsx` — bordered only on hover and focus, so a property list
+   reads as values rather than as a wall of boxes. */
+const GHOST = "border-transparent bg-transparent hover:bg-surface-hover";
+const SOLID = "border-border bg-surface";
 
 export function TextArea({
   label,
@@ -27,6 +31,8 @@ export function TextArea({
   helper,
   error,
   rows = 3,
+  ghost,
+  hideLabel,
   maxLength,
   validate,
   onValueChange,
@@ -39,6 +45,10 @@ export function TextArea({
   /** From the Server Action. Outranks anything the browser worked out. */
   error?: string;
   rows?: number;
+  /** The property-row look — see `text-field.tsx`. */
+  ghost?: boolean;
+  /** Drops the visible label, keeping it as the accessible name, for a field inside a `PropertyRow`. */
+  hideLabel?: boolean;
   maxLength?: number;
   validate?: (value: string) => string | null;
   onValueChange?: (value: string) => void;
@@ -50,7 +60,12 @@ export function TextArea({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-text-muted">
+      <label
+        htmlFor={id}
+        className={
+          hideLabel ? "sr-only" : "block text-xs font-semibold text-text-muted"
+        }
+      >
         {label}
       </label>
 
@@ -75,7 +90,7 @@ export function TextArea({
           /* One border on screen at a time: an invalid field already carries
              the red border and the message below it, so the global brand ring
              is suppressed until `message` clears. */
-          message ? "border-danger focus-visible:outline-none" : "border-border",
+          message ? "border-danger focus-visible:outline-none" : ghost ? GHOST : SOLID,
         ].join(" ")}
       />
 

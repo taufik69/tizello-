@@ -1,3 +1,5 @@
+import { mkdir } from 'node:fs/promises';
+
 import app from './src/app.js';
 import config from './src/config/env.js';
 import { connectDatabase, disconnectDatabase } from './src/config/db.js';
@@ -14,6 +16,12 @@ const log = createLogger('server');
 // happens to need it.
 const startServer = async () => {
   try {
+    // The upload directory, before anything can try to write into it. Created
+    // here rather than checked per request: an upload that fails because a
+    // directory is missing is a 500 for a configuration problem, and the check
+    // belongs where the rest of the boot-time configuration is proved.
+    await mkdir(config.upload.dir, { recursive: true });
+
     await connectDatabase();
     await connectRedis();
 

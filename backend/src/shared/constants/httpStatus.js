@@ -14,6 +14,8 @@ const httpStatus = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  PAYLOAD_TOO_LARGE: 413,
+  UNSUPPORTED_MEDIA_TYPE: 415,
   // Used by the auth surface for an expired-but-once-valid token or code.
   // Distinct from 400 TOKEN_INVALID because the frontend offers 'send me a
   // new link' for this one and not for a token that never existed.

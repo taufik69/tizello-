@@ -181,7 +181,10 @@ export function DropdownMenuContent({
         ...style,
       }}
       className={cn(
-        "fixed z-50 min-w-60 rounded-md border border-border bg-surface p-1 shadow-overlay",
+        "menu-enter fixed z-50 min-w-60 rounded-md border border-border bg-surface p-1 shadow-overlay",
+        /* The panel grows from the corner it was actually placed against —
+           see the `menu-enter` note in globals.css. */
+        align === "end" && "menu-enter-end",
         className,
       )}
       {...props}

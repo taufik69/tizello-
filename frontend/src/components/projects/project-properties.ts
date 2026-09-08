@@ -1,3 +1,4 @@
+import type { WorkspaceMemberRow } from "@/lib/workspaces";
 import type { ProjectPriority, ProjectStatus } from "@/types/project";
 import type { ProjectPropertyDef } from "@/types/project-property";
 
@@ -27,7 +28,8 @@ import type { ProjectPropertyDef } from "@/types/project-property";
 export const OPTIONAL_PROPERTIES = [
   "description",
   "dates",
-  "appearance",
+  "icon",
+  "color",
 ] as const;
 export type OptionalProperty = (typeof OPTIONAL_PROPERTIES)[number];
 
@@ -35,7 +37,7 @@ export type PropertyMeta = {
   label: string;
   /** One line in the picker, saying what the row will actually do. */
   hint: string;
-  icon: "text" | "calendar" | "palette";
+  icon: "text" | "calendar" | "palette" | "emoji";
 };
 
 export const PROPERTY_META: Record<OptionalProperty, PropertyMeta> = {
@@ -52,9 +54,20 @@ export const PROPERTY_META: Record<OptionalProperty, PropertyMeta> = {
     hint: "A start and end date for the project",
     icon: "calendar",
   },
-  appearance: {
-    label: "Icon & colour",
-    hint: "An emoji and a colour for the project's glyph",
+  /* Icon and colour are TWO properties, not one. They were a single
+     "Icon & colour" row behind a popover, which meant two clicks to change
+     either and a summary line that could only describe one of them. They are
+     independent — a colour with no icon is a valid swatch, an icon with no
+     colour is a valid glyph — and each now has a row of its own with an inline
+     control. See `icon-row-control.tsx`. */
+  icon: {
+    label: "Icon",
+    hint: "An emoji for the project's glyph",
+    icon: "emoji",
+  },
+  color: {
+    label: "Colour",
+    hint: "A colour for the project's glyph",
     icon: "palette",
   },
 };
@@ -84,19 +97,19 @@ export const EMPTY_DRAFT: ProjectDraft = {
 };
 
 /**
- * Which optional rows a draft has to show on open.
+ * Which optional rows a drawer shows on open: ALL of them.
  *
- * On CREATE that is none — the drawer starts at the four required rows and
- * grows as properties are added. On EDIT it is every property the project
- * already has a value for: a stored description that only appears after you
- * think to add its row is a description you will assume was lost.
+ * They started hidden behind "+ Add a property", which made a new project a
+ * form of three fields and hid the description behind a menu — the first thing
+ * anybody wants to type. Notion shows every column of the database on a new
+ * page too, empty; the menu is for adding a NEW one, not for finding the ones
+ * that already exist.
+ *
+ * A row can still be removed, and the menu offers it back. This is the default,
+ * not a fixed set.
  */
-export function shownPropertiesFor(draft: ProjectDraft): OptionalProperty[] {
-  return OPTIONAL_PROPERTIES.filter((property) => {
-    if (property === "description") return draft.description !== "";
-    if (property === "dates") return draft.startDate !== "" || draft.endDate !== "";
-    return draft.icon !== "" || draft.color !== "";
-  });
+export function shownPropertiesFor(): OptionalProperty[] {
+  return [...OPTIONAL_PROPERTIES];
 }
 
 /**
@@ -110,7 +123,8 @@ export function clearProperty(
 ): Partial<ProjectDraft> {
   if (property === "description") return { description: "" };
   if (property === "dates") return { startDate: "", endDate: "" };
-  return { icon: "", color: "" };
+  if (property === "icon") return { icon: "" };
+  return { color: "" };
 }
 
 /**
@@ -140,4 +154,14 @@ export type ProjectScope = {
   definitions: ProjectPropertyDef[];
   /** Workspace OWNER/ADMIN. Decides whether the schema controls are DRAWN — the API enforces it. */
   canManageProperties: boolean;
+  /** The signed-in user, so the Owner row can say "You" without a name lookup. */
+  currentUserId?: string;
+  /**
+   * The workspace roster — the pool the Collaborators row picks from.
+   *
+   * Fetched once per page beside the schema, for the same reason: the create
+   * drawer draws a collaborator picker now, and every "+ New project" trigger
+   * on a board would otherwise be one `GET /workspaces/:id/members` per column.
+   */
+  workspaceMembers: WorkspaceMemberRow[];
 };

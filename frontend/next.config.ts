@@ -1,6 +1,23 @@
 import type { NextConfig } from "next";
 
+import { SERVER_ACTION_BODY_LIMIT } from "./src/lib/upload-limits";
+
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      /*
+       * A file is uploaded THROUGH a Server Action (`lib/actions/upload-actions.ts`
+       * — the session cookies are httpOnly on this origin, so the browser
+       * cannot post to the API directly). Next caps an action body at 1 MB by
+       * default and rejects the request rather than returning an error from
+       * it, so anything larger threw past the drawer and rendered the
+       * segment's `error.tsx`. Imported rather than typed twice: the reason
+       * this number is what it is lives in `lib/upload-limits.ts`.
+       */
+      bodySizeLimit: SERVER_ACTION_BODY_LIMIT,
+    },
+  },
+
   /*
    * Development only. Next blocks cross-origin requests to dev assets, and the
    * failure is silent: the page renders but the client bundle never loads, so

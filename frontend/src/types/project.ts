@@ -141,6 +141,15 @@ export type ProjectFormState = {
   code?: string;
   fieldErrors?: Record<string, string>;
   done?: boolean;
+  /**
+   * The new project's id, on a successful CREATE only.
+   *
+   * The create drawer stages collaborators while there is nothing to attach
+   * them to, and `POST /workspaces/:id/projects` accepts no member list — so
+   * the id has to come back for the follow-up `POST /projects/:id/members` to
+   * have an address. Absent on update, which already knows the id.
+   */
+  projectId?: string;
 };
 
 /**

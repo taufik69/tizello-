@@ -70,7 +70,7 @@ export function CustomPropertyRow({
                 const parsed = Number(draft);
                 onChange(draft.trim() === "" || Number.isNaN(parsed) ? 0 : parsed);
               }}
-              className="h-9 w-full rounded-sm border border-border bg-surface px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle"
+              className="h-9 w-full rounded-sm border border-transparent bg-transparent px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle hover:bg-surface-hover"
             />
           ) : (
             <PropertyValueField

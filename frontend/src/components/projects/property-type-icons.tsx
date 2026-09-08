@@ -42,6 +42,7 @@ const PATHS: Record<PropertyType, React.ReactNode> = {
     </>
   ),
   PHONE: <path d="M5 2.5l2 2.5-1.5 1.5a8 8 0 004 4L11 9l2.5 2-1.5 2c-4.5.5-9.5-4.5-9-9z" />,
+  FILES: <path d="M9 2.5H4.5v11h7V5L9 2.5zM9 2.5V5h2.5" />,
 };
 
 export function PropertyTypeIcon({

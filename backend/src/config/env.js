@@ -43,6 +43,21 @@ const config = {
   // to `info` so it does not pay to format lines nobody reads.
   logLevel: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
 
+  // Where uploaded files land, and how big one may be.
+  //
+  // Local disk rather than object storage: there is no S3 account wired to this
+  // project, and a local directory is a real, working store that a later move
+  // to S3 replaces at ONE seam — `upload.repository.js` — rather than
+  // everywhere a file is referenced. `UPLOAD_DIR` is resolved from the process
+  // CWD so a deployment can point it at a mounted volume.
+  upload: {
+    dir: process.env.UPLOAD_DIR || 'uploads',
+    // 10 MB. Multer enforces it before the file is written, so an oversized
+    // upload costs a rejected request rather than a disk full of it.
+    maxBytes: Number(process.env.UPLOAD_MAX_BYTES) || 10 * 1024 * 1024,
+    maxPerProperty: 20,
+  },
+
   // bcrypt work factor for password hashes. Spec §9 sets 12 as a floor, not a
   // target: raising it is always safe, lowering it silently weakens every hash
   // written afterwards while leaving the old ones alone, so the `Math.max`

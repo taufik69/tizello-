@@ -50,11 +50,7 @@ export function NewProjectTrigger({
       </button>
 
       <CreateProjectDrawer
-        workspaceId={scope.workspaceId}
-        workspaceName={scope.workspaceName}
-        today={scope.today}
-        definitions={scope.definitions}
-        canManageProperties={scope.canManageProperties}
+        scope={scope}
         initialStatus={status}
         open={open}
         onOpenChange={setOpen}

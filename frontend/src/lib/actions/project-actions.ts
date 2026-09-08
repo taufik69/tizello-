@@ -8,6 +8,7 @@ import {
   updateProject,
 } from "@/lib/projects";
 import type { ProjectFormState, ProjectPriority, ProjectStatus } from "@/types/project";
+import type { ProjectPropertyPatch } from "@/types/project-property";
 
 /*
  * Every project write. Thin by rule: validate, call a plain function from
@@ -81,6 +82,8 @@ export async function createProjectAction(
     color?: string;
     startDate?: string;
     endDate?: string;
+    /** Values for the workspace's custom properties, keyed by definition id. */
+    properties?: ProjectPropertyPatch;
   },
 ): Promise<ProjectFormState> {
   const name = input.name.trim();
@@ -107,12 +110,21 @@ export async function createProjectAction(
     ...(input.color ? { color: input.color } : {}),
     ...(input.startDate ? { startDate: input.startDate } : {}),
     ...(input.endDate ? { endDate: input.endDate } : {}),
+    /* Forwarded rather than dropped — `createProject` has always accepted
+       them and this action did not pass them through, so a Files & media
+       attachment picked in the create drawer was uploaded and then never
+       referenced by anything. */
+    ...(input.properties && Object.keys(input.properties).length > 0
+      ? { properties: input.properties }
+      : {}),
   });
 
   if (!result.ok) return { code: result.code, fieldErrors: result.fieldErrors };
 
   revalidateProjects(workspaceId);
-  return { done: true };
+  /* The id, so the drawer can post the collaborators it staged while there was
+     nothing to attach them to. */
+  return { done: true, projectId: result.data.id };
 }
 
 /**

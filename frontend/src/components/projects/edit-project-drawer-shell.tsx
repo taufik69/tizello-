@@ -17,6 +17,7 @@ export function EditProjectDrawerShell({
   today,
   definitions,
   canManageProperties,
+  meta,
   open,
   onOpenChange,
 }: {
@@ -25,6 +26,8 @@ export function EditProjectDrawerShell({
   today: string;
   definitions: ProjectPropertyDef[];
   canManageProperties: boolean;
+  /** The read-only facts block — see `EditProjectDrawer`. */
+  meta?: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -37,6 +40,7 @@ export function EditProjectDrawerShell({
         today={today}
         definitions={definitions}
         canManageProperties={canManageProperties}
+        meta={meta}
         onClose={() => onOpenChange(false)}
       />
     </Drawer>

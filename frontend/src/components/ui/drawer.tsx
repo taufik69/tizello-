@@ -21,8 +21,57 @@ import { cn } from "@/lib/cn";
  * Tailwind's preflight zeroes margins, which removes the UA's `margin: auto` —
  * hence the explicit `ml-auto` below rather than relying on the default.
  */
-const PANEL =
-  "drawer-enter ml-auto h-dvh max-h-dvh w-full max-w-lg overflow-y-auto border-0 border-l border-border bg-surface p-0 text-text shadow-modal backdrop:bg-scrim";
+/*
+ * `flex flex-col` plus a `flex-1` body is what pins the footer to the BOTTOM
+ * of the panel rather than to the bottom of the content. `sticky bottom-0`
+ * alone does not: sticky only engages once there is something to scroll, so on
+ * a short form the footer floated up under the last field.
+ */
+/*
+ * `[&:not([open])]:hidden` is load-bearing, and its absence was a real bug.
+ *
+ * The UA stylesheet hides a closed dialog with `dialog:not([open]) { display:
+ * none }`. That is an element selector — specificity (0,0,1) — so the `flex`
+ * this panel needs for its header/body/footer column BEAT it, and every closed
+ * drawer rendered inline, in flow, one after another down the page. With a
+ * "+ New project" trigger in every board column and every status group, that
+ * was six invisible-by-design panels all painting at once.
+ *
+ * The fix is a selector that outranks `flex` rather than an ordering the build
+ * might change: `.[&:not([open])]:hidden:not([open])` is (0,2,0) against
+ * `.flex`'s (0,1,0), so it wins whichever order they land in.
+ */
+/*
+ * TWO POSITIONS, ONE ELEMENT.
+ *
+ * `drawer` is the right-hand peek panel; `modal` is the same panel centred. It
+ * is deliberately a class swap on one `<dialog>` rather than two components,
+ * because the choice is live — `SurfaceMenu` flips it while the panel is open
+ * — and rendering a different component type there would unmount the form
+ * mid-edit and take every uncontrolled field with it. Swapping `className`
+ * keeps the same DOM node, so React reconciles the children rather than
+ * replacing them, and the CSS animation restarts on its own because the
+ * `animation-name` changed.
+ *
+ * The two strings are written out in full rather than composed from a shared
+ * base plus overrides. `cn` is a plain join (see `lib/cn.ts` — no
+ * `tailwind-merge`), so `rounded-none` after `rounded-xl` would be two
+ * utilities of equal specificity with stylesheet order picking the winner.
+ *
+ * `text-start` is load-bearing for the reason `ui/dialog.tsx` documents at
+ * length: a `<dialog>` paints in the top layer but inherits from its DOM
+ * ancestors, and this one is opened from a `<td className="text-right">` on
+ * every table row. Without it the entire edit drawer — every property label,
+ * every value — rendered right-aligned.
+ */
+const SURFACE = {
+  drawer:
+    "drawer-enter [&:not([open])]:hidden ml-auto flex h-dvh max-h-dvh w-full max-w-lg flex-col overflow-hidden rounded-none border-0 border-l border-border bg-surface p-0 text-start text-text shadow-modal backdrop:bg-scrim",
+  modal:
+    "dialog-enter [&:not([open])]:hidden m-auto flex max-h-[calc(100dvh-4rem)] w-[calc(100%-2rem)] max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-surface p-0 text-start text-text shadow-modal backdrop:bg-scrim",
+} as const;
+
+export type DrawerSurface = keyof typeof SURFACE;
 
 /* React strips `autoFocus` on the client and calls .focus() during commit —
    too early, because the dialog is still closed and hidden at that point.
@@ -33,12 +82,15 @@ const FOCUSABLE =
 export function Drawer({
   open,
   onOpenChange,
+  surface = "drawer",
   className,
   children,
   ...props
 }: Omit<React.ComponentProps<"dialog">, "open" | "onClose"> & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Right-hand panel, or centred. Switchable while open — see `SURFACE` above. */
+  surface?: DrawerSurface;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -61,13 +113,35 @@ export function Drawer({
       /* Fires for Esc and for element.close() alike, so it is the single place
          the parent's state is brought back in sync. */
       onClose={() => onOpenChange(false)}
-      /* The backdrop is part of the dialog's own box, so a click that lands on
-         the element itself — rather than on the content inside it — is a click
-         outside. */
+      /* Outside-click, measured rather than inferred.
+         `ui/dialog.tsx` can compare `event.target === ref.current`, because a
+         centred dialog's own box is the panel and everything around it is the
+         `::backdrop`. This panel is `ml-auto` in its drawer position, so that
+         identity check is one layout assumption away from silently doing
+         nothing — and a drawer that will not dismiss is the failure people hit
+         first.
+         Comparing the pointer against the panel's real rect has no such
+         assumption: a click outside the box is outside it, wherever the box
+         turned out to be — which is also what makes one handler correct for
+         both surfaces. */
       onClick={(event) => {
-        if (event.target === ref.current) onOpenChange(false);
+        const rect = ref.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        /* A click dispatched by the keyboard (Enter on a button) reports 0,0
+           and would otherwise read as a click in the top-left corner — that is
+           outside the panel, so every keyboard activation would close it. */
+        if (event.clientX === 0 && event.clientY === 0) return;
+
+        const inside =
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom;
+
+        if (!inside) onOpenChange(false);
       }}
-      className={cn(PANEL, className)}
+      className={cn(SURFACE[surface], className)}
       {...props}
     >
       {children}
@@ -75,12 +149,12 @@ export function Drawer({
   );
 }
 
-/** Sticky, so the title and the close button survive a long scroll. */
+/** Fixed at the top of the panel — the body below it is what scrolls. */
 export function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-surface px-5 py-3",
+        "flex shrink-0 items-center gap-2 border-b border-border bg-surface px-5 py-3",
         className,
       )}
       {...props}
@@ -88,16 +162,26 @@ export function DrawerHeader({ className, ...props }: React.ComponentProps<"div"
   );
 }
 
+/** `flex-1` claims the space between header and footer; `overflow-y-auto` is here rather than on the panel so the two sticky bars never scroll. */
 export function DrawerBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("px-5 py-4", className)} {...props} />;
+  return <div className={cn("min-h-0 flex-1 overflow-y-auto px-5 py-4", className)} {...props} />;
 }
 
-/** Sticky to the bottom edge — the save button must not scroll away from a long property list. */
+/**
+ * The flex column a drawer's `<form>` has to be for the footer to pin. A
+ * component rather than a note in the docblock, because a caller that forgets
+ * gets a subtly wrong layout rather than an error.
+ */
+export function DrawerForm({ className, ...props }: React.ComponentProps<"form">) {
+  return <form className={cn("flex min-h-0 flex-1 flex-col", className)} {...props} />;
+}
+
+/** Pinned to the bottom edge — the save button must not scroll away from a long property list. */
 export function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "sticky bottom-0 flex items-center justify-end gap-2 border-t border-border bg-surface px-5 py-3",
+        "flex shrink-0 items-center justify-end gap-2 border-t border-border bg-surface px-5 py-3",
         className,
       )}
       {...props}

@@ -1,5 +1,7 @@
 "use client";
 
+import { FilesValueField } from "@/components/projects/files-value-field";
+import { SelectMenu } from "@/components/projects/select-menu";
 import { DateField } from "@/components/ui/date-field";
 import { TextField } from "@/components/ui/text-field";
 import { cn } from "@/lib/cn";
@@ -25,9 +27,6 @@ import {
  * "1e" unreachable, so the raw string is what is edited and the coercion
  * happens once, in `ProjectPropertyRow`.
  */
-const CONTROL =
-  "h-9 w-full rounded-sm border border-border bg-surface px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
-
 export function PropertyValueField({
   definition,
   value,
@@ -44,7 +43,7 @@ export function PropertyValueField({
   switch (definition.type) {
     case "CHECKBOX":
       return (
-        <label className="flex h-9 items-center gap-2">
+        <label className="flex h-9 items-center gap-2 px-2.5">
           <input
             type="checkbox"
             checked={value === true}
@@ -61,6 +60,8 @@ export function PropertyValueField({
       return (
         <DateField
           label={definition.name}
+          hideLabel
+          ghost
           value={typeof value === "string" ? value : ""}
           today={today}
           onChange={(next) => onChange(next)}
@@ -69,28 +70,32 @@ export function PropertyValueField({
 
     case "SELECT":
       return (
-        <select
+        <SelectMenu
+          label={definition.name}
           value={typeof value === "string" ? value : ""}
-          onChange={(event) => onChange(event.target.value)}
-          aria-label={definition.name}
-          className={CONTROL}
-        >
-          {/* The empty option is what makes "no choice" reachable again after
-              one has been made — without it a SELECT can never go back to
-              unset short of removing the whole row. */}
-          <option value="">Empty</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          /* The empty option is what makes "no choice" reachable again after
+             one has been made — without it a SELECT can never go back to
+             unset short of removing the whole row. */
+          options={[
+            { value: "", label: "Empty" },
+            ...options.map((option) => ({
+              value: option.id,
+              label: option.label,
+              adornment: option.color ? <OptionSwatch color={option.color} /> : undefined,
+            })),
+          ]}
+          onChange={(next) => onChange(next)}
+        />
       );
 
     case "MULTI_SELECT": {
-      const selected = Array.isArray(value) ? value : [];
+      /* Narrowed to strings: `PropertyValue`'s array arm is a union with
+         `UploadedFile[]`, and a MULTI_SELECT holds option ids. */
+      const selected = (Array.isArray(value) ? value : []).filter(
+        (entry): entry is string => typeof entry === "string",
+      );
       return (
-        <div className="flex flex-wrap gap-1 rounded-sm border border-border bg-surface p-1.5">
+        <div className="flex flex-wrap gap-1 rounded-sm border border-transparent p-1.5 transition-colors duration-100 ease-standard hover:bg-surface-hover">
           {options.length === 0 && (
             <span className="px-1 py-0.5 text-2xs text-text-subtle">
               No options defined yet
@@ -125,6 +130,14 @@ export function PropertyValueField({
       );
     }
 
+    case "FILES":
+      return (
+        <FilesValueField
+          value={Array.isArray(value) ? value : []}
+          onChange={onChange}
+        />
+      );
+
     /* TEXT, NUMBER, URL, EMAIL and PHONE are all one-line text inputs. `type`
        is left as "text" for URL and EMAIL on purpose: the browser's own
        validation bubble fires on submit and would compete with the API's `422`,
@@ -133,6 +146,8 @@ export function PropertyValueField({
       return (
         <TextField
           label={definition.name}
+          hideLabel
+          ghost
           name={definition.id}
           autoComplete="off"
           required={false}
@@ -142,4 +157,15 @@ export function PropertyValueField({
         />
       );
   }
+}
+
+/** An option's own colour, when the definition gave it one. Decorative — the label sits beside it. */
+function OptionSwatch({ color }: { color: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block size-2.5 shrink-0 rounded-full border border-border"
+      style={{ backgroundColor: color }}
+    />
+  );
 }

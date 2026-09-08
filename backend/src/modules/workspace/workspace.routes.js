@@ -48,6 +48,21 @@ router.get(
 
 router.get('/:workspaceId', apiLimiter, authGuard, loadMembership, asyncHandler(controller.getById));
 
+/*
+ * The roster. `MEMBER_VIEW` rather than `WORKSPACE_VIEW`: every role holds
+ * both, but naming the one this actually reads means a future change to who
+ * may see the member list is a change to the permission table rather than to
+ * this line.
+ */
+router.get(
+  '/:workspaceId/members',
+  apiLimiter,
+  authGuard,
+  loadMembership,
+  requirePermission(PERMISSIONS.MEMBER_VIEW),
+  asyncHandler(controller.listMembers)
+);
+
 router.patch(
   '/:workspaceId',
   apiLimiter,

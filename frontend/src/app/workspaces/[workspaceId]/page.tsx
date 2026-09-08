@@ -3,11 +3,12 @@ import { ProjectGrid } from "@/components/workspace/project-grid";
 import { WorkspaceArchivedBanner } from "@/components/workspace/workspace-archived-banner";
 import { WorkspaceDetailFacts } from "@/components/workspace/workspace-detail-facts";
 import { WorkspaceDetailHeader } from "@/components/workspace/workspace-detail-header";
+import { getSession } from "@/lib/auth";
 import { getWorkspaceProjects } from "@/lib/projects";
 import { getProjectPropertyDefs } from "@/lib/project-property-defs";
 import { canManageProperties } from "@/lib/project-roles";
 import { todayIso } from "@/lib/today";
-import { getWorkspace, getWorkspaces } from "@/lib/workspaces";
+import { getWorkspace, getWorkspaceMembers, getWorkspaces } from "@/lib/workspaces";
 
 export async function generateMetadata({
   params,
@@ -49,7 +50,10 @@ export default async function WorkspacePage({
 }: PageProps<"/workspaces/[workspaceId]">) {
   const { workspaceId } = await params;
 
-  const [workspace, workspaces, projects, definitions] = await Promise.all([
+  const [user, workspace, workspaces, projects, definitions, workspaceMembers] =
+    await Promise.all([
+    /* For the Owner row in the edit drawer — "You" needs no name lookup. */
+    getSession(),
     getWorkspace(workspaceId),
     getWorkspaces({ includeArchived: true }),
     /* Fetched in parallel with the workspace rather than after it: a 404 here
@@ -57,6 +61,8 @@ export default async function WorkspacePage({
        later call would learn by waiting. */
     getWorkspaceProjects(workspaceId),
     getProjectPropertyDefs(workspaceId),
+    /* The pool the create drawer's Collaborators row picks from. */
+    getWorkspaceMembers(workspaceId),
   ]);
   if (!workspace) notFound();
 
@@ -70,6 +76,8 @@ export default async function WorkspacePage({
     today: todayIso(),
     definitions,
     canManageProperties: canManageProperties(workspace.role),
+    currentUserId: user?.id,
+    workspaceMembers,
   };
 
   return (

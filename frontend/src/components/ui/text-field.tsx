@@ -42,6 +42,18 @@ export type TextFieldProps = {
    * gives them no signal why.
    */
   disabled?: boolean;
+  /**
+   * The property-row look: no resting border, the value reading as text until
+   * it is hovered or focused. Notion's, and the reason a list of twelve
+   * properties does not read as a wall of boxes.
+   */
+  ghost?: boolean;
+  /**
+   * Drops the visible label while keeping it as the accessible name. For a
+   * field inside a `PropertyRow`, which already draws the label in its own
+   * column — two copies is what made the Key row say "Key" twice.
+   */
+  hideLabel?: boolean;
   placeholder?: string;
   helper?: string;
   /** From the Server Action. Outranks anything the browser worked out. */
@@ -71,7 +83,11 @@ export type TextFieldProps = {
 };
 
 const BASE =
-  "h-9 w-full rounded-sm border bg-surface px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
+  "h-9 w-full rounded-sm border px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
+/* Bordered only on hover and focus. `border-transparent` rather than
+   `border-0` so the box does not resize by 2px the moment it is hovered. */
+const GHOST = "border-transparent bg-transparent hover:bg-surface-hover";
+const SOLID = "border-border bg-surface";
 
 export function TextField({
   label,
@@ -82,6 +98,8 @@ export function TextField({
   value,
   maxLength,
   disabled,
+  ghost,
+  hideLabel,
   placeholder,
   helper,
   error,
@@ -101,11 +119,16 @@ export function TextField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-text-muted">
+      <label
+        htmlFor={id}
+        className={
+          hideLabel ? "sr-only" : "block text-xs font-semibold text-text-muted"
+        }
+      >
         {label}
       </label>
 
-      <div className="relative mt-1">
+      <div className={hideLabel ? "relative" : "relative mt-1"}>
         <input
           id={id}
           name={name}
@@ -146,7 +169,7 @@ export function TextField({
             // borders. Suppressing the ring here, only while invalid, leaves
             // exactly one border on screen; it returns the moment `message`
             // clears, so a fixed field still gets the normal brand ring back.
-            message ? "border-danger focus-visible:outline-none" : "border-border",
+            message ? "border-danger focus-visible:outline-none" : ghost ? GHOST : SOLID,
             disabled ? "cursor-not-allowed bg-surface-sunken text-text-muted" : "",
             trailing ? "pr-16" : "",
           ].join(" ")}

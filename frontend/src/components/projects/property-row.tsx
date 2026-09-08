@@ -11,9 +11,12 @@ import { PropertyIcon, type PropertyIconKind } from "@/components/projects/prope
  * inside carries its own labelling — which is why the value slot takes a node
  * rather than a value plus a type.
  *
- * `onRemove` is absent on the four required rows. A project cannot exist
- * without a name, key, status and priority, so those have nothing to remove;
- * offering a ✕ that refuses would be worse than not offering one.
+ * `onRemove` is absent on Key, Status and Priority. A project cannot exist
+ * without them, so they have nothing to remove; offering a ✕ that refuses
+ * would be worse than not offering one.
+ *
+ * The label column is a fixed `7.5rem`, which is what makes every row in the
+ * list — built-in and custom alike — share one left edge.
  */
 export function PropertyRow({
   label,

@@ -29,5 +29,22 @@ const toWorkspace = (row, role) => ({
   updatedAt: row.updatedAt,
 });
 
-export { toWorkspace };
-export default { toWorkspace };
+/**
+ * One `Membership` row as the roster shows it.
+ *
+ * `id` is the membership, `userId` is the person — and `userId` is what every
+ * other endpoint takes (adding a project member, transferring ownership), so a
+ * client that confuses the two gets a 404 rather than silent nonsense.
+ */
+const toWorkspaceMember = (row) => ({
+  id: row.id,
+  userId: row.userId,
+  role: row.role,
+  createdAt: row.createdAt,
+  ...(row.user
+    ? { user: { id: row.user.id, name: row.user.name, email: row.user.email } }
+    : {}),
+});
+
+export { toWorkspace, toWorkspaceMember };
+export default { toWorkspace, toWorkspaceMember };

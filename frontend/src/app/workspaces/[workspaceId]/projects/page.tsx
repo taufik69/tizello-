@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth";
 import { getWorkspaceProjects } from "@/lib/projects";
 import { getProjectPropertyDefs } from "@/lib/project-property-defs";
 import { canManageProperties } from "@/lib/project-roles";
-import { getWorkspace } from "@/lib/workspaces";
+import { getWorkspace, getWorkspaceMembers } from "@/lib/workspaces";
 import { todayIso } from "@/lib/today";
 import {
   parseArchivedFilter,
@@ -66,9 +66,13 @@ export default async function ProjectsPage({
   /* The schema is fetched alongside the rows and passed down as part of the
      scope: every drawer on this page renders the same columns, so fetching it
      per trigger would be one request per board column. */
-  const [all, definitions] = await Promise.all([
+  /* The roster comes along for the ride: the create drawer draws a
+     collaborator picker, and fetching it per "+ New project" trigger would be
+     one request per board column. */
+  const [all, definitions, workspaceMembers] = await Promise.all([
     getWorkspaceProjects(workspaceId, { q, includeArchived: archived }),
     getProjectPropertyDefs(workspaceId),
+    getWorkspaceMembers(workspaceId),
   ]);
   const projects = archived ? all.filter((project) => project.isArchived) : all;
 
@@ -81,6 +85,8 @@ export default async function ProjectsPage({
     today: todayIso(),
     definitions,
     canManageProperties: canManageProperties(workspace.role),
+    currentUserId: user?.id,
+    workspaceMembers,
   };
 
   return (

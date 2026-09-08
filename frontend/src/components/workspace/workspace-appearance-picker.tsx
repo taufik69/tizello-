@@ -4,26 +4,12 @@ import { useRef } from "react";
 import { CheckIcon } from "@/components/ui/icons";
 import { EmojiPickerPopover } from "@/components/workspace/emoji-picker-popover";
 import { ShuffleIcon } from "@/components/workspace/workspace-appearance-icons";
-
-/** A quick-pick set, not an exhaustive one — `EmojiPickerPopover` beside it opens the full set. */
-const ICON_CHOICES = ["🚀", "💼", "📁", "🎯", "🛠️", "📊", "🌱", "🎨"];
-
-/** A wider pool than the row above, for the shuffle button — picking among only the eight visible buttons would make "random" indistinguishable from "click one". */
-const RANDOM_ICON_POOL = [
-  "🚀", "💼", "📁", "🎯", "🛠️", "📊", "🌱", "🎨", "⚡", "🔥", "💡", "🧩",
-  "🏆", "📌", "🗂️", "🧭", "🛰️", "🔭", "🧪", "⚙️", "🌍", "🏗️", "📈", "🎬",
-  "🎧", "📚", "🧠", "🐙", "🦉", "🐝", "🌊", "⛰️", "🌙", "☀️", "🍀", "🎲",
-];
-
-/** The same six theme-invariant label hues `WorkspaceAvatar`'s `accent` prop already uses — new workspaces and old fixtures read as one palette. */
-const COLOR_CHOICES = [
-  { hex: "#4bce97", name: "Green" },
-  { hex: "#f5cd47", name: "Yellow" },
-  { hex: "#fea362", name: "Orange" },
-  { hex: "#f87168", name: "Red" },
-  { hex: "#9f8fef", name: "Purple" },
-  { hex: "#579dff", name: "Blue" },
-] as const;
+import {
+  COLOR_CHOICES,
+  ICON_CHOICES,
+  isCustomColor,
+  randomIcon,
+} from "@/components/workspace/appearance-choices";
 
 /**
  * The icon + colour choosers for `CreateWorkspaceDialog`, split out only to
@@ -42,12 +28,7 @@ export function WorkspaceAppearancePicker({
   onIconChange: (icon: string) => void;
   onColorChange: (color: string) => void;
 }) {
-  function randomIcon() {
-    const pool = RANDOM_ICON_POOL.filter((choice) => choice !== icon);
-    onIconChange(pool[Math.floor(Math.random() * pool.length)] ?? RANDOM_ICON_POOL[0]);
-  }
-
-  const isCustomColor = color !== "" && !COLOR_CHOICES.some((choice) => choice.hex === color);
+  const custom = isCustomColor(color);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -79,7 +60,7 @@ export function WorkspaceAppearancePicker({
           <button
             type="button"
             aria-label="Pick a random icon"
-            onClick={randomIcon}
+            onClick={() => onIconChange(randomIcon(icon))}
             className="flex size-8 items-center justify-center rounded-sm border border-border text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-hover hover:text-text"
           >
             <ShuffleIcon className="size-4" />
@@ -116,21 +97,21 @@ export function WorkspaceAppearancePicker({
            */}
           <button
             type="button"
-            aria-pressed={isCustomColor}
+            aria-pressed={custom}
             aria-label="Choose a custom colour"
             onClick={() => colorInputRef.current?.click()}
             className="relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-on-brand transition-transform duration-100 ease-standard hover:scale-110"
             style={{
-              background: isCustomColor
+              background: custom
                 ? color
                 : "conic-gradient(from 180deg, #f87168, #f5cd47, #4bce97, #579dff, #9f8fef, #f87168)",
             }}
           >
-            {isCustomColor && <CheckIcon className="size-3.5" />}
+            {custom && <CheckIcon className="size-3.5" />}
             <input
               ref={colorInputRef}
               type="color"
-              value={isCustomColor ? color : "#34c77b"}
+              value={custom ? color : "#34c77b"}
               onChange={(event) => onColorChange(event.target.value)}
               aria-hidden="true"
               tabIndex={-1}

@@ -20,7 +20,12 @@ export function DrawerCloseButton({ onClose }: { onClose: () => void }) {
       type="button"
       onClick={onClose}
       aria-label="Close"
-      className="grid size-7 shrink-0 place-items-center rounded-sm text-text-subtle transition-colors duration-100 ease-standard hover:bg-surface-hover hover:text-text"
+      /* The chip is the RESTING state, not the hover one. A bare ✕ floating in
+         the header gave no hit target to aim at until the cursor was already
+         on it — and it now sits beside `SurfaceMenu`, where two controls of
+         different weights read as one being disabled. Hover deepens the fill
+         rather than introducing it. */
+      className="grid size-7 shrink-0 place-items-center rounded-sm bg-surface-hover text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-sunken hover:text-text"
     >
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4" aria-hidden="true">
         <path d="M4 4l8 8M12 4l-8 8" />

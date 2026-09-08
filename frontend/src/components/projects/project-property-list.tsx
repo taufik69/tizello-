@@ -1,36 +1,46 @@
 "use client";
 
+import { useRef } from "react";
 import { AddPropertyMenu } from "@/components/projects/add-property-menu";
-import { CustomPropertiesSection } from "@/components/projects/custom-properties-section";
-import { ProjectEnumSelects } from "@/components/projects/project-enum-selects";
+import { CustomPropertyRow } from "@/components/projects/custom-property-row";
+import { FilesRow } from "@/components/projects/files-row";
 import { PropertyRow } from "@/components/projects/property-row";
 import {
   clearProperty,
-  PROPERTY_META,
   type OptionalProperty,
   type ProjectDraft,
 } from "@/components/projects/project-properties";
-import { DateField } from "@/components/ui/date-field";
-import { TextArea } from "@/components/ui/text-area";
+import { ProjectFieldRows } from "@/components/projects/project-field-rows";
 import { TextField } from "@/components/ui/text-field";
-import { WorkspaceAppearancePicker } from "@/components/workspace/workspace-appearance-picker";
+import { usePropertyDefs } from "@/components/projects/use-property-defs";
 import type {
   ProjectPropertyDef,
   ProjectPropertyPatch,
+  PropertyValue,
 } from "@/types/project-property";
+import { PropertySelects } from "@/components/projects/property-selects";
 
 /**
- * The property list shared by the create and edit drawers.
+ * Every property of a project as one aligned list: the built-in fields first,
+ * then the workspace's custom columns, then a single "+ Add a property".
  *
- * The four required rows are always drawn; the optional ones appear as they are
- * added and disappear when removed. Removing a row CLEARS its value
- * (`clearProperty`) rather than just hiding it — a hidden-but-still-sent field
- * is how a "removed" description survives a save.
+ * EVERY ROW GOES THROUGH `PropertyRow`, including Key, Status and Priority.
+ * Those three used to be laid out on their own and broke the two-column grid —
+ * a label above the field instead of beside it, so nothing lined up down the
+ * left edge. One row component is what makes the column a column.
  *
- * `keyEditable` is false on edit: the key is immutable after create because
- * every task id already written into a commit message carries it, and the row
- * is shown disabled rather than dropped, because a field that silently
- * disappears in edit reads as a bug where a locked one states the rule.
+ * DEFINITIONS AND VALUES SAVE AT DIFFERENT TIMES, and that is what the two
+ * things are rather than an inconsistency: a DEFINITION write lands
+ * immediately because it changes every project in the workspace, and a VALUE
+ * rides this project's own Save. `use-property-defs.ts` owns the first half
+ * and says why at length; this file only arranges the rows.
+ *
+ * TWO ROWS ARE HOISTED OUT OF THE CUSTOM LOOP AND ALWAYS DRAWN. Collaborators
+ * arrives from the caller as `people`, because who fills it differs between
+ * create and edit (`collaborators-draft-row.tsx` says why). Files & media is
+ * the workspace's one `FILES` column, pulled to a fixed position rather than
+ * left wherever `position` put it — it is the row people look for on a new
+ * project, and `files-row.tsx` draws it even before the column exists.
  */
 export function ProjectPropertyList({
   draft,
@@ -45,6 +55,8 @@ export function ProjectPropertyList({
   onChange,
   onShownChange,
   onPropertiesChange,
+  people,
+  meta,
 }: {
   draft: ProjectDraft;
   errors: Record<string, string>;
@@ -52,31 +64,47 @@ export function ProjectPropertyList({
   shown: OptionalProperty[];
   keyEditable: boolean;
   workspaceId: string;
-  /** The workspace's custom-property schema. */
   definitions: ProjectPropertyDef[];
-  /** This project's values for them, keyed by definition id. */
   values: ProjectPropertyPatch;
   canManageProperties: boolean;
   onChange: (patch: Partial<ProjectDraft>) => void;
   onShownChange: (next: OptionalProperty[]) => void;
   onPropertiesChange: (patch: ProjectPropertyPatch) => void;
+  /** The Collaborators row. Staged on create, live on edit — the caller decides which. */
+  people?: React.ReactNode;
+  /** Read-only facts (owner, created, updated). Edit only — a project that does not exist yet has none. */
+  meta?: React.ReactNode;
 }) {
-  function remove(property: OptionalProperty) {
+  const schema = usePropertyDefs({ workspaceId, definitions, onPropertiesChange });
+  const listRef = useRef<HTMLDivElement>(null);
+
+  function removeField(property: OptionalProperty) {
     onChange(clearProperty(draft, property));
     onShownChange(shown.filter((entry) => entry !== property));
   }
 
+  /* The column is resolved — and created, the first time — as part of the
+     write rather than before it, so attaching a file is one gesture. See
+     `files-row.tsx`. */
+  async function attachFiles(value: PropertyValue) {
+    const definition = await schema.ensureFiles();
+    if (!definition) return;
+
+    onPropertiesChange({ [definition.id]: value });
+  }
+
   return (
-    <div className="mt-4">
-      <PropertyRow label="Key" icon="text">
+    <div ref={listRef} className="mt-5">
+      <PropertyRow label="Key" icon="hash">
         <TextField
           label="Key"
+          hideLabel
+          ghost
           name="key"
           autoComplete="off"
           maxLength={5}
           defaultValue={draft.key}
-          placeholder={keyEditable ? "Auto" : undefined}
-          helper={keyEditable ? "Left blank, one is derived from the name" : "Cannot change"}
+          placeholder={keyEditable ? "Auto — derived from the name" : undefined}
           disabled={!keyEditable}
           required={false}
           error={errors.key}
@@ -89,86 +117,56 @@ export function ProjectPropertyList({
         />
       </PropertyRow>
 
-      <ProjectEnumSelects
+      <PropertySelects
         status={draft.status}
         priority={draft.priority}
         onStatusChange={(status) => onChange({ status })}
         onPriorityChange={(priority) => onChange({ priority })}
       />
 
-      {shown.includes("description") && (
-        <PropertyRow
-          label={PROPERTY_META.description.label}
-          icon="text"
-          onRemove={() => remove("description")}
-        >
-          <TextArea
-            label="Description"
-            name="description"
-            defaultValue={draft.description}
-            placeholder="What is this project for?"
-            maxLength={2000}
-            error={errors.description}
-            onValueChange={(description) => onChange({ description })}
-          />
-        </PropertyRow>
-      )}
+      <ProjectFieldRows
+        draft={draft}
+        errors={errors}
+        today={today}
+        shown={shown}
+        onChange={onChange}
+        onRemove={removeField}
+      />
 
-      {shown.includes("dates") && (
-        <PropertyRow
-          label={PROPERTY_META.dates.label}
-          icon="calendar"
-          onRemove={() => remove("dates")}
-        >
-          <div className="grid gap-2 sm:grid-cols-2">
-            <DateField
-              label="Start"
-              value={draft.startDate}
-              today={today}
-              error={errors.startDate}
-              onChange={(startDate) => onChange({ startDate })}
-            />
-            <DateField
-              label="End"
-              value={draft.endDate}
-              today={today}
-              error={errors.endDate}
-              onChange={(endDate) => onChange({ endDate })}
-            />
-          </div>
-        </PropertyRow>
-      )}
+      {people}
 
-      {shown.includes("appearance") && (
-        <PropertyRow
-          label={PROPERTY_META.appearance.label}
-          icon="palette"
-          onRemove={() => remove("appearance")}
-        >
-          <WorkspaceAppearancePicker
-            icon={draft.icon}
-            color={draft.color}
-            onIconChange={(icon) => onChange({ icon })}
-            onColorChange={(color) => onChange({ color })}
-          />
-        </PropertyRow>
-      )}
+      <FilesRow
+        definition={schema.files}
+        value={
+          schema.files
+            ? ((values[schema.files.id] ?? undefined) as PropertyValue | undefined)
+            : undefined
+        }
+        canManage={canManageProperties}
+        onAttach={attachFiles}
+      />
+
+      {schema.custom.map((definition) => (
+        <CustomPropertyRow
+          key={definition.id}
+          definition={definition}
+          value={(values[definition.id] ?? undefined) as PropertyValue | undefined}
+          today={today}
+          canManage={canManageProperties}
+          onChange={(value) => onPropertiesChange({ [definition.id]: value })}
+          onDeleteDefinition={() => schema.remove(definition)}
+        />
+      ))}
+
+      {meta}
 
       <AddPropertyMenu
         shown={shown}
-        onAdd={(property) => onShownChange([...shown, property])}
-      />
-
-      {/* The workspace's own columns, below the project's built-in fields.
-          Definitions save immediately (they change every project in the
-          workspace); the values below save with this project. */}
-      <CustomPropertiesSection
-        workspaceId={workspaceId}
-        definitions={definitions}
-        values={values}
-        today={today}
         canManage={canManageProperties}
-        onChange={onPropertiesChange}
+        pending={schema.isPending}
+        error={schema.error}
+        onAddField={(property) => onShownChange([...shown, property])}
+        onCreateProperty={schema.create}
       />
     </div>
   );

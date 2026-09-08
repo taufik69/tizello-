@@ -44,6 +44,7 @@ export function EditProjectDrawer({
   today,
   definitions,
   canManageProperties,
+  meta,
   onClose,
 }: {
   project: ProjectRecord;
@@ -51,14 +52,23 @@ export function EditProjectDrawer({
   today: string;
   definitions: ProjectPropertyDef[];
   canManageProperties: boolean;
+  /**
+   * The read-only facts block — owner, collaborators, created, updated.
+   *
+   * Supplied by the CALLER rather than built here, because building it needs
+   * this project's member list, and a drawer opened from a card cannot have
+   * that without one request per card. The project detail page has already
+   * fetched it, so that is the one place that passes it; everywhere else the
+   * drawer edits the project's own fields and the facts live on the page the
+   * card links to.
+   */
+  meta?: React.ReactNode;
   onClose: () => void;
 }) {
   const stored = draftFrom(project);
   const [isPending, startTransition] = useTransition();
   const [draft, setDraft] = useState<ProjectDraft>(stored);
-  /* Seeded from what the project ALREADY has — a stored description that only
-     appears after you think to add its row is one you will assume was lost. */
-  const [shown, setShown] = useState<OptionalProperty[]>(() => shownPropertiesFor(stored));
+  const [shown, setShown] = useState<OptionalProperty[]>(shownPropertiesFor);
   const [errors, setErrors] = useState<Record<string, string>>({});
   /* Seeded from what is stored, so the rows render their current values and
      the diff below can tell a change from a no-op. */
@@ -160,6 +170,7 @@ export function EditProjectDrawer({
           onPropertiesChange={(patch) =>
             setProperties((current) => ({ ...current, ...patch }))
           }
+          meta={meta}
         />
       </DrawerBody>
 

@@ -406,10 +406,12 @@ model Project {
 
 // Values must stay in sync with PROPERTY_TYPES in
 // src/shared/constants/propertyTypes.js, which is what the value validator
-// reads. FORMULA / ROLLUP / RELATION / FILES / PERSON are deliberately absent —
-// each is blocked on a specific missing thing (an expression evaluator, a
-// second entity, object storage, a member picker), not on effort. See
-// .claude/plan/project-property.md §2.5.
+// reads. FORMULA / ROLLUP / RELATION are still deliberately absent — each is
+// blocked on a specific missing thing (an expression evaluator, a second
+// entity to relate to), not on effort. PERSON is absent too: collaborators are
+// ProjectMember rows, which are a real relation with their own endpoints, and
+// a second person-shaped property would be a second answer to "who is on this
+// project". See .claude/plan/project-property.md §2.5.
 enum PropertyType {
   TEXT
   NUMBER
@@ -420,6 +422,10 @@ enum PropertyType {
   URL
   EMAIL
   PHONE
+  // Value is an array of { id, name, url, size, mime } — metadata only. The
+  // bytes live on disk under UPLOAD_DIR and are served by the upload module;
+  // the database never holds a file.
+  FILES
 }
 
 // One user-defined column of the workspace's project database.

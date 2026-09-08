@@ -91,15 +91,17 @@ export function SprintCardMenu({
 
         <DropdownMenuSeparator />
 
-        {/* Destructive, so it reads as destructive before it is clicked. The
-            colour sits on an inner span: `DropdownMenuItem` sets its own
-            hover/focus text colour, and two competing `hover:text-*` classes
-            would leave the stylesheet's order to decide the winner. */}
-        <DropdownMenuItem onSelect={onDelete}>
-          <span className="flex items-center gap-2 text-danger">
-            <TrashIcon className="size-3.5" />
-            Delete sprint
-          </span>
+        {/* Destructive, so it reads as destructive before it is clicked —
+            hover included. `variant` rather than a red span inside a normal
+            item: the span kept its colour out of the base's way but also lost
+            it on hover, which is when the warning matters most. See `TONE` in
+            `ui/dropdown-menu-item.tsx`. */}
+        <DropdownMenuItem
+          variant="danger"
+          icon={<TrashIcon className="size-3.5" />}
+          onSelect={onDelete}
+        >
+          Delete sprint
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

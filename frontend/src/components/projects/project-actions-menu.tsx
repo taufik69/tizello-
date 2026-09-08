@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreIcon } from "@/components/ui/icons";
+import { ProjectActionsList } from "@/components/projects/project-actions-list";
 import { ArchiveProjectDialog } from "@/components/projects/archive-project-dialog";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { EditProjectDrawerShell } from "@/components/projects/edit-project-drawer-shell";
@@ -35,17 +26,24 @@ import type { WorkspaceRole } from "@/types/workspace";
  * which is the one place the two predicates disagree. That decides what is
  * DRAWN — `requireProjectWrite` / `requireProjectOwner` on the API is what
  * enforces it, and their `403` still arrives as a toast.
+ *
+ * The menu itself is next door in `project-actions-list.tsx`. This file owns
+ * what the menu OPENS — three overlays and the pending flag they share — and
+ * splitting the two is what keeps either under the 150-line cap.
  */
 export function ProjectActionsMenu({
   project,
   workspaceRole,
   scope,
+  meta,
   showOpenLink = false,
   onDeleted,
 }: {
   project: ProjectRecord;
   workspaceRole: WorkspaceRole;
   scope: ProjectScope;
+  /** The edit drawer's read-only facts block. Only the detail page has the member list to build one. */
+  meta?: React.ReactNode;
   /** The card and the row offer it; the detail page is already there. */
   showOpenLink?: boolean;
   /** The detail page navigates away — its own record just stopped existing. */
@@ -61,52 +59,15 @@ export function ProjectActionsMenu({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={`Actions for ${project.name}`}
-          className={buttonVariants({ variant: "ghost", size: "icon" })}
-        >
-          <MoreIcon className="size-4" />
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{project.name}</DropdownMenuLabel>
-
-          {showOpenLink && (
-            <DropdownMenuItem
-              href={`/workspaces/${project.workspaceId}/projects/${project.id}`}
-            >
-              Open project
-            </DropdownMenuItem>
-          )}
-
-          {mayWrite && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => setEditing(true)}>
-                Edit project
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setArchiving(true)}>
-                {project.isArchived ? "Restore project" : "Archive project"}
-              </DropdownMenuItem>
-            </>
-          )}
-
-          {mayOwn && (
-            <>
-              <DropdownMenuSeparator />
-              {/* The red is on a CHILD, not on the item's own class list.
-                  `cn` is a plain join, so a `text-danger` alongside the item
-                  base's `text-text-muted` would leave two colour utilities of
-                  equal specificity and let stylesheet order pick the winner.
-                  Inheritance has no such ambiguity. */}
-              <DropdownMenuItem onSelect={() => setDeleting(true)}>
-                <span className="text-danger">Delete project</span>
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ProjectActionsList
+        project={project}
+        mayWrite={mayWrite}
+        mayOwn={mayOwn}
+        showOpenLink={showOpenLink}
+        onEdit={() => setEditing(true)}
+        onArchive={() => setArchiving(true)}
+        onDelete={() => setDeleting(true)}
+      />
 
       <EditProjectDrawerShell
         project={project}
@@ -114,6 +75,7 @@ export function ProjectActionsMenu({
         today={scope.today}
         definitions={scope.definitions}
         canManageProperties={scope.canManageProperties}
+        meta={meta}
         open={editing}
         onOpenChange={setEditing}
       />

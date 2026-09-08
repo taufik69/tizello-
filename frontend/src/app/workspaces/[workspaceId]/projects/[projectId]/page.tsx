@@ -9,7 +9,7 @@ import { getProjectMembers } from "@/lib/project-members";
 import { getProjectPropertyDefs } from "@/lib/project-property-defs";
 import { canManageProperties } from "@/lib/project-roles";
 import { todayIso } from "@/lib/today";
-import { getWorkspace } from "@/lib/workspaces";
+import { getWorkspace, getWorkspaceMembers } from "@/lib/workspaces";
 
 export async function generateMetadata({
   params,
@@ -52,11 +52,14 @@ export default async function ProjectPage({
     redirect(`/sign-in?next=/workspaces/${workspaceId}/projects/${projectId}`);
   }
 
-  const [project, workspace, members, definitions] = await Promise.all([
+  const [project, workspace, members, definitions, workspaceMembers] = await Promise.all([
     getProject(projectId),
     getWorkspace(workspaceId),
     getProjectMembers(projectId),
     getProjectPropertyDefs(workspaceId),
+    /* The roster: what resolves the owner's id to a name and what the
+       collaborator picker offers. */
+    getWorkspaceMembers(workspaceId),
   ]);
 
   if (!project || !workspace) notFound();
@@ -77,6 +80,8 @@ export default async function ProjectPage({
     today: todayIso(),
     definitions,
     canManageProperties: canManageProperties(workspace.role),
+    currentUserId: user?.id,
+    workspaceMembers,
   };
 
   return (
@@ -86,6 +91,8 @@ export default async function ProjectPage({
         workspaceName={workspace.name}
         workspaceRole={workspace.role}
         scope={scope}
+        members={members}
+        workspaceMembers={workspaceMembers}
       />
 
       {project.isArchived && (

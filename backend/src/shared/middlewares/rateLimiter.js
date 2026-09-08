@@ -216,6 +216,14 @@ const projectCreateLimiter = failClosed(
   limiter({ name: 'project-create', windowMs: 60 * 60 * 1000, max: 30, keyGenerator: ipKey })
 );
 
+// Uploads — the one endpoint where a request costs DISK rather than a row, so
+// the budget is per hour rather than per fifteen minutes and is deliberately
+// tighter than `apiLimiter`. 60 files an hour is a working session's worth of
+// attachments and a poor rate at which to fill a volume.
+const uploadLimiter = failClosed(
+  limiter({ name: 'upload', windowMs: 60 * 60 * 1000, max: 60, keyGenerator: ipKey })
+);
+
 export {
   apiLimiter,
   authLimiter,
@@ -228,4 +236,5 @@ export {
   inviteLookupLimiter,
   workspaceCreateLimiter,
   projectCreateLimiter,
+  uploadLimiter,
 };
