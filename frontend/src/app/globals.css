@@ -31,28 +31,29 @@
      400 / 500 / 600 / 700, body line-height 1.5. Kept, tightened at display
      sizes.
      ---------------------------------------------------------------------- */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
-    monospace;
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
-  --text-2xs: 0.6875rem;      /* 11px — meta, counters        */
+  --text-2xs: 0.6875rem; /* 11px — meta, counters        */
   --text-2xs--line-height: 1rem;
-  --text-xs: 0.75rem;         /* 12px — labels, badges        */
+  --text-xs: 0.75rem; /* 12px — labels, badges        */
   --text-xs--line-height: 1rem;
-  --text-sm: 0.875rem;        /* 14px — card text, UI default */
+  --text-sm: 0.875rem; /* 14px — card text, UI default */
   --text-sm--line-height: 1.25rem;
-  --text-base: 1rem;          /* 16px — body                  */
+  --text-base: 1rem; /* 16px — body                  */
   --text-base--line-height: 1.5rem;
-  --text-lg: 1.25rem;         /* 20px — list titles           */
+  --text-lg: 1.25rem; /* 20px — list titles           */
   --text-lg--line-height: 1.75rem;
-  --text-xl: 1.5rem;          /* 24px — section headings      */
+  --text-xl: 1.5rem; /* 24px — section headings      */
   --text-xl--line-height: 2rem;
-  --text-2xl: 1.875rem;       /* 30px                         */
+  --text-2xl: 1.875rem; /* 30px                         */
   --text-2xl--line-height: 2.375rem;
-  --text-3xl: 2.25rem;        /* 36px                         */
+  --text-3xl: 2.25rem; /* 36px                         */
   --text-3xl--line-height: 2.75rem;
-  --text-4xl: 3rem;           /* 48px — hero                  */
+  --text-4xl: 3rem; /* 48px — hero                  */
   --text-4xl--line-height: 3.5rem;
   --text-4xl--letter-spacing: -0.02em;
 
@@ -100,7 +101,7 @@
      Trello's dark mode is NOT the light ramp inverted; it is a separate,
      warmer/greener set of greys. These are its actual values.
      ---------------------------------------------------------------------- */
-  --color-slate-0: #101214;   /* deepest — app canvas       */
+  --color-slate-0: #101214; /* deepest — app canvas       */
   --color-slate-50: #161a1d;
   --color-slate-100: #1d2125;
   --color-slate-200: #22272b; /* default surface            */
@@ -132,25 +133,25 @@
      is the dark-mode ink; it is far too light to carry 11px text on white, so
      the light-mode ink is a deeper plum and the two fills are its ends.
      ---------------------------------------------------------------------- */
-  --color-plum-50: #f3effc;   /* subtle fill, light  */
-  --color-plum-600: #5b3fc4;  /* ink / dot, light    */
-  --color-plum-900: #2a2440;  /* subtle fill, dark   */
+  --color-plum-50: #f3effc; /* subtle fill, light  */
+  --color-plum-600: #5b3fc4; /* ink / dot, light    */
+  --color-plum-900: #2a2440; /* subtle fill, dark   */
 
   /* ----------------------------------------------------------------------
      RADII — Trello's census was 2 / 3 / 4 / 4.8 / 8px. Reduced to five steps.
      ---------------------------------------------------------------------- */
-  --radius-xs: 0.1875rem;  /* 3px  — chips, labels   */
-  --radius-sm: 0.25rem;    /* 4px  — inputs, buttons */
-  --radius-md: 0.5rem;     /* 8px  — cards           */
-  --radius-lg: 0.75rem;    /* 12px — lists, panels   */
-  --radius-xl: 1rem;       /* 16px — modals          */
+  --radius-xs: 0.1875rem; /* 3px  — chips, labels   */
+  --radius-sm: 0.25rem; /* 4px  — inputs, buttons */
+  --radius-md: 0.5rem; /* 8px  — cards           */
+  --radius-lg: 0.75rem; /* 12px — lists, panels   */
+  --radius-xl: 1rem; /* 16px — modals          */
 
   /* ----------------------------------------------------------------------
      BOARD GEOMETRY — Trello's list column is exactly 272px wide.
      ---------------------------------------------------------------------- */
-  --spacing-list: 17rem;      /* 272px */
-  --spacing-sidebar: 16rem;   /* 256px */
-  --spacing-topbar: 3rem;     /* 48px  */
+  --spacing-list: 17rem; /* 272px */
+  --spacing-sidebar: 16rem; /* 256px */
+  --spacing-topbar: 3rem; /* 48px  */
 
   /* MOTION — Trello's UI transitions are short and near-linear-out. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -170,7 +171,10 @@
     @slot;
   }
   @media (prefers-color-scheme: dark) {
-    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+    &:where(
+      :root:not([data-theme="light"]),
+      :root:not([data-theme="light"]) *
+    ) {
       @slot;
     }
   }
@@ -192,46 +196,46 @@
   color-scheme: light dark;
 
   /*                             light                        dark              */
-  --canvas:         light-dark(var(--color-ink-100),  var(--color-slate-0));
-  --surface:        light-dark(var(--color-ink-0),    var(--color-slate-200));
-  --surface-sunken: light-dark(var(--color-ink-200),  var(--color-slate-50));
-  --surface-hover:  light-dark(var(--color-ink-100),  var(--color-slate-300));
+  --canvas: light-dark(var(--color-ink-100), var(--color-slate-0));
+  --surface: light-dark(var(--color-ink-0), var(--color-slate-200));
+  --surface-sunken: light-dark(var(--color-ink-200), var(--color-slate-50));
+  --surface-hover: light-dark(var(--color-ink-100), var(--color-slate-300));
 
-  --text:           light-dark(var(--color-ink-900),  var(--color-slate-950));
-  --text-muted:     light-dark(var(--color-ink-700),  var(--color-slate-900));
-  --text-subtle:    light-dark(var(--color-ink-600),  var(--color-slate-800));
-  --text-inverse:   light-dark(var(--color-ink-0),    var(--color-slate-100));
-  --text-brand:     light-dark(var(--color-brand-700), var(--color-brand-400));
+  --text: light-dark(var(--color-ink-900), var(--color-slate-950));
+  --text-muted: light-dark(var(--color-ink-700), var(--color-slate-900));
+  --text-subtle: light-dark(var(--color-ink-600), var(--color-slate-800));
+  --text-inverse: light-dark(var(--color-ink-0), var(--color-slate-100));
+  --text-brand: light-dark(var(--color-brand-700), var(--color-brand-400));
 
   /* The board canvas is brand-tinted in both themes, so its ink is its own
      token rather than --text-inverse (which follows the theme, not the board). */
-  --board:          light-dark(var(--color-brand-700), var(--color-brand-900));
-  --on-board:       light-dark(var(--color-ink-0),     var(--color-slate-950));
+  --board: light-dark(var(--color-brand-700), var(--color-brand-900));
+  --on-board: light-dark(var(--color-ink-0), var(--color-slate-950));
 
   /* The auth aside's gradient field. Deeper than --board in both themes so the
      glass shapes drawn in --on-board keep their contrast at the gradient's
      LIGHTEST point, not just its average. Spec: .claude/specs/authentication.md §12. */
   --auth-panel-from: light-dark(var(--color-brand-600), var(--color-brand-800));
-  --auth-panel-to:   light-dark(var(--color-brand-800), var(--color-brand-950));
+  --auth-panel-to: light-dark(var(--color-brand-800), var(--color-brand-950));
 
   /* The modal scrim. Not a surface and not text, so no existing token covered
      it: it has to DARKEN whatever is behind it in both themes, which a themed
      surface token cannot do (bg-canvas is near-white in light). Tinted with
      ink-950 / near-black to match the elevation recipes above. */
-  --scrim:          light-dark(rgba(9, 30, 66, 0.55), rgba(3, 4, 4, 0.72));
+  --scrim: light-dark(rgba(9, 30, 66, 0.55), rgba(3, 4, 4, 0.72));
 
-  --border:         light-dark(var(--color-ink-300),  var(--color-slate-500));
-  --border-strong:  light-dark(var(--color-ink-400),  var(--color-slate-600));
-  --focus:          light-dark(var(--color-brand-600), var(--color-brand-400));
+  --border: light-dark(var(--color-ink-300), var(--color-slate-500));
+  --border-strong: light-dark(var(--color-ink-400), var(--color-slate-600));
+  --focus: light-dark(var(--color-brand-600), var(--color-brand-400));
 
-  --success:        light-dark(#24a866,             #4bce97);
-  --success-subtle: light-dark(#e8faf0,             #1c3329);
-  --warning:        light-dark(#b57f00,             #f5cd47);
-  --warning-subtle: light-dark(#fff7e0,             #332e1b);
-  --danger:         light-dark(#c9372c,             #f87168);
-  --danger-subtle:  light-dark(#ffedeb,             #42221f);
-  --info:           light-dark(#1d69d4,             #579dff);
-  --info-subtle:    light-dark(#e9f2ff,             #1c2b41);
+  --success: light-dark(#24a866, #4bce97);
+  --success-subtle: light-dark(#e8faf0, #1c3329);
+  --warning: light-dark(#b57f00, #f5cd47);
+  --warning-subtle: light-dark(#fff7e0, #332e1b);
+  --danger: light-dark(#c9372c, #f87168);
+  --danger-subtle: light-dark(#ffedeb, #42221f);
+  --info: light-dark(#1d69d4, #579dff);
+  --info-subtle: light-dark(#e9f2ff, #1c2b41);
 
   /* A fifth status hue. success / warning / danger / info cover done, held,
      failed and active; a preparatory phase (a project still being scoped) is
@@ -240,14 +244,17 @@
      meaning. Ink is `text-text-muted` on the subtle fill (5.70:1 light,
      6.44:1 dark); `--accent` itself is for dots, arcs and bar rails, where it
      clears 3:1 on `surface` in both themes (7.11:1 / 5.49:1). */
-  --accent:         light-dark(var(--color-plum-600), var(--color-label-purple));
-  --accent-subtle:  light-dark(var(--color-plum-50),  var(--color-plum-900));
+  --accent: light-dark(var(--color-plum-600), var(--color-label-purple));
+  --accent-subtle: light-dark(var(--color-plum-50), var(--color-plum-900));
 
   /* Trello tints its shadows with #091E42 rather than pure black. */
   --elev-card: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
-  --elev-raised: 0 4px 8px -2px rgba(9, 30, 66, 0.1), 0 0 1px rgba(9, 30, 66, 0.2);
-  --elev-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.2);
-  --elev-modal: 0 12px 24px -6px rgba(9, 30, 66, 0.18), 0 0 1px rgba(9, 30, 66, 0.2);
+  --elev-raised:
+    0 4px 8px -2px rgba(9, 30, 66, 0.1), 0 0 1px rgba(9, 30, 66, 0.2);
+  --elev-overlay:
+    0 8px 16px -4px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.2);
+  --elev-modal:
+    0 12px 24px -6px rgba(9, 30, 66, 0.18), 0 0 1px rgba(9, 30, 66, 0.2);
 }
 
 /* The switch. One declaration re-resolves every light-dark() above. */
@@ -262,15 +269,19 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --elev-card: 0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
-    --elev-raised: 0 4px 8px -2px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
-    --elev-overlay: 0 8px 16px -4px rgba(3, 4, 4, 0.56), 0 0 1px rgba(3, 4, 4, 0.5);
-    --elev-modal: 0 12px 24px -6px rgba(3, 4, 4, 0.6), 0 0 1px rgba(3, 4, 4, 0.5);
+    --elev-raised:
+      0 4px 8px -2px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
+    --elev-overlay:
+      0 8px 16px -4px rgba(3, 4, 4, 0.56), 0 0 1px rgba(3, 4, 4, 0.5);
+    --elev-modal:
+      0 12px 24px -6px rgba(3, 4, 4, 0.6), 0 0 1px rgba(3, 4, 4, 0.5);
   }
 }
 :root[data-theme="dark"] {
   --elev-card: 0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
   --elev-raised: 0 4px 8px -2px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5);
-  --elev-overlay: 0 8px 16px -4px rgba(3, 4, 4, 0.56), 0 0 1px rgba(3, 4, 4, 0.5);
+  --elev-overlay:
+    0 8px 16px -4px rgba(3, 4, 4, 0.56), 0 0 1px rgba(3, 4, 4, 0.5);
   --elev-modal: 0 12px 24px -6px rgba(3, 4, 4, 0.6), 0 0 1px rgba(3, 4, 4, 0.5);
 }
 
@@ -333,7 +344,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-weight: 600;
     letter-spacing: var(--tracking-tight);
     color: var(--text);
@@ -368,6 +384,80 @@
 }
 @utility shadow-modal {
   box-shadow: var(--elev-modal);
+}
+
+/* Card hover lift.
+   Two things stop the naive version — `transition-[box-shadow,transform]` plus
+   a hover translate — from ever feeling smooth, and neither is fixed by a
+   longer duration:
+
+   1. `box-shadow` is not a compositable property. Animating it repaints the
+      whole card on every frame, on the main thread, and that repaint is what
+      reads as stepping. The shadow is painted once on a pseudo-element here
+      and only its OPACITY transitions, which the compositor runs on its own
+      thread — the same reason a cross-fade is cheap and a shadow tween is not.
+
+   2. A 1px translate is subpixel motion. On an unpromoted element the browser
+      snaps text to whole pixels, so the move arrives as a single jump no matter
+      how long it is given. `translateZ(0)` promotes the card to its own layer,
+      where the offset is interpolated at true subpixel precision.
+
+   Duration lives on the utility, not in a component: this is the one motion in
+   the app that deliberately diverges from DESIGN-SYSTEM.md's `duration-100`,
+   and one definition is what keeps every card grid agreeing on it. */
+@utility hover-lift {
+  --lift: 200ms;
+
+  position: relative;
+  /* `will-change`, not a `translate3d(0,0,0)` hack: Lightning CSS minifies that
+     to `translate(0)` and the promotion — the whole point of writing it — is
+     gone from the built stylesheet. Declared on the base rather than on
+     `:hover`, because a layer created at the moment the transition starts is
+     its own visible hitch. */
+  will-change: transform;
+  /* The colour legs belong here rather than on a caller's own `transition-[…]`
+     class: `transition` is a shorthand, so a second declaration anywhere would
+     replace this one wholesale and silently drop the transform leg. */
+  transition:
+    transform var(--lift) linear,
+    background-color 100ms var(--ease-standard),
+    border-color 100ms var(--ease-standard);
+
+  &::after {
+    content: "";
+    position: absolute;
+    /* A pseudo-element's containing block is the PADDING box, so `inset: 0`
+       would sit one border-width inside the card and cast the shadow from
+       there. Every caller of this utility has a 1px border. */
+    inset: -1px;
+    border-radius: inherit;
+    /* An OUTER shadow paints outside the border box, so this overlay never
+       covers the card's own content — and it cannot take a click either. */
+    box-shadow: var(--elev-raised);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--lift) linear;
+  }
+
+  &:hover {
+    transform: translate3d(0, -1px, 0);
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: translate3d(0, 0, 0);
+    }
+
+    &::after {
+      transition: none;
+    }
+  }
 }
 
 @utility scrollbar-board {
@@ -421,8 +511,12 @@
 
   @media (prefers-reduced-motion: no-preference) {
     /* A layer has to be larger than the panel or there is nothing to slide. */
-    background-size: 168% 168%, 100% 100%;
-    background-position: 0% 100%, 0 0;
+    background-size:
+      168% 168%,
+      100% 100%;
+    background-position:
+      0% 100%,
+      0 0;
     animation: auth-field-a 31s ease-in-out infinite alternate;
 
     &::before {
@@ -470,7 +564,9 @@
    which holds the top-right radial on its own timeline. */
 @keyframes auth-field-a {
   to {
-    background-position: 24% 76%, 0 0;
+    background-position:
+      24% 76%,
+      0 0;
   }
 }
 @keyframes auth-field-b {

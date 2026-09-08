@@ -21,14 +21,33 @@ import type { Workspace } from "@/types/workspace";
  * projects".
  */
 export function WorkspaceCard({ workspace }: { workspace: Workspace }) {
-  const { id, name, slug, icon, color, memberCount, role, accent, projects, isArchived } = workspace;
-  const tasks = projects?.reduce((total, project) => total + project.taskCount, 0);
+  const {
+    id,
+    name,
+    slug,
+    icon,
+    color,
+    memberCount,
+    role,
+    accent,
+    projects,
+    isArchived,
+  } = workspace;
+  const tasks = projects?.reduce(
+    (total, project) => total + project.taskCount,
+    0,
+  );
 
   return (
-    <Card className="relative h-full transition-[box-shadow,transform] duration-100 ease-standard hover:-translate-y-0.5 hover:shadow-raised">
+    <Card className="hover-lift h-full">
       <CardHeader className="gap-3">
         <div className="flex items-start gap-3">
-          <WorkspaceAvatar name={name} icon={icon} color={color} accent={accent} />
+          <WorkspaceAvatar
+            name={name}
+            icon={icon}
+            color={color}
+            accent={accent}
+          />
 
           <div className="min-w-0 flex-1">
             <CardTitle className="line-clamp-2 break-words">
@@ -40,7 +59,9 @@ export function WorkspaceCard({ workspace }: { workspace: Workspace }) {
               </Link>
             </CardTitle>
             <p className="mt-0.5 truncate text-2xs text-text-subtle">
-              {memberCount !== undefined ? plural(memberCount, "member", "members") : `@${slug}`}
+              {memberCount !== undefined
+                ? plural(memberCount, "member", "members")
+                : `@${slug}`}
             </p>
           </div>
 

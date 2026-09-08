@@ -18,7 +18,7 @@ export function CreateTile({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed border-border-strong p-4 text-left transition-[background-color,border-color,box-shadow,transform] duration-100 ease-standard hover:-translate-y-0.5 hover:border-brand-500 hover:bg-surface hover:shadow-raised"
+      className="hover-lift flex h-full w-full flex-col items-start gap-1 rounded-md border border-dashed border-border-strong p-4 text-left hover:border-brand-500 hover:bg-surface"
     >
       <span className="flex items-center gap-1.5 font-semibold text-text">
         <PlusIcon className="size-3.5" />
