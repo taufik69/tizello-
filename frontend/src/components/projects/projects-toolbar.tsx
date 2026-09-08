@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { SettingsIcon } from "@/components/ui/icons";
 import { CreateProjectButton } from "@/components/projects/create-project-button";
 import { LockedControl } from "@/components/ui/locked-control";
@@ -20,13 +21,7 @@ import { FilterIcon, SortIcon } from "@/components/ui/table-icons";
  */
 const ICON = "size-7 rounded-sm text-text-muted";
 
-export function ProjectsToolbar({
-  workspaceId,
-  workspaceName,
-}: {
-  workspaceId: string;
-  workspaceName: string;
-}) {
+export function ProjectsToolbar({ scope }: { scope: ProjectScope }) {
   return (
     <div className="flex shrink-0 items-center gap-0.5">
       <LockedControl
@@ -61,7 +56,7 @@ export function ProjectsToolbar({
         <SettingsIcon className="size-3.5" />
       </LockedControl>
 
-      <CreateProjectButton workspaceId={workspaceId} workspaceName={workspaceName} />
+      <CreateProjectButton scope={scope} />
     </div>
   );
 }

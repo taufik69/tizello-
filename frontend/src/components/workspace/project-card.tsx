@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,10 +36,12 @@ export function ProjectCard({
   project,
   workspaceId,
   workspaceRole,
+  scope,
 }: {
   project: ProjectRecord;
   workspaceId: string;
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   return (
     <Card className="hover-lift relative h-full">
@@ -59,7 +62,11 @@ export function ProjectCard({
           {/* Above the stretched link, so the trigger takes its own clicks and
               the rest of the card still navigates. */}
           <div className="relative z-10 shrink-0">
-            <ProjectActionsMenu project={project} workspaceRole={workspaceRole} />
+            <ProjectActionsMenu
+              project={project}
+              workspaceRole={workspaceRole}
+              scope={scope}
+            />
           </div>
         </div>
         {project.description ? (

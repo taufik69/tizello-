@@ -3,6 +3,9 @@
  * `workspace.dto.js` — never a `delete row.field` blacklist, so a column added
  * to the model later cannot leak by default.
  *
+ * `properties` is the one field that is not a straight column read — see
+ * `liveProperties` below.
+ *
  * Two fields are deliberately absent from `toProject`:
  *
  * - `taskCounter` exists on the row today (schema-only, ahead of the Task
@@ -20,7 +23,27 @@
  * See docs/api/project.md
  */
 
-const toProject = (row, viewerRole = null) => ({
+/**
+ * `definitions` is the workspace's live property list. Values whose definition
+ * has been deleted are dropped HERE rather than in the database: deleting a
+ * property is then one row rather than a rewrite of every project that ever
+ * used it, and the orphan is invisible either way (plan §2.4).
+ *
+ * Omit `definitions` and `properties` comes back `{}` — which is what every
+ * caller that has not loaded the schema should see, rather than a map of
+ * opaque ids it cannot render.
+ */
+const liveProperties = (stored, definitions) => {
+  if (!stored || !definitions) return {};
+
+  const live = new Set(definitions.map((definition) => definition.id));
+
+  return Object.fromEntries(
+    Object.entries(stored).filter(([id]) => live.has(id))
+  );
+};
+
+const toProject = (row, viewerRole = null, definitions = null) => ({
   id: row.id,
   name: row.name,
   key: row.key,
@@ -35,6 +58,7 @@ const toProject = (row, viewerRole = null) => ({
   workspaceId: row.workspaceId,
   ownerId: row.ownerId,
   viewerRole,
+  properties: liveProperties(row.properties, definitions),
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });

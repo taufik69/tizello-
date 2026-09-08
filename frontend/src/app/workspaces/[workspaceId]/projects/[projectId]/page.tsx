@@ -6,6 +6,9 @@ import { ProjectMembersPanel } from "@/components/projects/project-members-panel
 import { getSession } from "@/lib/auth";
 import { getProject } from "@/lib/projects";
 import { getProjectMembers } from "@/lib/project-members";
+import { getProjectPropertyDefs } from "@/lib/project-property-defs";
+import { canManageProperties } from "@/lib/project-roles";
+import { todayIso } from "@/lib/today";
 import { getWorkspace } from "@/lib/workspaces";
 
 export async function generateMetadata({
@@ -49,10 +52,11 @@ export default async function ProjectPage({
     redirect(`/sign-in?next=/workspaces/${workspaceId}/projects/${projectId}`);
   }
 
-  const [project, workspace, members] = await Promise.all([
+  const [project, workspace, members, definitions] = await Promise.all([
     getProject(projectId),
     getWorkspace(workspaceId),
     getProjectMembers(projectId),
+    getProjectPropertyDefs(workspaceId),
   ]);
 
   if (!project || !workspace) notFound();
@@ -63,12 +67,25 @@ export default async function ProjectPage({
      project lives. */
   if (project.workspaceId !== workspace.id) notFound();
 
+  /* One object rather than five props: `workspaceId`, `workspaceName`,
+     `today`, the workspace's property schema and the admin flag all travel
+     together to every project control several levels down. See
+     `project-properties.ts`. */
+  const scope = {
+    workspaceId: workspace.id,
+    workspaceName: workspace.name,
+    today: todayIso(),
+    definitions,
+    canManageProperties: canManageProperties(workspace.role),
+  };
+
   return (
     <main className="w-full px-4 py-8 sm:px-6">
       <ProjectDetailHeader
         project={project}
         workspaceName={workspace.name}
         workspaceRole={workspace.role}
+        scope={scope}
       />
 
       {project.isArchived && (

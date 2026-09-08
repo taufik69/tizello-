@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { ProjectBoardColumn } from "@/components/projects/project-board-column";
 import { groupByStatus } from "@/lib/project-groups";
 import type { ProjectRecord } from "@/types/project";
@@ -15,7 +16,13 @@ import type { ProjectRecord } from "@/types/project";
  * The rail scrolls horizontally with `scrollbar-board`, the same treatment the
  * sprint board's list track uses.
  */
-export function BoardView({ projects }: { projects: ProjectRecord[] }) {
+export function BoardView({
+  projects,
+  scope,
+}: {
+  projects: ProjectRecord[];
+  scope: ProjectScope;
+}) {
   const groups = groupByStatus(projects);
 
   return (
@@ -26,6 +33,7 @@ export function BoardView({ projects }: { projects: ProjectRecord[] }) {
             key={group.status}
             status={group.status}
             projects={group.projects}
+            scope={scope}
           />
         ))}
       </div>

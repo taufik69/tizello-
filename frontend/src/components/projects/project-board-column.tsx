@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { NewProjectTrigger } from "@/components/projects/new-project-trigger";
 import { ProjectBoardCard } from "@/components/projects/project-board-card";
 import { StatusDot } from "@/components/projects/status-dot";
@@ -16,9 +17,11 @@ import type { ProjectRecord, ProjectStatus } from "@/types/project";
 export function ProjectBoardColumn({
   status,
   projects,
+  scope,
 }: {
   status: ProjectStatus;
   projects: ProjectRecord[];
+  scope: ProjectScope;
 }) {
   const headingId = `board-column-${status}`;
 
@@ -53,6 +56,8 @@ export function ProjectBoardColumn({
 
       <NewProjectTrigger
         label={`New project in ${STATUS_LABEL[status]}, which has ${plural(projects.length, "project", "projects")}`}
+        scope={scope}
+        status={status}
       />
     </section>
   );

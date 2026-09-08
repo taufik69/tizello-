@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { DateRange } from "@/components/projects/date-range";
 import { ProjectActionsMenu } from "@/components/projects/project-actions-menu";
 import { ProjectOwnerCell } from "@/components/projects/project-owner-cell";
@@ -20,10 +21,12 @@ export function ActiveProjectRow({
   project,
   currentUserId,
   workspaceRole,
+  scope,
 }: {
   project: ProjectRecord;
   currentUserId: string;
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   return (
     <TableRow className="hover:bg-surface-hover">
@@ -60,6 +63,7 @@ export function ActiveProjectRow({
         <ProjectActionsMenu
           project={project}
           workspaceRole={workspaceRole}
+          scope={scope}
           showOpenLink
         />
       </TableCell>

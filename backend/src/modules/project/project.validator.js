@@ -52,6 +52,16 @@ const color = Joi.string()
   .pattern(/^#[0-9a-fA-F]{6}$/)
   .allow(null);
 const startDate = Joi.date().iso().allow(null);
+/*
+ * Values for the workspace's user-defined properties: a { [defId]: value }
+ * map, PARTIAL — only the keys being changed are sent, and `null` deletes one.
+ *
+ * `Joi.any()` on the values is not laziness. Each value's real rule depends on
+ * its definition's TYPE, which lives in the database, so the check needs a
+ * query and belongs in `project-property.service.js`'s `mergeProperties`. What
+ * Joi can enforce is the envelope: an object, keyed by string, not an array.
+ */
+const properties = Joi.object().pattern(Joi.string(), Joi.any());
 // The `min(ref)` version, for CREATE only. `Joi.ref` resolves against the
 // request, and on a create both dates are always in it — either both sent, or
 // `startDate` absent and this rule inert.
@@ -78,6 +88,7 @@ const createProjectSchema = Joi.object({
   color: color.optional(),
   startDate: startDate.optional(),
   endDate: createEndDate.optional(),
+  properties: properties.optional(),
 });
 
 // `.min(1)` at the object level rejects `{}` outright — an empty PATCH is a
@@ -95,6 +106,7 @@ const updateProjectSchema = Joi.object({
   color: color.optional(),
   startDate: startDate.optional(),
   endDate: patchEndDate.optional(),
+  properties: properties.optional(),
 })
   .min(1)
   .messages({ 'object.min': 'Provide at least one field to update' });

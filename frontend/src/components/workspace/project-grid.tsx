@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { NewProjectCard } from "@/components/workspace/new-project-card";
 import { ProjectCard } from "@/components/workspace/project-card";
 import type { ProjectRecord } from "@/types/project";
@@ -15,15 +16,15 @@ import type { WorkspaceRole } from "@/types/workspace";
 export function ProjectGrid({
   projects,
   workspaceId,
-  workspaceName,
   workspaceRole,
+  scope,
 }: {
   projects: ProjectRecord[];
   workspaceId: string;
-  workspaceName: string;
   /* The caller's WORKSPACE role — half of the two-layer ladder the actions
      menu needs; the project's own `viewerRole` is the other half. */
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   return (
     <section className="mt-8">
@@ -38,11 +39,12 @@ export function ProjectGrid({
               project={project}
               workspaceId={workspaceId}
               workspaceRole={workspaceRole}
+              scope={scope}
             />
           </li>
         ))}
         <li>
-          <NewProjectCard workspaceId={workspaceId} workspaceName={workspaceName} />
+          <NewProjectCard scope={scope} />
         </li>
       </ul>
     </section>

@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { ActiveView } from "@/components/projects/active-view";
 import { AllView } from "@/components/projects/all-view";
 import { BoardView } from "@/components/projects/board-view";
@@ -22,6 +23,7 @@ export function ProjectsViewPanel({
   currentUserId,
   workspaceRole,
   today,
+  scope,
 }: {
   view: ProjectView;
   projects: ProjectRecord[];
@@ -31,13 +33,14 @@ export function ProjectsViewPanel({
      actions menu needs it alongside each project's own `viewerRole`. */
   workspaceRole: WorkspaceRole;
   today: string;
+  scope: ProjectScope;
 }) {
   return (
     <section className="mt-3">
       <h2 className="sr-only">
         {PROJECT_VIEW_LABEL[view]} &mdash; {PROJECT_VIEW_SUMMARY[view]}
       </h2>
-      {renderView(view, projects, currentUserId, workspaceRole, today)}
+      {renderView(view, projects, currentUserId, workspaceRole, today, scope)}
     </section>
   );
 }
@@ -48,25 +51,32 @@ function renderView(
   currentUserId: string,
   workspaceRole: WorkspaceRole,
   today: string,
+  scope: ProjectScope,
 ) {
   switch (view) {
     case "timeline":
-      return <TimelineView projects={projects} today={today} />;
+      return <TimelineView projects={projects} today={today} scope={scope} />;
     case "board":
-      return <BoardView projects={projects} />;
+      return <BoardView projects={projects} scope={scope} />;
     case "all":
-      return <AllView
+      return (
+        <AllView
           projects={projects}
           currentUserId={currentUserId}
           workspaceRole={workspaceRole}
-        />;
+          scope={scope}
+        />
+      );
     case "status":
       return <StatusView projects={projects} />;
     case "active":
-      return <ActiveView
+      return (
+        <ActiveView
           projects={projects}
           currentUserId={currentUserId}
           workspaceRole={workspaceRole}
-        />;
+          scope={scope}
+        />
+      );
   }
 }

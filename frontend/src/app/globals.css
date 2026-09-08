@@ -715,6 +715,28 @@
     opacity: 0;
   }
 }
+@keyframes drawer-panel-enter {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+}
+
+/* The right-hand peek panel. Slides IN from its own edge rather than scaling
+   up from the middle the way `dialog-enter` does: a panel anchored to one side
+   that fades in centred reads as a modal that landed in the wrong place.
+   16px, not the full panel width — a full-width slide at 180ms is a swipe, and
+   this opens often enough that a swipe every time is tiring. */
+@utility drawer-enter {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: drawer-panel-enter 180ms var(--ease-standard) both;
+
+    &::backdrop {
+      animation: dialog-backdrop-enter 180ms var(--ease-standard) both;
+    }
+  }
+}
+
 @utility dialog-enter {
   @media (prefers-reduced-motion: no-preference) {
     animation: dialog-panel-enter 180ms var(--ease-standard) both;

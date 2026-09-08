@@ -4,6 +4,9 @@ import { WorkspaceArchivedBanner } from "@/components/workspace/workspace-archiv
 import { WorkspaceDetailFacts } from "@/components/workspace/workspace-detail-facts";
 import { WorkspaceDetailHeader } from "@/components/workspace/workspace-detail-header";
 import { getWorkspaceProjects } from "@/lib/projects";
+import { getProjectPropertyDefs } from "@/lib/project-property-defs";
+import { canManageProperties } from "@/lib/project-roles";
+import { todayIso } from "@/lib/today";
 import { getWorkspace, getWorkspaces } from "@/lib/workspaces";
 
 export async function generateMetadata({
@@ -46,15 +49,28 @@ export default async function WorkspacePage({
 }: PageProps<"/workspaces/[workspaceId]">) {
   const { workspaceId } = await params;
 
-  const [workspace, workspaces, projects] = await Promise.all([
+  const [workspace, workspaces, projects, definitions] = await Promise.all([
     getWorkspace(workspaceId),
     getWorkspaces({ includeArchived: true }),
     /* Fetched in parallel with the workspace rather than after it: a 404 here
        is the same 404 the workspace lookup returns, so there is nothing the
        later call would learn by waiting. */
     getWorkspaceProjects(workspaceId),
+    getProjectPropertyDefs(workspaceId),
   ]);
   if (!workspace) notFound();
+
+  /* One object rather than five props: `workspaceId`, `workspaceName`,
+     `today`, the workspace's property schema and the admin flag all travel
+     together to every project control several levels down. See
+     `project-properties.ts`. */
+  const scope = {
+    workspaceId: workspace.id,
+    workspaceName: workspace.name,
+    today: todayIso(),
+    definitions,
+    canManageProperties: canManageProperties(workspace.role),
+  };
 
   return (
     <main className="w-full px-4 py-8 sm:px-6">
@@ -67,8 +83,8 @@ export default async function WorkspacePage({
       <ProjectGrid
         projects={projects}
         workspaceId={workspace.id}
-        workspaceName={workspace.name}
         workspaceRole={workspace.role}
+        scope={scope}
       />
     </main>
   );

@@ -5,6 +5,8 @@ import { ProjectsViewNav } from "@/components/projects/projects-view-nav";
 import { ProjectsViewPanel } from "@/components/projects/projects-view-panel";
 import { getSession } from "@/lib/auth";
 import { getWorkspaceProjects } from "@/lib/projects";
+import { getProjectPropertyDefs } from "@/lib/project-property-defs";
+import { canManageProperties } from "@/lib/project-roles";
 import { getWorkspace } from "@/lib/workspaces";
 import { todayIso } from "@/lib/today";
 import {
@@ -61,8 +63,25 @@ export default async function ProjectsPage({
   /* `includeArchived` returns archived AND active rows — the API has no
      archived-only filter — so the archived view narrows the result here. The
      same shape `/workspaces?archived=1` already uses. */
-  const all = await getWorkspaceProjects(workspaceId, { q, includeArchived: archived });
+  /* The schema is fetched alongside the rows and passed down as part of the
+     scope: every drawer on this page renders the same columns, so fetching it
+     per trigger would be one request per board column. */
+  const [all, definitions] = await Promise.all([
+    getWorkspaceProjects(workspaceId, { q, includeArchived: archived }),
+    getProjectPropertyDefs(workspaceId),
+  ]);
   const projects = archived ? all.filter((project) => project.isArchived) : all;
+
+  /* One object rather than five props: `workspaceId`, `workspaceName`,
+     `today`, the schema and the admin flag all travel together to every
+     "+ New project" trigger four levels down. See `project-properties.ts`. */
+  const scope = {
+    workspaceId: workspace.id,
+    workspaceName: workspace.name,
+    today: todayIso(),
+    definitions,
+    canManageProperties: canManageProperties(workspace.role),
+  };
 
   return (
     <main className="w-full px-4 py-8 sm:px-6">
@@ -73,10 +92,7 @@ export default async function ProjectsPage({
       <div className="mt-6 flex flex-wrap items-end justify-between gap-3 border-b border-border">
         <ProjectsViewNav workspaceId={workspace.id} view={view} archived={archived} />
         <div className="pb-1.5">
-          <ProjectsToolbar
-            workspaceId={workspace.id}
-            workspaceName={workspace.name}
-          />
+          <ProjectsToolbar scope={scope} />
         </div>
       </div>
 
@@ -89,6 +105,10 @@ export default async function ProjectsPage({
            component — see `lib/today.ts` for why that distinction is
            load-bearing rather than stylistic. */
         today={todayIso()}
+        /* One prop rather than three: `workspaceId`, `workspaceName` and
+           `today` travel together to every "+ New project" trigger four levels
+           down. See `project-properties.ts`. */
+        scope={scope}
       />
 
       <p className="sr-only">

@@ -2,6 +2,10 @@ import { apiCallWithRefresh } from "@/lib/api-client";
 import { fieldErrorsFrom } from "@/lib/field-errors";
 import type { ActionResult } from "@/lib/workspaces";
 import type { ProjectPriority, ProjectRecord, ProjectStatus } from "@/types/project";
+import type {
+  ProjectPropertyPatch,
+  ProjectPropertyValues,
+} from "@/types/project-property";
 
 /*
  * The project API — `backend/docs/api/project.md`. Replaces the
@@ -45,6 +49,7 @@ export type ApiProject = {
   workspaceId: string;
   ownerId: string;
   viewerRole: ProjectRecord["viewerRole"];
+  properties: ProjectPropertyValues;
   createdAt: string;
   updatedAt: string;
 };
@@ -124,6 +129,8 @@ export async function createProject(
     color?: string;
     startDate?: string;
     endDate?: string;
+    /** Values for the workspace's custom properties, keyed by definition id. */
+    properties?: ProjectPropertyPatch;
   },
 ): Promise<ActionResult<ProjectRecord>> {
   const result = await apiCallWithRefresh<{ project: ApiProject }>(
@@ -158,6 +165,8 @@ export async function updateProject(
     color?: string | null;
     startDate?: string | null;
     endDate?: string | null;
+    /** Partial and keyed by definition id; `null` on a key DELETES that value. */
+    properties?: ProjectPropertyPatch;
   },
 ): Promise<ActionResult<ProjectRecord>> {
   const result = await apiCallWithRefresh<{ project: ApiProject }>(

@@ -13,6 +13,7 @@ import {
   workspaceRouter as projectWorkspaceRoutes,
   projectRouter as projectRoutes,
 } from "../modules/project/project.routes.js";
+import projectPropertyRoutes from "../modules/project/project-property.routes.js";
 import workspaceRoutes from "../modules/workspace/workspace.routes.js";
 
 const router = express.Router();
@@ -36,6 +37,10 @@ router.use("/api/v1/invitations", invitationTokenRoutes);
 router.use("/api/v1/projects", projectRoutes);
 router.use("/api/v1/workspaces/:workspaceId/invitations", invitationWorkspaceRoutes);
 router.use("/api/v1/workspaces/:workspaceId/projects", projectWorkspaceRoutes);
+// The workspace's project-database schema. Workspace-scoped rather than
+// project-scoped because a definition belongs to the workspace: adding one
+// adds the column to every project in it.
+router.use("/api/v1/workspaces/:workspaceId/properties", projectPropertyRoutes);
 router.use("/api/v1/workspaces", workspaceRoutes);
 
 export default router;

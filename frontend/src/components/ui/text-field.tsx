@@ -23,6 +23,16 @@ export type TextFieldProps = {
   type?: "text" | "email" | "password" | "date";
   autoComplete?: string;
   defaultValue?: string;
+  /**
+   * Makes the field CONTROLLED. Almost every caller wants `defaultValue` —
+   * uncontrolled is what lets a form re-seed by remounting — but a value that
+   * lives in a map keyed by id (a project's custom properties) has to be able
+   * to change without a remount, and a `defaultValue` would ignore it.
+   *
+   * Pass one or the other, never both: React warns, and the field then decides
+   * for itself which one it is.
+   */
+  value?: string;
   /** Hard cap, enforced by the platform — the right primitive for a length limit, so `transform` can stay a pure 1:1 map. */
   maxLength?: number;
   /**
@@ -69,6 +79,7 @@ export function TextField({
   type = "text",
   autoComplete,
   defaultValue,
+  value,
   maxLength,
   disabled,
   placeholder,
@@ -101,7 +112,8 @@ export function TextField({
           type={type}
           ref={inputRef}
           autoComplete={autoComplete}
-          defaultValue={defaultValue}
+          defaultValue={value === undefined ? defaultValue : undefined}
+          value={value}
           maxLength={maxLength}
           disabled={disabled}
           placeholder={placeholder}

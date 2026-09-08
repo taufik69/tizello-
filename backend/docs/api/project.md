@@ -459,6 +459,25 @@ loses all access is a support ticket, not a feature.
 
 ---
 
+## Custom properties
+
+A workspace can define its own project columns — see
+[project-property.md](./project-property.md). Two things that contract adds to
+this one:
+
+- Every project response carries **`properties`**, a `{ [definitionId]: value }`
+  map filtered to definitions that still exist. `{}` on a project that has set
+  none.
+- **`POST` and `PATCH` accept `properties`** as a partial map. `null` on a key
+  deletes it; an unknown definition id is a `422`; a wrong-shaped value is a
+  `422` naming the property.
+
+Definitions are workspace-scoped and admin-only to edit. Setting a *value* is
+`requireProjectWrite`, unchanged — adding a column changes every project in the
+workspace, filling one in changes one project.
+
+---
+
 ## Open questions
 
 1. **Key rename.** Immutable today (§*Key* 5). Making it editable needs a

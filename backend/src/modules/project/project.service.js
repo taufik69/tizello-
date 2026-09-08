@@ -17,6 +17,8 @@ import httpStatus from '../../shared/constants/httpStatus.js';
 import { AUTH_CODES } from '../../shared/constants/authCodes.js';
 import { deriveKey } from '../../shared/utils/projectKey.js';
 import repository from './project.repository.js';
+import propertyRepository from './project-property.repository.js';
+import propertyService from './project-property.service.js';
 import dto from './project.dto.js';
 
 const notFound = () =>
@@ -35,10 +37,17 @@ const viewerRoleFor = (row, userId) =>
  * `409`, because renaming what somebody typed is hostile.
  */
 const createProject = async (payload, workspaceId, user) => {
-  const { key: suppliedKey, ...rest } = payload;
+  const { key: suppliedKey, properties, ...rest } = payload;
+
+  /* Validated against the workspace's live definitions before the insert, so a
+     create carrying a bad value fails without writing a project. */
+  const merged = properties
+    ? await propertyService.mergeProperties(workspaceId, {}, properties)
+    : undefined;
 
   const data = {
     ...rest,
+    ...(merged ? { properties: merged } : {}),
     description: rest.description ?? null,
     icon: rest.icon ?? null,
     color: rest.color ?? null,
@@ -48,14 +57,16 @@ const createProject = async (payload, workspaceId, user) => {
     ownerId: user.id,
   };
 
+  const definitions = await propertyRepository.findPropertiesForWorkspace(workspaceId);
+
   if (!suppliedKey) {
     const project = await repository.createProjectWithDerivedKey(data, deriveKey(data.name));
-    return dto.toProject(project, 'OWNER');
+    return dto.toProject(project, 'OWNER', definitions);
   }
 
   try {
     const project = await repository.createProjectWithKey(data, suppliedKey);
-    return dto.toProject(project, 'OWNER');
+    return dto.toProject(project, 'OWNER', definitions);
   } catch (error) {
     if (error?.code === 'P2002') {
       throw new AppError(
@@ -71,9 +82,17 @@ const createProject = async (payload, workspaceId, user) => {
 /** `GET /workspaces/:workspaceId/projects`. Scoped to the workspace the caller is a member of. */
 const listProjects = async (workspaceId, userId, query) => {
   const { page, limit } = query;
-  const { rows, total } = await repository.findProjectsForWorkspace(workspaceId, userId, query);
 
-  const projects = rows.map((row) => dto.toProject(row, viewerRoleFor(row, userId)));
+  /* One definition query for the whole page, not one per row: every project in
+     a workspace shares the same schema. */
+  const [{ rows, total }, definitions] = await Promise.all([
+    repository.findProjectsForWorkspace(workspaceId, userId, query),
+    propertyRepository.findPropertiesForWorkspace(workspaceId),
+  ]);
+
+  const projects = rows.map((row) =>
+    dto.toProject(row, viewerRoleFor(row, userId), definitions)
+  );
 
   return { projects, page, limit, total };
 };
@@ -83,7 +102,11 @@ const listProjects = async (workspaceId, userId, query) => {
  * resolved the caller's effective role, so this is shaping — there is no second
  * query to make and no membership left to check.
  */
-const getProject = (project, projectRole) => dto.toProject(project, projectRole);
+const getProject = async (project, projectRole) => {
+  const definitions = await propertyRepository.findPropertiesForWorkspace(project.workspaceId);
+
+  return dto.toProject(project, projectRole, definitions);
+};
 
 /**
  * `PATCH /projects/:projectId`.
@@ -95,8 +118,10 @@ const getProject = (project, projectRole) => dto.toProject(project, projectRole)
  * row is in hand.
  */
 const updateProject = async (project, patch, projectRole) => {
-  const startDate = 'startDate' in patch ? patch.startDate : project.startDate;
-  const endDate = 'endDate' in patch ? patch.endDate : project.endDate;
+  const { properties, ...columns } = patch;
+
+  const startDate = 'startDate' in columns ? columns.startDate : project.startDate;
+  const endDate = 'endDate' in columns ? columns.endDate : project.endDate;
 
   if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
     throw new AppError(
@@ -106,9 +131,22 @@ const updateProject = async (project, patch, projectRole) => {
     );
   }
 
-  const updated = await repository.updateProject(project.id, patch);
+  /* A partial map merged over the stored one — `null` on a key deletes it,
+     which is what "remove this property row" sends. Validated against the
+     workspace's live definitions, so a stale client gets a 422 rather than a
+     silently discarded save. */
+  const merged = properties
+    ? await propertyService.mergeProperties(project.workspaceId, project.properties, properties)
+    : undefined;
 
-  return dto.toProject(updated, projectRole);
+  const updated = await repository.updateProject(project.id, {
+    ...columns,
+    ...(merged ? { properties: merged } : {}),
+  });
+
+  const definitions = await propertyRepository.findPropertiesForWorkspace(project.workspaceId);
+
+  return dto.toProject(updated, projectRole, definitions);
 };
 
 /**
@@ -122,8 +160,9 @@ const updateProject = async (project, patch, projectRole) => {
  */
 const setArchived = async (project, isArchived, projectRole) => {
   const updated = await repository.setArchived(project.id, isArchived);
+  const definitions = await propertyRepository.findPropertiesForWorkspace(project.workspaceId);
 
-  return dto.toProject(updated, projectRole);
+  return dto.toProject(updated, projectRole, definitions);
 };
 
 /**
@@ -231,8 +270,9 @@ const transferOwnership = async (project, toUserId, projectRole) => {
   }
 
   const updated = await repository.transferOwnership(project.id, project.ownerId, toUserId);
+  const definitions = await propertyRepository.findPropertiesForWorkspace(project.workspaceId);
 
-  return dto.toProject(updated, projectRole);
+  return dto.toProject(updated, projectRole, definitions);
 };
 
 export default {

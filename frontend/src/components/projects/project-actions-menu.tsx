@@ -13,8 +13,9 @@ import {
 import { MoreIcon } from "@/components/ui/icons";
 import { ArchiveProjectDialog } from "@/components/projects/archive-project-dialog";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
-import { EditProjectDialog } from "@/components/projects/edit-project-dialog";
+import { EditProjectDrawerShell } from "@/components/projects/edit-project-drawer-shell";
 import { useProjectMutations } from "@/components/projects/use-project-mutations";
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { canOwnProject, canWriteProject } from "@/lib/project-roles";
 import type { ProjectRecord } from "@/types/project";
 import type { WorkspaceRole } from "@/types/workspace";
@@ -38,11 +39,13 @@ import type { WorkspaceRole } from "@/types/workspace";
 export function ProjectActionsMenu({
   project,
   workspaceRole,
+  scope,
   showOpenLink = false,
   onDeleted,
 }: {
   project: ProjectRecord;
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
   /** The card and the row offer it; the detail page is already there. */
   showOpenLink?: boolean;
   /** The detail page navigates away — its own record just stopped existing. */
@@ -105,9 +108,12 @@ export function ProjectActionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditProjectDialog
+      <EditProjectDrawerShell
         project={project}
         workspaceId={project.workspaceId}
+        today={scope.today}
+        definitions={scope.definitions}
+        canManageProperties={scope.canManageProperties}
         open={editing}
         onOpenChange={setEditing}
       />

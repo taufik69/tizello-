@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { AllProjectRow } from "@/components/projects/all-project-row";
 import { AllSummaryRow } from "@/components/projects/all-summary-row";
 import { ProjectsEmpty } from "@/components/projects/projects-empty";
@@ -41,10 +42,12 @@ export function AllView({
   projects,
   currentUserId,
   workspaceRole,
+  scope,
 }: {
   projects: ProjectRecord[];
   currentUserId: string;
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   if (projects.length === 0) return <ProjectsEmpty />;
 
@@ -70,6 +73,7 @@ export function AllView({
             project={project}
             currentUserId={currentUserId}
             workspaceRole={workspaceRole}
+            scope={scope}
           />
         ))}
       </TableBody>

@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { ProjectsEmpty } from "@/components/projects/projects-empty";
 import { TimelineGrid } from "@/components/projects/timeline-grid";
 import { TimelineGroup } from "@/components/projects/timeline-group";
@@ -27,9 +28,11 @@ import type { ProjectRecord } from "@/types/project";
 export function TimelineView({
   projects,
   today,
+  scope,
 }: {
   projects: ProjectRecord[];
   today: string;
+  scope: ProjectScope;
 }) {
   if (projects.length === 0) return <ProjectsEmpty />;
 
@@ -52,6 +55,7 @@ export function TimelineView({
                 key={group.phase}
                 group={group}
                 window={window}
+                scope={scope}
               />
             ))}
           </div>

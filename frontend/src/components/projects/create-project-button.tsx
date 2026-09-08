@@ -1,8 +1,9 @@
 "use client";
 
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { useState } from "react";
 import { PlusIcon } from "@/components/ui/icons";
-import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
+import { CreateProjectDrawer } from "@/components/projects/create-project-drawer";
 
 /**
  * The toolbar's New button. A client leaf so the projects page stays a Server
@@ -16,11 +17,9 @@ const NEW =
   "inline-flex h-7 shrink-0 items-center gap-1 rounded-sm bg-brand-500 pr-2 pl-1.5 text-xs font-semibold text-on-brand transition-colors duration-100 ease-standard hover:bg-brand-400";
 
 export function CreateProjectButton({
-  workspaceId,
-  workspaceName,
+  scope,
 }: {
-  workspaceId: string;
-  workspaceName: string;
+  scope: ProjectScope;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -31,9 +30,12 @@ export function CreateProjectButton({
         New
       </button>
 
-      <CreateProjectDialog
-        workspaceId={workspaceId}
-        workspaceName={workspaceName}
+      <CreateProjectDrawer
+        workspaceId={scope.workspaceId}
+        workspaceName={scope.workspaceName}
+        today={scope.today}
+        definitions={scope.definitions}
+        canManageProperties={scope.canManageProperties}
         open={open}
         onOpenChange={setOpen}
       />

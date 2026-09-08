@@ -56,6 +56,19 @@ export function canOwnProject(
 }
 
 /**
+ * Create / rename / delete a custom PROPERTY DEFINITION — the API's
+ * `PROJECT_MANAGE_ANY` on `/workspaces/:id/properties`.
+ *
+ * Deliberately not `canWriteProject`: adding a column changes the shape of
+ * every project in the workspace, where filling one in changes one project.
+ * A plain MEMBER who owns a project may set its property values and may not
+ * invent a new column for everybody.
+ */
+export function canManageProperties(workspaceRole: WorkspaceRole): boolean {
+  return managesAnyProject(workspaceRole);
+}
+
+/**
  * `POST /workspaces/:id/projects` — the API's `PROJECT_CREATE`, which every
  * workspace role holds today. Written out anyway rather than hard-coded
  * `true` at the call site: the contract calls the MEMBER grant "a deliberate

@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { ActiveProjectRow } from "@/components/projects/active-project-row";
 import {
   ACTIVE_COLUMN_COUNT,
@@ -28,10 +29,12 @@ export function ActiveView({
   projects,
   currentUserId,
   workspaceRole,
+  scope,
 }: {
   projects: ProjectRecord[];
   currentUserId: string;
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   const groups = groupByStatus(projects, { includeEmpty: false });
   if (groups.length === 0) return <ProjectsEmpty />;
@@ -61,6 +64,7 @@ export function ActiveView({
               project={project}
               currentUserId={currentUserId}
               workspaceRole={workspaceRole}
+              scope={scope}
             />
           ))}
 
@@ -71,6 +75,8 @@ export function ActiveView({
               <span className="block max-w-64">
                 <NewProjectTrigger
                   label={`New project in ${STATUS_LABEL[group.status]}`}
+                  scope={scope}
+                  status={group.status}
                 />
               </span>
             </TableCell>

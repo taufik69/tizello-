@@ -1,3 +1,5 @@
+import type { ProjectPropertyValues } from "@/types/project-property";
+
 /*
  * The project domain, mirroring `backend/docs/api/project.md`.
  *
@@ -93,6 +95,13 @@ export type ProjectRecord = {
   viewerRole: ProjectRole | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Values for the workspace's user-defined properties, keyed by definition id
+   * — see `types/project-property.ts`. Already filtered by the API to
+   * definitions that still exist, so a key here always has a definition to
+   * render it with. `{}` on a project that has set none.
+   */
+  properties: ProjectPropertyValues;
 
   /** Resolved from a members call; absent on anything the list endpoint returned. */
   owner?: ProjectPerson;

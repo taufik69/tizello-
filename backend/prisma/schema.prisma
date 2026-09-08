@@ -101,6 +101,7 @@ model Workspace {
   memberships Membership[]
   invitations Invitation[]
   projects    Project[]
+  propertyDefs ProjectPropertyDef[]
 
   @@map("workspaces")
 }
@@ -360,6 +361,18 @@ model Project {
   // billing columns. Plan §2.3.
   taskCounter Int           @default(0)
 
+  // Values for this workspace's user-defined properties: a { [defId]: value }
+  // map. Json rather than a row per value because nothing queries inside it
+  // yet and a table would mean a join on every list read plus N inserts every
+  // time a property is added. The DEFINITIONS are a real table
+  // (ProjectPropertyDef) precisely because those are listed, renamed and
+  // reordered. See .claude/plan/project-property.md §2.1-2.2.
+  //
+  // A key whose definition has been deleted is dead weight, not a bug: the DTO
+  // emits a value only when its definition still exists, so deleting a
+  // property is O(1) rather than a rewrite of every project (§2.4).
+  properties  Json?
+
   workspaceId String
   workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -389,6 +402,59 @@ model Project {
   // compound unique above cannot serve that.
   @@index([workspaceId, status])
   @@map("projects")
+}
+
+// Values must stay in sync with PROPERTY_TYPES in
+// src/shared/constants/propertyTypes.js, which is what the value validator
+// reads. FORMULA / ROLLUP / RELATION / FILES / PERSON are deliberately absent —
+// each is blocked on a specific missing thing (an expression evaluator, a
+// second entity, object storage, a member picker), not on effort. See
+// .claude/plan/project-property.md §2.5.
+enum PropertyType {
+  TEXT
+  NUMBER
+  SELECT
+  MULTI_SELECT
+  DATE
+  CHECKBOX
+  URL
+  EMAIL
+  PHONE
+}
+
+// One user-defined column of the workspace's project database.
+//
+// Scoped to the WORKSPACE, not to a project: adding a property adds the column
+// to every project in the workspace, which is what "add a property to the
+// database" means. A definition per project would make renaming it a rewrite
+// of every row and would let two projects disagree about its type (§2.1).
+model ProjectPropertyDef {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  // Immutable after create. TEXT -> NUMBER has to answer what happens to every
+  // project whose value is "about a week", and all three answers are worse
+  // than making the user delete and re-add. Same call as Project.key (§2.3).
+  type        PropertyType
+  // SELECT / MULTI_SELECT only: [{ id, label, color }]. Null for every other
+  // type, and validated as such — a TEXT property carrying six colour swatches
+  // nobody renders is a lie the next reader has to disprove (§2.6).
+  //
+  // Each option has its own id so renaming a label does not orphan every value
+  // that used it.
+  options     Json?
+  // Sparse (10, 20, 30 ...) so reordering is one UPDATE rather than a renumber
+  // of the whole list.
+  position    Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Two columns called "Budget" in one database is a UI nobody can read. A
+  // P2002 here becomes a 409.
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("project_property_defs")
 }
 
 model ProjectMember {

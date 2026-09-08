@@ -40,7 +40,7 @@ const list = async (req, res) => {
 };
 
 const getById = async (req, res) => {
-  const project = service.getProject(req.project, req.projectRole);
+  const project = await service.getProject(req.project, req.projectRole);
 
   return ApiResponse.success(res, httpStatus.OK, 'Project fetched', { project });
 };

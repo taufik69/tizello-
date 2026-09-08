@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { ProjectActionsMenu } from "@/components/projects/project-actions-menu";
@@ -21,10 +22,12 @@ export function ProjectDetailHeader({
   project,
   workspaceName,
   workspaceRole,
+  scope,
 }: {
   project: ProjectRecord;
   workspaceName: string;
   workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
@@ -52,7 +55,11 @@ export function ProjectDetailHeader({
         </div>
       </div>
 
-      <ProjectActionsMenu project={project} workspaceRole={workspaceRole} />
+      <ProjectActionsMenu
+        project={project}
+        workspaceRole={workspaceRole}
+        scope={scope}
+      />
     </header>
   );
 }
