@@ -23,6 +23,15 @@ export const WORKSPACE_ACCENTS = [
 ] as const;
 export type WorkspaceAccent = (typeof WORKSPACE_ACCENTS)[number];
 
+/**
+ * How `/workspaces` draws the list of workspaces. `grid` is the card wall,
+ * `list` the dense table — the same rows, two densities, chosen by `?view=`
+ * rather than by a toggle in component state, so a chosen view is linkable and
+ * survives a reload. See `lib/workspace-view.ts`.
+ */
+export const WORKSPACE_VIEWS = ["grid", "list"] as const;
+export type WorkspaceView = (typeof WORKSPACE_VIEWS)[number];
+
 export type Project = {
   id: string;
   name: string;

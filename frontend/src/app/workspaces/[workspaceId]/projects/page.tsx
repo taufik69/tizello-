@@ -3,7 +3,7 @@ import { ProjectsPageHeader } from "@/components/projects/projects-page-header";
 import { ProjectsToolbar } from "@/components/projects/projects-toolbar";
 import { ProjectsViewNav } from "@/components/projects/projects-view-nav";
 import { ProjectsViewPanel } from "@/components/projects/projects-view-panel";
-import { getWorkspace } from "@/lib/demo-data";
+import { getWorkspace } from "@/lib/workspaces";
 import {
   DEMO_TODAY,
   getProjectsCurrentUser,

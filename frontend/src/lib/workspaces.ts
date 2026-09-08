@@ -31,9 +31,20 @@ type ApiWorkspace = {
 
 const toWorkspace = (row: ApiWorkspace): Workspace => row;
 
-/** `GET /workspaces`. 100 is the API's page-size ceiling — see workspace.md §2. */
-export async function getWorkspaces(): Promise<Workspace[]> {
-  const result = await apiCallWithRefresh<ApiWorkspace[]>("/workspaces?limit=100");
+/**
+ * `GET /workspaces`. 100 is the API's page-size ceiling — see workspace.md §2.
+ *
+ * `includeArchived` has to be a parameter rather than a filter on the result:
+ * the API omits archived rows entirely unless it is sent, so an archived
+ * workspace is not in the payload to filter. It is what `/workspaces?archived=1`
+ * passes through, and what makes an archived workspace reachable again after
+ * `setWorkspaceArchived` has hidden it.
+ */
+export async function getWorkspaces({
+  includeArchived = false,
+}: { includeArchived?: boolean } = {}): Promise<Workspace[]> {
+  const query = includeArchived ? "?limit=100&includeArchived=true" : "?limit=100";
+  const result = await apiCallWithRefresh<ApiWorkspace[]>(`/workspaces${query}`);
 
   return result.ok ? result.data.map(toWorkspace) : [];
 }

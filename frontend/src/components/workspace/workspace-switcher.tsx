@@ -24,6 +24,12 @@ const TRIGGER =
  * The active workspace comes from the URL rather than from a prop. This is
  * already a client component — the menu needs state — and the alternative was
  * threading an id from a `layout.tsx` that has no `workspaceId` param to give.
+ *
+ * The workspaces are REAL (`GET /workspaces`, via `SidebarWorkspace`), so the
+ * disc reads `icon` and `color` — the two fields someone actually picked —
+ * before falling back to the fixture-only `accent`. `WorkspaceSwitchMenu` is
+ * the page-level sibling of this control; the difference between them is in
+ * that file's header.
  */
 export function WorkspaceSwitcher({ workspaces }: { workspaces: Workspace[] }) {
   const activeWorkspaceId = workspaceIdFromPath(usePathname());
@@ -42,6 +48,8 @@ export function WorkspaceSwitcher({ workspaces }: { workspaces: Workspace[] }) {
         {active ? (
           <WorkspaceAvatar
             name={active.name}
+            icon={active.icon}
+            color={active.color}
             accent={active.accent}
             size="sm"
           />
@@ -67,6 +75,8 @@ export function WorkspaceSwitcher({ workspaces }: { workspaces: Workspace[] }) {
             >
               <WorkspaceAvatar
                 name={workspace.name}
+                icon={workspace.icon}
+                color={workspace.color}
                 accent={workspace.accent}
                 size="sm"
               />

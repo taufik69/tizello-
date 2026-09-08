@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { SprintsPageHeader } from "@/components/sprints/sprints-page-header";
 import { SprintsPanel } from "@/components/sprints/sprints-panel";
-import { getWorkspace } from "@/lib/demo-data";
+import { getWorkspace } from "@/lib/workspaces";
 import { DEMO_TODAY, getProject } from "@/lib/demo-projects";
 import { getProjectSprints } from "@/lib/demo-sprints";
 

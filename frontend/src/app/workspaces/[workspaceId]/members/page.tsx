@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { MembersPageHeader } from "@/components/members/members-page-header";
 import { MembersPanel } from "@/components/members/members-panel";
-import { getCurrentUser, getWorkspace } from "@/lib/demo-data";
+import { getCurrentUser } from "@/lib/demo-data";
+import { getWorkspace } from "@/lib/workspaces";
 import { getPendingInvitations } from "@/lib/invites";
 import { getWorkspaceMembers } from "@/lib/demo-members";
 

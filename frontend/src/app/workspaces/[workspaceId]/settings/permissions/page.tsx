@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { PermissionsBoard } from "@/components/permissions/permissions-board";
 import { PermissionsPageHeader } from "@/components/permissions/permissions-page-header";
-import { getCurrentUser, getWorkspace } from "@/lib/demo-data";
+import { getCurrentUser } from "@/lib/demo-data";
+import { getWorkspace } from "@/lib/workspaces";
 import { getWorkspaceMembers } from "@/lib/demo-members";
 import {
   getPermissionMatrix,

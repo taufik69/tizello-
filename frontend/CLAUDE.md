@@ -27,8 +27,24 @@ against demo data in `src/lib/`, never that a backend is wired.
 - [x] **Auth** — sign-in (email → password or code), sign-up, forgot/reset
       password, verify email, sign-out. Server Actions over `auth-fixtures.ts`;
       `proxy.ts` does the optimistic cookie check.
-- [x] **Workspace** — `/workspaces` grid, `/workspaces/[workspaceId]` detail,
-      switcher, create dialog, sidebar shell.
+- [x] **Workspace** — full CRUD against the real API (`lib/workspaces.ts` →
+      `backend/docs/api/workspace.md`), no fixtures left in the path.
+      `/workspaces` draws the list two ways from `?view=grid|list` — the card
+      grid and a table with role, status and both dates — with `?archived=1`
+      as the way back to anything archived. `/workspaces/[workspaceId]` is a
+      real detail page: identity header, a `<dl>` of the stored record, an
+      archived banner, and the projects grid still fixture-shaped beneath it.
+      Edit (name / description / icon / colour, changed fields only), archive
+      and restore (`isArchived`), and delete (`deletedAt` — soft on the server,
+      permanent from here) all hang off one `WorkspaceActionsMenu`, gated by
+      `canUpdateWorkspace` / `canDeleteWorkspace` in `lib/roles.ts` — a mirror
+      of the API's permission table, drawing controls only; the API enforces.
+      Switching is two controls over the same list: the sidebar's
+      `WorkspaceSwitcher` and the detail page's `WorkspaceSwitchMenu`, both
+      real `<a>`s. Every screen under `/workspaces/[workspaceId]` now resolves
+      its workspace from the API, so the ids in a switcher are the ids those
+      pages accept; only their members / projects / sprint data is still
+      fixture-backed.
 - [x] **Members** — roster, role menu, remove-with-confirm, invite dialog,
       pending-invites tab, and the accept page at `/invite/[token]`.
 - [ ] **Projects** — `/workspaces/[workspaceId]/projects` renders five
