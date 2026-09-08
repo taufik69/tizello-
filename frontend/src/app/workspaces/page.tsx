@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { WelcomeFireworks } from "@/components/layout/welcome-fireworks";
 import { CreateWorkspaceButton } from "@/components/workspace/create-workspace-button";
 import { WorkspaceGrid } from "@/components/workspace/workspace-grid";
@@ -46,9 +47,9 @@ export default async function WorkspacesPage({ searchParams }: PageProps<"/works
 
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-text">
-            {archived ? "Archived workspaces" : "Workspaces"}
-          </h1>
+          {/* The trail IS the page title here — its last crumb renders as the
+              `<h1>`, so this heading level is not lost to a decorative row. */}
+          <Breadcrumb heading label={archived ? "Archived workspaces" : "Workspaces"} />
           <p className="mt-1.5 text-sm text-text-muted">
             {user.name} · {plural(workspaces.length, "workspace", "workspaces")}
           </p>

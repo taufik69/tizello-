@@ -34,8 +34,11 @@ import {
  * text class.
  */
 
+/* `relative` and the asymmetric padding are both for the close button, which
+   sits absolutely in the top-right corner: `pr-9` is what stops a long title
+   from running underneath it. */
 const TOAST_BASE =
-  "flex items-start gap-2.5 rounded-md border border-border bg-surface px-3 py-2.5 text-sm text-text shadow-overlay w-full";
+  "relative flex w-full items-start gap-2.5 rounded-md border border-border bg-surface py-2.5 pl-3 pr-9 text-sm text-text shadow-overlay";
 
 /*
  * The `(auth)` route group, matched by URL because a route group leaves no
@@ -84,8 +87,16 @@ export function Toaster(props: ToasterProps) {
           title: "min-w-0 flex-1",
           description: "min-w-0 flex-1 text-text-muted",
           error: "border-danger",
+          /* Styled from scratch, not tweaked: every one of sonner's own
+             close-button rules is gated on `[data-styled='true']`, and
+             `unstyled: true` sets that to false — so position, size, padding
+             and the round border all arrive as nothing. Without the
+             `absolute` here the button is a bare `<svg>` sitting in the toast's
+             flex row, which is what it looked like. Its own hit area is 20px
+             square with the icon at 12, so the target stays comfortable while
+             the glyph stays quiet. */
           closeButton:
-            "left-auto right-1.5 top-1.5 border-none bg-transparent text-text-subtle hover:text-text",
+            "absolute right-2 top-2 grid size-5 place-items-center rounded-sm border border-transparent bg-transparent p-0 text-text-subtle transition-colors duration-100 ease-standard hover:border-border hover:bg-surface-hover hover:text-text [&>svg]:size-3",
           actionButton:
             "rounded-xs bg-brand-500 px-2 py-1 text-2xs font-semibold text-on-brand hover:bg-brand-600",
           cancelButton:

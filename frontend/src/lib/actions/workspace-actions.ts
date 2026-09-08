@@ -51,16 +51,21 @@ function revalidateWorkspace(workspaceId: string) {
 /** `POST /workspaces`. Re-validates `name`'s length even though the dialog's `TextField` already does — the client-side rule is a convenience, this is the control. */
 export async function createWorkspaceAction(input: {
   name: string;
+  description?: string;
   icon?: string;
   color?: string;
 }): Promise<WorkspaceFormState> {
   const name = input.name.trim();
+  const description = input.description?.trim();
 
   const invalid = nameError(name);
   if (invalid) return { fieldErrors: { name: invalid } };
 
+  /* Every optional field is omitted rather than sent empty: the API validates
+     `description` as 1–500 chars when present, so `""` is a 400, not a clear. */
   const result = await createWorkspace({
     name,
+    ...(description ? { description } : {}),
     ...(input.icon ? { icon: input.icon } : {}),
     ...(input.color ? { color: input.color } : {}),
   });

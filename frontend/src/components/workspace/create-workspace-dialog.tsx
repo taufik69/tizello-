@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TextArea } from "@/components/ui/text-area";
 import { TextField } from "@/components/ui/text-field";
 import { WorkspaceAppearancePicker } from "@/components/workspace/workspace-appearance-picker";
 import { WorkspaceAvatar } from "@/components/workspace/workspace-avatar";
@@ -39,12 +40,14 @@ export function CreateWorkspaceDialog({
   const titleId = useId();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [icon, setIcon] = useState("");
   const [color, setColor] = useState("");
   const [nameError, setNameError] = useState<string | undefined>();
 
   function reset() {
     setName("");
+    setDescription("");
     setIcon("");
     setColor("");
     setNameError(undefined);
@@ -67,6 +70,7 @@ export function CreateWorkspaceDialog({
     startTransition(async () => {
       const result = await createWorkspaceAction({
         name: trimmed,
+        description: description.trim() || undefined,
         icon: icon || undefined,
         color: color || undefined,
       });
@@ -120,6 +124,17 @@ export function CreateWorkspaceDialog({
                 }}
               />
             </div>
+          </div>
+
+          <div className="mt-4">
+            <TextArea
+              label="Description"
+              name="description"
+              placeholder="What is this workspace for?"
+              helper="Optional. Shown on the workspace card and its detail page."
+              maxLength={500}
+              onValueChange={setDescription}
+            />
           </div>
 
           <WorkspaceAppearancePicker

@@ -29,8 +29,12 @@ const VIEW_IDLE =
 
 const FILTER_ACTIVE =
   "inline-flex items-center rounded-xs bg-brand-100 px-2 py-1 text-2xs font-semibold text-brand-800";
+/* Resting state IS the old hover state — `text-text` on a `surface-hover`
+   fill. At `text-2xs` the muted ink on no fill was reading as disabled, and
+   this is one of two routes back to an archived workspace. Hover then has to
+   step past it, hence `surface-sunken`. */
 const FILTER_IDLE =
-  "inline-flex items-center rounded-xs px-2 py-1 text-2xs font-medium text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-hover hover:text-text";
+  "inline-flex items-center rounded-xs bg-surface-hover px-2 py-1 text-2xs font-medium text-text transition-colors duration-100 ease-standard hover:bg-surface-sunken";
 
 export function WorkspacesToolbar({
   view,
@@ -44,11 +48,14 @@ export function WorkspacesToolbar({
       <nav aria-label="Workspace views" className="min-w-0">
         <ul className="flex items-center gap-1">
           {WORKSPACE_VIEWS.map((value) => {
-            const current = value === view;
+            /* Not `value === view` alone: with Archived in the same row, the
+               archived screen would otherwise light up two tabs at once — its
+               own, and whichever view it happens to be drawn in. */
+            const current = value === view && !archived;
             return (
               <li key={value}>
                 <Link
-                  href={workspacesHref({ view: value, archived })}
+                  href={workspacesHref({ view: value, archived: false })}
                   aria-current={current ? "page" : undefined}
                   aria-label={WORKSPACE_VIEW_SUMMARY[value]}
                   className={current ? VIEW_ACTIVE : VIEW_IDLE}
@@ -58,6 +65,21 @@ export function WorkspacesToolbar({
               </li>
             );
           })}
+
+          {/* A third tab, not a third view: it keeps whichever view is current
+              and flips `?archived=1`. The link on the right does the same
+              thing — this is the discoverable half, that one is the way back
+              out. */}
+          <li>
+            <Link
+              href={workspacesHref({ view, archived: true })}
+              aria-current={archived ? "page" : undefined}
+              aria-label="Workspaces you have archived."
+              className={archived ? VIEW_ACTIVE : VIEW_IDLE}
+            >
+              Archived
+            </Link>
+          </li>
         </ul>
       </nav>
 

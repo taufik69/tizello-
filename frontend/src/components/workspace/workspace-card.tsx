@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleBadge } from "@/components/workspace/role-badge";
 import { WorkspaceActionsMenu } from "@/components/workspace/workspace-actions-menu";
@@ -65,15 +66,13 @@ export function WorkspaceCard({ workspace }: { workspace: Workspace }) {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-start gap-1">
-            <div className="flex flex-col items-end gap-1">
-              {isArchived && (
-                <span className="rounded-xs bg-surface-sunken px-1.5 py-0.5 text-2xs font-medium text-text-subtle">
-                  Archived
-                </span>
-              )}
-              {role === "OWNER" && <RoleBadge role={role} />}
-            </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {/* Both chips on one row, and both through `Badge` — the archived
+                one used to be a hand-rolled span with its own padding and
+                weight, which is why the two never lined up: different box, same
+                position. One primitive owns the geometry now. */}
+            {isArchived && <Badge>Archived</Badge>}
+            {role === "OWNER" && <RoleBadge role={role} />}
 
             {/* Above the stretched link, so the trigger takes its own clicks
                 and the rest of the card still navigates. */}
