@@ -1,3 +1,4 @@
+import { filterParams, type ProjectFilters } from "@/lib/project-filters";
 import { PROJECT_VIEWS, type ProjectView } from "@/types/project";
 
 /*
@@ -50,7 +51,7 @@ export function parseProjectView(
   return PROJECT_VIEWS.find((view) => view === value) ?? DEFAULT_PROJECT_VIEW;
 }
 
-/** The value `?archived=` has to carry to swap the list for the archived one. */
+/** The value `?archived=` has to carry to swap the list for the archived one. `filterParams` writes it. */
 const ARCHIVED_ON = "1";
 
 /** Anything but the literal `"1"` is off — including `"true"`, which no link here ever writes. */
@@ -64,20 +65,28 @@ export function parseArchivedFilter(raw: string | string[] | undefined): boolean
  * the tab strip's first link and the sidebar's Projects item point at the same
  * URL and only one of them can be `aria-current`.
  *
- * `q` rides along so a search survives a view switch: dropping it would make
- * clicking "Board" while filtered silently widen the result.
+ * EVERY FILTER RIDES ALONG, which is what makes the view strip a view strip
+ * rather than a reset button. Clicking "Board" while narrowed to "mine, on
+ * hold, by name" has to keep all three: dropping them would silently widen the
+ * result, and the user's next action would be to re-apply what they had. The
+ * filter model owns which of them are worth writing (`filterParams` omits
+ * defaults), so this function does not know what a filter IS — only where it
+ * goes in the URL.
  */
 export function projectsHref(
   workspaceId: string,
   view: ProjectView,
-  { archived = false, q }: { archived?: boolean; q?: string } = {},
+  filters: Partial<ProjectFilters> = {},
 ): string {
   const base = `/workspaces/${workspaceId}/projects`;
-  const params = new URLSearchParams();
+  const params = filterParams(filters);
 
   if (view !== DEFAULT_PROJECT_VIEW) params.set("view", view);
-  if (archived) params.set("archived", ARCHIVED_ON);
-  if (q) params.set("q", q);
+
+  /* Sorted so the same set of choices is always the same string — otherwise
+     two links to the identical screen differ by param order, and `aria-current`
+     and the router's own cache both key off the URL. */
+  params.sort();
 
   const query = params.toString();
   return query ? `${base}?${query}` : base;

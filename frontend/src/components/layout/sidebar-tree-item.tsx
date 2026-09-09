@@ -23,14 +23,50 @@ import type { SidebarItem as SidebarItemData } from "@/types/nav";
  * `aria-current` moves: while the group is open the current CHILD carries it,
  * so the row is styled active without claiming to be the page. Collapsed, the
  * row takes it back — it is then the only thing on screen naming the page.
+ *
+ * THE ICON SLOT IS THE TOGGLE, and that is the fix for a row that did not line
+ * up with its own siblings. The chevron used to sit in front of the icon, which
+ * pushed this item's glyph to 32px while every plain `SidebarItem` beside it
+ * kept its own at 8px — one row in the list visibly indented for no reason a
+ * reader could see. Giving the chevron its own gutter would have meant
+ * indenting all six siblings to match, for the sake of the one item that has
+ * children.
+ *
+ * So the two glyphs share ONE 16px slot at 8px, exactly where a sibling's icon
+ * is: the icon at rest, the chevron once the row is hovered or holds focus.
+ * That is Notion's page-tree behaviour and it costs nothing — the expanded
+ * children are what say the group is open, so the chevron does not have to be
+ * on screen to report it.
+ *
+ * A 16px BUTTON IS TOO SMALL A TARGET, so `before:-inset-1.5` grows the hit
+ * area to 28px without moving the glyph. The alternative — a `size-7` button —
+ * would push the icon back off the 8px line this whole change is about.
+ *
+ * THE TWO ROW ACTIONS ARE HOVER-REVEALED for the same reason Notion hides
+ * them: a `+` and a `⋯` on every row is four permanent glyphs of chrome in a
+ * 256px column, and they are the least likely thing in it to be wanted.
+ * `group-focus-within` is what keeps them reachable from the keyboard.
  */
 const ROW =
-  "flex w-full items-center gap-1 rounded-sm pr-1 transition-colors duration-100 ease-standard";
+  "group/row flex w-full items-center gap-2 rounded-sm pr-1 pl-2 transition-colors duration-100 ease-standard";
 const ROW_IDLE = "text-text-muted hover:bg-surface-sunken";
 const ROW_ACTIVE = "bg-surface";
-const LINK = "flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left text-sm";
+const LINK = "flex min-w-0 flex-1 items-center py-1.5 text-left text-sm";
 const ICON_BUTTON =
   "size-6 rounded-sm text-text-subtle hover:bg-surface-sunken hover:text-text";
+
+/* The shared 16px slot. `grid place-items-center` stacks the icon and the
+   chevron on one another so neither is in the other's flow, and the fade is on
+   opacity alone — a swap that moved anything would shift the label beside it. */
+const SLOT =
+  "relative grid size-4 shrink-0 place-items-center rounded-xs text-current before:absolute before:-inset-1.5 before:content-['']";
+const SWAP = "transition-opacity duration-100 ease-standard";
+const AT_REST = "group-hover/row:opacity-0 group-focus-within/row:opacity-0";
+const ON_HOVER =
+  "absolute opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100";
+/* Revealed with the row. Not `hidden` — a control that is not in the layout
+   until hover makes the row's contents jump as the pointer arrives. */
+const ROW_ACTION = "opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100";
 
 /* Same row geometry as the real list — py-1 on 16px text is 24px — so the
    boundary resolving does not shift the nav under the cursor. */
@@ -76,13 +112,12 @@ export function SidebarTreeItem({
           aria-controls={open ? listId : undefined}
           aria-label={`${open ? "Collapse" : "Expand"} ${item.label}`}
           onClick={() => setOpen(!open)}
-          className={cn("ml-1 inline-flex shrink-0", ICON_BUTTON)}
+          className={SLOT}
         >
+          <Icon className={cn("size-4", SWAP, AT_REST)} />
           <ChevronDownIcon
-            className={cn(
-              "size-3.5 transition-transform duration-100 ease-standard",
-              !open && "-rotate-90",
-            )}
+            aria-hidden="true"
+            className={cn("size-3.5", SWAP, ON_HOVER, !open && "-rotate-90")}
           />
         </button>
 
@@ -95,14 +130,13 @@ export function SidebarTreeItem({
           onClick={() => setMobileSidebarOpen(false)}
           className={cn(LINK, active && "font-medium text-text")}
         >
-          <Icon className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
         </Link>
 
         <LockedControl
-          reason="Creating a project is not built yet"
+          reason="Creating a project from the sidebar is not built yet"
           label={`New project in ${item.label}`}
-          className={ICON_BUTTON}
+          className={cn(ICON_BUTTON, ROW_ACTION)}
         >
           <PlusIcon className="size-3.5" />
         </LockedControl>
@@ -110,7 +144,7 @@ export function SidebarTreeItem({
         <LockedControl
           reason="These actions are not built yet"
           label={`${item.label} actions`}
-          className={ICON_BUTTON}
+          className={cn(ICON_BUTTON, ROW_ACTION)}
         >
           <MoreIcon className="size-3.5" />
         </LockedControl>

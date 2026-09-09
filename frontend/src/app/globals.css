@@ -482,6 +482,66 @@
    `::-webkit-scrollbar` is what older WebKit and Safari still read. Reaching
    for this at all is a deliberate trade — a hidden scrollbar is a hidden
    affordance, so use it only where something else advertises the scroll. */
+/* --------------------------------------------------------------------------
+   PROJECT VIEW PREFERENCES — the payload of `ProjectsPrefsScope`.
+
+   That component reads `localStorage` and writes attributes onto ONE wrapper;
+   these rules are what the attributes actually do. The alternative was a prop
+   threaded into five views' worth of `<tr>`s and turning every one of them
+   into a Client Component to change a padding.
+
+   UNLAYERED ON PURPOSE. Tailwind's utilities live in `@layer utilities`, and an
+   unlayered rule beats every layered one regardless of specificity — so these
+   win over the `py-2` and `truncate` written on the elements without needing
+   `!important` or a specificity race. `:where()` keeps them from adding
+   specificity of their own, so a caller that genuinely needs different padding
+   can still say so with an ordinary utility.
+   -------------------------------------------------------------------------- */
+
+/* Row height, over the Active and All tables. */
+[data-density="compact"] :where(td, th) {
+  padding-top: calc(var(--spacing) * 1);
+  padding-bottom: calc(var(--spacing) * 1);
+}
+
+/* Long names: `truncate` is the default and is written on the element, so only
+   the WRAP case needs a rule. `max-width` has to go with it — the cap is what
+   truncation was clipping against, and leaving it would wrap the name into a
+   tall narrow column instead of letting it use the cell. */
+[data-names="wrap"] :where([data-project-name]) {
+  overflow: visible;
+  max-width: none;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* Board card contents. Each toggle hides one real element.
+
+   The ELEMENT hooks are named apart from the WRAPPER attributes on purpose —
+   `data-card-people-stack` inside `[data-card-people="off"]`, never the same
+   name twice. A descendant selector whose two halves share an attribute name
+   works, but it reads as a typo and one careless nesting would make it one. */
+[data-card-status="off"] :where([data-card-status-chip]) {
+  display: none;
+}
+
+[data-card-people="off"] :where([data-card-people-stack]) {
+  display: none;
+}
+
+[data-card-key="off"] :where([data-card-key-text]) {
+  display: none;
+}
+
+/* With the chip and the people both off, the row that held them is an empty
+   8px gap under the name — so the row goes too, rather than leaving the card
+   looking bottom-padded by accident. The key sits in that same row, so it
+   keeps the row alive on its own. */
+[data-card-status="off"][data-card-people="off"][data-card-key="off"]
+  :where([data-card-meta]) {
+  display: none;
+}
+
 @utility scrollbar-hidden {
   scrollbar-width: none;
 

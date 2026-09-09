@@ -8,11 +8,12 @@ import {
  * The board's column map — which project ids sit in which status column, in
  * which order — and how the server's version and the user's are reconciled.
  *
- * `@dnd-kit/react`'s sortable is CONTROLLED by a `Record<column, ids>`, which
- * it mutates through the `move()` helper as a card is dragged. That map is
- * client state; the projects it describes come from the server on every
- * revalidation. Keeping the two in step is this module's whole job, and it is
- * done by DERIVING rather than by syncing:
+ * The board renders from a `Record<column, ids>`, and `place()` below is what
+ * a drop writes into it — one call, on release, where the old @dnd-kit build
+ * called the library's `move()` on every frame of the drag. That map is client
+ * state; the projects it describes come from the server on every revalidation.
+ * Keeping the two in step is this module's whole job, and it is done by
+ * DERIVING rather than by syncing:
  *
  *   reconcile(base, stored)
  *
@@ -102,6 +103,36 @@ export function reconcile(base: ColumnMap, stored: ColumnMap | null): ColumnMap 
 
   /* Same board, same object — see `sameColumns`. */
   return sameColumns(columns, stored) ? stored : columns;
+}
+
+/**
+ * The map with one card moved to `index` of `status` — what a drop commits.
+ *
+ * Removed from EVERY column before it is inserted, rather than only from the
+ * one it is believed to be in. A card the map lists twice is the bug this
+ * shape can actually have (a revalidation landing mid-gesture), and a filter
+ * over all six columns costs nothing and cannot express it.
+ *
+ * The index is clamped rather than trusted: it was resolved from geometry
+ * frozen at the press (`lib/board-drag.ts`), and the column may have gained or
+ * lost a card since.
+ */
+export function place(
+  columns: ColumnMap,
+  projectId: string,
+  status: ProjectStatus,
+  index: number,
+): ColumnMap {
+  const next = {} as ColumnMap;
+
+  for (const column of PROJECT_STATUSES) {
+    next[column] = columns[column].filter((id) => id !== projectId);
+  }
+
+  const at = Math.max(0, Math.min(index, next[status].length));
+  next[status] = [...next[status].slice(0, at), projectId, ...next[status].slice(at)];
+
+  return next;
 }
 
 /** Which column a project is in, or `null` for one the map has never heard of. */

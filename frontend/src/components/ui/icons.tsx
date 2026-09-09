@@ -87,6 +87,15 @@ export function CheckIcon(props: IconProps) {
   );
 }
 
+/** The universal dismiss. Two strokes, so it inherits `Icon`'s round caps rather than looking like a letter. */
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </Icon>
+  );
+}
+
 export function SettingsIcon(props: IconProps) {
   return (
     <Icon {...props}>

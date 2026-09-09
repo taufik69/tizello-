@@ -112,7 +112,7 @@ against demo data in `src/lib/`, never that a backend is wired.
 | Language   | TypeScript (strict)                           |
 | Styling    | Tailwind CSS v4 — CSS-first config, no `tailwind.config.js` |
 | Font       | Inter, via `next/font/google`                 |
-| Drag & drop| **Two, on purpose.** `@dnd-kit/react` + `@dnd-kit/helpers` (projects board) · `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board) — see below |
+| Drag & drop| **Two, on purpose.** Hand-rolled (projects board) · `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board) — see below |
 | Alias      | `@/*` → `src/*`                               |
 
 ```bash
@@ -121,19 +121,38 @@ npm run build
 npm run lint
 ```
 
-### Why two drag-and-drop libraries
+### Why two drag-and-drop implementations
 
-`@dnd-kit/react` is dnd-kit's newer API — a `DragDropProvider`, a `useSortable`
-that takes `index` + `group`, and a `move()` helper that returns the next
-column map. It sorts the REAL cards out of each other's way during a drag,
-where the older `core` + `sortable` pair needs a hand-drawn placeholder to say
-the same thing.
+**The projects board (`?view=board`) is hand-rolled.** It was on
+`@dnd-kit/react` and that is what caused its worst bug: the library's sortable
+is CONTROLLED, so the column map had to be mutated on every `dragover`. The
+list reordered under the pointer, each reorder re-measured, and a re-measure
+could resolve to a different target than the one that produced it — the cards
+in the hovered column shuffled continuously for as long as a card was held.
+Four attempts at damping that loop each removed one feeder and left the loop
+standing, because the loop was the architecture.
 
-The projects board (`?view=board`) is on the new one. The sprint board is still
-on the old one and works; migrating it is a separate job, not a side effect of
-this one. **Do not add a third**, and prefer `@dnd-kit/react` for anything new.
+The replacement inverts the rule: **nothing moves in the layout until the
+drop.** Boxes are measured once at the press; every frame after resolves a
+target against those frozen numbers and expresses it as `transform` only, which
+composites and reflows nothing. State is written once, on release. A feedback
+loop needs feedback, and there is none.
 
-It is `0.5.0` — pre-1.0, so the API can move between minors. Pin it.
+| File | Role |
+| --- | --- |
+| `src/lib/board-drag.ts` | pure geometry — snapshot types, `resolveTarget`, `cardOffsets` |
+| `src/components/projects/use-project-board-dnd.ts` | the pointer: measure, listen, move the carried card |
+| `src/lib/project-board-order.ts` | the column map, and `place()` — what a drop commits |
+| `src/components/projects/use-board-pan.ts` | grab the background, pan the rail |
+
+**The sprint board is still on `@dnd-kit/core` + `@dnd-kit/sortable`** and
+works. It is a different gesture over a different model — three fixed columns
+with a real `position` field to persist — and it does not have the projects
+board's problem. Leave it alone; migrating it is its own job.
+
+**Do not add a drag-and-drop library to the projects board again.** If the
+hand-rolled version needs a feature it lacks (auto-scroll at the rail's edges,
+multi-select), add it to the files above.
 
 ## Design system
 

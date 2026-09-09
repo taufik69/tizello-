@@ -26,9 +26,17 @@ import type { ProjectRecord } from "@/types/project";
  * button (`z-10`), which is why the grip was the only place a drag started —
  * a symptom that looks like a handle bug and is not one.
  *
- * Turning the native behaviour off is the fix rather than intercepting
- * `dragstart`: dnd-kit already calls `preventDefault` there, and it does not
- * help, because `pointercancel` is dispatched first.
+ * `draggable={false}` outlived the library that needed it and is still right:
+ * the board's own drag (`lib/board-drag.ts`) uses pointer events, and a native
+ * link-drag competing for the same press would still cancel them.
+ *
+ * THE META ROW IS THREE OPTIONAL PARTS. A board card is 272px wide and the
+ * useful thing about it differs by team — some want the key to quote in
+ * standup, some want faces, some want neither and a wall of names. Each part
+ * carries a `data-card-*` attribute and is hidden by a CSS rule keyed on the
+ * gear's stored preference (`projects-prefs-scope.tsx`), so all three toggles
+ * cost this component three attributes and no props. The row itself carries one
+ * too, because with all three off it would be an empty 8px gap.
  */
 export function ProjectBoardCard({ project }: { project: ProjectRecord }) {
   return (
@@ -49,9 +57,25 @@ export function ProjectBoardCard({ project }: { project: ProjectRecord }) {
         </Link>
       </p>
 
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <ProjectStatusBadge status={project.status} />
-        <CollaboratorStack collaborators={project.collaborators ?? []} hideWhenEmpty />
+      <div data-card-meta className="mt-2 flex items-center gap-2">
+        <span data-card-status-chip>
+          <ProjectStatusBadge status={project.status} />
+        </span>
+
+        <span
+          data-card-key-text
+          className="font-mono text-2xs tracking-wide text-text-subtle"
+        >
+          {project.key}
+        </span>
+
+        {/* `ms-auto` rather than `justify-between` on the row: with the chip
+            hidden, space-between would leave the faces stranded on the LEFT
+            where every other card has them on the right. Pushing off the
+            preceding content keeps them at the end whatever survives. */}
+        <span data-card-people-stack className="ms-auto">
+          <CollaboratorStack collaborators={project.collaborators ?? []} hideWhenEmpty />
+        </span>
       </div>
     </article>
   );

@@ -1,61 +1,49 @@
 import type { ProjectScope } from "@/components/projects/project-properties";
-import { SettingsIcon } from "@/components/ui/icons";
 import { CreateProjectButton } from "@/components/projects/create-project-button";
-import { LockedControl } from "@/components/ui/locked-control";
-import { SearchIcon } from "@/components/ui/nav-icons";
-import { FilterIcon, SortIcon } from "@/components/ui/table-icons";
+import { ProjectsDisplayMenu } from "@/components/projects/projects-display-menu";
+import { ProjectsFilterMenu } from "@/components/projects/projects-filter-menu";
+import { ProjectsSearch } from "@/components/projects/projects-search";
+import { ProjectsSortMenu } from "@/components/projects/projects-sort-menu";
+import type { ProjectFilters } from "@/lib/project-filters";
+import type { ProjectView } from "@/types/project";
 
 /*
- * The right-aligned controls above every view.
+ * The right-aligned controls above every view. All four work now.
  *
- * The four on the left do not work, and each is a `LockedControl` rather than
- * a `<button>` with no handler: the reason travels as a tooltip, as the tail
- * of the accessible name and as the dim, and inertness is the contract rather
- * than something the next caller has to remember.
+ * They were `LockedControl`s — present, self-explaining and inert — because no
+ * endpoint backed them. Three of the four turned out to be already backed:
+ * `GET /workspaces/:id/projects` takes `status`, `priority`, `q` and `mine`
+ * (`lib/projects.ts`), so filtering and search are round trips this toolbar
+ * simply had not been wired to build. Sorting is the exception and is done
+ * client-side, which `lib/project-sort.ts` explains and bounds.
  *
- * New is the exception and no longer locked: `POST /workspaces/:id/projects`
- * exists, so it is a real button in its own client leaf. Everything beside it
- * is still inert because no endpoint backs it — filtering and search would
- * mean `?status=` / `?q=` round trips this toolbar does not build yet, even
- * though `lib/projects.ts` already accepts both.
+ * THREE OF THESE WRITE THE URL AND ONE WRITES `localStorage`, which is the
+ * split worth noticing. Filter, Sort and Search change WHICH projects are on
+ * screen, so they belong in a link someone can send; the gear changes how this
+ * person's own screen is laid out, which nobody should inherit from a pasted
+ * URL. `project-filters.ts` and `project-density.ts` hold the two halves.
+ *
+ * THIS FILE IS STILL A SERVER COMPONENT. Each control is its own client leaf,
+ * so the strip itself ships no JavaScript and the `filters` it hands down are
+ * the ones the page already parsed — one parser for one URL.
  */
-const ICON = "size-7 rounded-sm text-text-muted";
+export function ProjectsToolbar({
+  scope,
+  view,
+  filters,
+}: {
+  scope: ProjectScope;
+  view: ProjectView;
+  filters: ProjectFilters;
+}) {
+  const shared = { workspaceId: scope.workspaceId, view, filters };
 
-export function ProjectsToolbar({ scope }: { scope: ProjectScope }) {
   return (
     <div className="flex shrink-0 items-center gap-0.5">
-      <LockedControl
-        reason="Filtering is not built yet"
-        label="Filter projects"
-        className={ICON}
-      >
-        <FilterIcon className="size-3.5" />
-      </LockedControl>
-
-      <LockedControl
-        reason="Sorting is not built yet"
-        label="Sort projects"
-        className={ICON}
-      >
-        <SortIcon className="size-3.5" />
-      </LockedControl>
-
-      <LockedControl
-        reason="Search is not built yet"
-        label="Search projects"
-        className={ICON}
-      >
-        <SearchIcon className="size-3.5" />
-      </LockedControl>
-
-      <LockedControl
-        reason="View settings are not built yet"
-        label="View settings"
-        className={ICON}
-      >
-        <SettingsIcon className="size-3.5" />
-      </LockedControl>
-
+      <ProjectsFilterMenu {...shared} />
+      <ProjectsSortMenu {...shared} />
+      <ProjectsSearch {...shared} />
+      <ProjectsDisplayMenu />
       <CreateProjectButton scope={scope} />
     </div>
   );

@@ -13,18 +13,17 @@ import {
  * `PATCH /projects/:id` with a new status — the one thing a drop on the board
  * actually persists.
  *
- * Split from the board because the board is now composition and a drag
- * library: `@dnd-kit/react` owns the optimistic move (and reverts it itself on
- * a cancelled drag), so all that is left here is the write and what to do when
- * it is refused.
+ * Split from the board because the board is composition and a gesture:
+ * `use-project-board-dnd.ts` owns the pointer and `lib/project-board-order.ts`
+ * owns the map a drop writes into, so all that is left here is the write and
+ * what to do when it is refused.
  *
- * A FAILED WRITE IS A TOAST, NOT A REVERT, and that is a deliberate change from
- * the hand-rolled version. The card's position is now controlled state the
- * library has already committed; yanking it back mid-animation fights the
- * transition that just played. The revalidation that follows any refusal
- * carries the server's real status, and `reconcile` puts the card back — so
- * the correction arrives on its own, a beat later, without a second animation
- * arguing with the first.
+ * A FAILED WRITE IS A TOAST, NOT A REVERT. By the time this can fail, the drop
+ * has already committed the card's new column to client state and the slide
+ * has played; yanking it back would be a second animation arguing with the
+ * first. The revalidation that follows any refusal carries the server's real
+ * status, and `reconcile` puts the card back — so the correction arrives on its
+ * own, a beat later, and only if it is actually needed.
  */
 export function useProjectStatusWrite(workspaceId: string) {
   const [, startTransition] = useTransition();

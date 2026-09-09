@@ -1,7 +1,6 @@
 "use client";
 
-import { CollisionPriority } from "@dnd-kit/abstract";
-import { useDroppable } from "@dnd-kit/react";
+import type { BoardDrag } from "@/components/projects/use-project-board-dnd";
 import type { ProjectScope } from "@/components/projects/project-properties";
 import { NewProjectTrigger } from "@/components/projects/new-project-trigger";
 import { SortableProjectCard } from "@/components/projects/sortable-project-card";
@@ -13,78 +12,71 @@ import { STATUS_LABEL } from "@/lib/project-groups";
 import type { ProjectRecord, ProjectStatus } from "@/types/project";
 
 /*
- * One kanban column, and the drop target inside it.
+ * One kanban column, and the drop zone inside it.
  *
  * `w-list` is Trello's 272px, the same width every other column in this app
  * uses.
  *
- * THE DROPPABLE IS THE TRACK, NOT THE SECTION. The heading has to stay
- * untinted — its status dot needs `bg-surface` under it to clear 3:1
- * (DESIGN-SYSTEM.md) — so scoping the droppable to the track is what lets the
- * track light up while the heading holds still, and it stops a drop landing on
- * a heading, which means nothing.
- *
- * `CollisionPriority.Low` is what makes the cards win. A column's box contains
- * every card in it, so without this the column and the card under the cursor
- * collide equally and the sort never resolves to a position — the card would
- * only ever land at the end. Low priority means the column is consulted when
- * no card is: over the gaps, and over an EMPTY column, which is the case it
- * exists for.
+ * THERE IS NO DROPPABLE HERE ANY MORE. A column used to register itself with
+ * @dnd-kit and be told when it was the target; now `lib/board-drag.ts` resolves
+ * the target from geometry the board measured once, and this component is told
+ * the answer. `data-column` and `data-cards` are what that measurement reads —
+ * the section for the column's horizontal span, the list for where its cards
+ * begin, which an EMPTY column has no card to supply.
  *
  * `STATUS_BAR` is reused for the lit state rather than a new pair: it is
  * already "a tinted fill for recognition, a hairline in the strong token for
  * the edge", measured against `surface`, which is exactly this job.
  *
- * `min-h-28` IS THE FIX FOR A CARD THAT SHOOK ON ITS WAY IN, and the loop it
- * breaks is worth writing down because nothing about it is visible in the
- * styling:
- *
- *   card enters an empty column → the empty state unmounts → the track shrinks
- *   → its bottom edge passes back above the cursor → the card is no longer
- *   over the column → it leaves → the empty state returns → the track grows →
- *   the cursor is inside again → repeat, every frame.
- *
- * A minimum tall enough to hold one card means the track's box does not change
- * when its contents do, so the collision that started the move cannot be
- * undone by the move itself. Only `transition`s that never affect layout are
- * allowed on it, for the same reason.
+ * `min-h-28` KEEPS AN EMPTY COLUMN A TARGET WORTH AIMING AT. Its older job was
+ * breaking a feedback loop — a track that shrank when its empty state
+ * unmounted moved its own bottom edge out from under the cursor, undoing the
+ * collision that started the move. That loop is gone by construction now
+ * (nothing reflows mid-drag), but a 0px-tall drop zone is still a bad one.
  */
 const TRACK =
-  "flex min-h-28 flex-col gap-2 rounded-md border border-transparent p-1 transition-[background-color,border-color,box-shadow] duration-100 ease-standard";
+  "flex min-h-28 flex-col rounded-md border border-transparent p-1 transition-[background-color,border-color,box-shadow] duration-100 ease-standard";
 
 export function ProjectBoardColumn({
   status,
   projects,
   scope,
   canMove,
-  dragging,
+  drag,
+  onPointerDown,
 }: {
   status: ProjectStatus;
   /** Already in the column map's order — see `lib/project-board-order.ts`. */
   projects: ProjectRecord[];
   scope: ProjectScope;
-  /** Decides which cards offer a handle — see `SortableProjectCard`. */
+  /** Decides which cards can be picked up — see `SortableProjectCard`. */
   canMove: (project: ProjectRecord) => boolean;
-  /** Anything at all is being dragged — dims the columns that are not the target. */
-  dragging: boolean;
+  /** The drag in progress, or `null`. Non-null in every column at once. */
+  drag: BoardDrag | null;
+  onPointerDown: (event: React.PointerEvent<HTMLElement>, id: string) => void;
 }) {
   const headingId = `board-column-${status}`;
-  const { ref, isDropTarget } = useDroppable({
-    id: status,
-    type: "column",
-    accept: "item",
-    collisionPriority: CollisionPriority.Low,
-  });
+  const isDropTarget = drag?.target.status === status;
+  const holdsCarried = Boolean(drag && projects.some((project) => project.id === drag.id));
 
   return (
     <section
+      data-column={status}
       aria-labelledby={headingId}
       className={cn(
         "flex w-list shrink-0 flex-col gap-2 transition-opacity duration-100 ease-standard",
         /* The columns that are not the answer step back. Not hidden and not
            disabled — a drag can still change its mind — just quiet enough that
            the live one is the thing on screen. */
-        dragging && !isDropTarget && "opacity-60",
+        drag && !isDropTarget && !holdsCarried && "opacity-60",
+        /* THE COLUMN HOLDING THE CARRIED CARD IS NEVER DIMMED, and the reason
+           is stacking rather than taste: `opacity` below 1 creates a stacking
+           context, which would trap the lifted card inside this column and
+           let the columns to its right paint OVER it — so a card dragged
+           rightwards would slide underneath the cards it was aimed at. It is
+           raised instead, so it paints above every sibling wherever it
+           travels. */
+        holdsCarried && "relative z-30",
       )}
     >
       <h3 id={headingId} className="flex items-center gap-1.5 px-0.5">
@@ -98,12 +90,11 @@ export function ProjectBoardColumn({
       </h3>
 
       <div
-        ref={ref}
         className={cn(
-          /* `flex-1` absorbs the column's stretched height, so the track — the
-             droppable — is the full height of the rail rather than only as
-             tall as its cards. Dropping into the empty space below the last
-             card therefore works, which is where people aim. */
+          /* `flex-1` absorbs the column's stretched height, so the zone is the
+             full height of the rail rather than only as tall as its cards —
+             which is what makes a drop into the empty space below the last
+             card land, and that is where people aim. */
           "relative flex-1",
           TRACK,
           isDropTarget && STATUS_BAR[status],
@@ -111,10 +102,8 @@ export function ProjectBoardColumn({
         )}
       >
         {projects.length === 0 && (
-          /* `absolute`, so it occupies no space at all. Unmounting it — or
-             letting it take height — would resize the track the instant a card
-             arrived, which is the loop `min-h-28` above exists to break. It
-             fades instead. */
+          /* `absolute`, so it takes no space and cannot change the geometry
+             the drag was measured against. It fades rather than unmounting. */
           <p
             className={cn(
               "pointer-events-none absolute inset-1 grid place-items-center rounded-md border border-dashed text-center text-xs transition-opacity duration-100 ease-standard",
@@ -127,24 +116,17 @@ export function ProjectBoardColumn({
           </p>
         )}
 
-        {/* NO `gap` HERE — the spacing is `pb-2` INSIDE each `<li>`
-            (`sortable-project-card.tsx`), and that is a collision fix rather
-            than a styling preference. A gap is a strip where no card is under
-            the pointer, so the column's own droppable wins it
-            (`CollisionPriority.Low`) and resolves to "end of column", while
-            one pixel either side a card wins and resolves to "at this index".
-            Dragging across a column alternated between the two every frame,
-            which is what made the cards in it jump. Padding inside the `<li>`
-            puts the gap INSIDE the measured box, so the cards tile
-            continuously and the column is the target only below the last one,
-            which is the case it exists for. */}
-        <ul className="flex flex-col">
-          {projects.map((project, index) => (
+        {/* NO `gap` — the spacing is `pb-2` inside each card's own box, so the
+            measured cards tile with no strip between them. */}
+        <ul data-cards className="flex flex-col">
+          {projects.map((project) => (
             <SortableProjectCard
               key={project.id}
               project={project}
-              index={index}
+              offset={drag ? (drag.offsets.get(project.id) ?? 0) : undefined}
+              lifted={drag?.id === project.id}
               canMove={canMove(project)}
+              onPointerDown={onPointerDown}
             />
           ))}
         </ul>

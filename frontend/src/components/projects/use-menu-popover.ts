@@ -16,6 +16,12 @@ import { useEffect, useState, type RefObject } from "react";
  * menu", the innermost thing open, and without stopping it the drawer's own
  * handler closes the whole panel out from under the user.
  *
+ * `align` decides which of the panel's edges is pinned to the trigger.
+ * `"start"` is the default and is right for a menu hanging off a control at the
+ * start of a row; `"end"` is for a trigger flush against the viewport's right
+ * margin, where a panel opening rightwards would run off the page and then be
+ * clamped back — landing somewhere that reads as unrelated to the button.
+ *
  * `height` is passed rather than measured because the panel has no intrinsic
  * size before it is shown, and measuring after `showPopover()` would place it
  * once at 0,0 first — a visible jump. `width` is the same measurement and
@@ -32,6 +38,7 @@ export function useMenuPopover({
   panelRef,
   height,
   width = DEFAULT_WIDTH,
+  align = "start",
   onDismiss,
 }: {
   open: boolean;
@@ -40,6 +47,8 @@ export function useMenuPopover({
   height: number;
   /** Defaults to 272 — the width every menu panel in these drawers is. */
   width?: number;
+  /** Which panel edge lines up with the trigger. See the note above. */
+  align?: "start" | "end";
   onDismiss: () => void;
 }) {
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -62,7 +71,8 @@ export function useMenuPopover({
         MARGIN,
         Math.min(flip ? rect.top - height - 4 : below, window.innerHeight - height - MARGIN),
       );
-      const left = Math.max(MARGIN, Math.min(rect.left, window.innerWidth - width - MARGIN));
+      const anchored = align === "end" ? rect.right - width : rect.left;
+      const left = Math.max(MARGIN, Math.min(anchored, window.innerWidth - width - MARGIN));
 
       /* THE SAME POSITION MUST BE THE SAME OBJECT, or this effect is a render
          loop: every caller passes an inline `onDismiss`, so a new identity on
@@ -96,7 +106,7 @@ export function useMenuPopover({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [open, triggerRef, panelRef, height, width, onDismiss]);
+  }, [open, triggerRef, panelRef, height, width, align, onDismiss]);
 
   return position;
 }

@@ -17,12 +17,20 @@ import type { ProjectRecord } from "@/types/project";
  * `max-w-*` plus `truncate` rather than wrapping: a 52-character project name,
  * left alone, would push the columns after it off the screen instead of
  * scrolling with them.
+ *
+ * `data-project-name` IS THE OPT-OUT HANDLE. Truncating is the default and is
+ * the right default, but it hides information — a name that differs from
+ * another only past the ellipsis is unreadable — so the gear offers wrapping,
+ * and `globals.css` undoes the cap and the clip through this attribute rather
+ * than through a prop threaded down to every table row. See
+ * `projects-prefs-scope.tsx`.
  */
 export function ProjectNameCell({ project }: { project: ProjectRecord }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5">
       <ProjectGlyph icon={project.icon} color={project.color} size="sm" />
       <Link
+        data-project-name
         href={`/workspaces/${project.workspaceId}/projects/${project.id}`}
         className="min-w-0 max-w-56 truncate font-medium text-text after:absolute after:inset-0"
       >

@@ -4,6 +4,7 @@ import {
   PROJECT_VIEW_TAB,
   projectsHref,
 } from "@/lib/project-view";
+import type { ProjectFilters } from "@/lib/project-filters";
 import { PROJECT_VIEWS, type ProjectView } from "@/types/project";
 
 /*
@@ -31,12 +32,14 @@ const IDLE =
 export function ProjectsViewNav({
   workspaceId,
   view,
-  archived,
+  filters,
 }: {
   workspaceId: string;
   view: ProjectView;
-  archived: boolean;
+  /** Carried into every link, so switching a view never widens the result. */
+  filters: ProjectFilters;
 }) {
+  const { archived } = filters;
   return (
     <nav aria-label="Project views" className="min-w-0">
       <ul className="scrollbar-board flex items-center gap-1 overflow-x-auto">
@@ -48,7 +51,7 @@ export function ProjectsViewNav({
           return (
             <li key={value}>
               <Link
-                href={projectsHref(workspaceId, value)}
+                href={projectsHref(workspaceId, value, { ...filters, archived: false })}
                 aria-current={current ? "page" : undefined}
                 aria-label={PROJECT_VIEW_LABEL[value]}
                 className={current ? ACTIVE : IDLE}
@@ -64,7 +67,7 @@ export function ProjectsViewNav({
             other list by the API, so this is the only route back to one. */}
         <li>
           <Link
-            href={projectsHref(workspaceId, view, { archived: true })}
+            href={projectsHref(workspaceId, view, { ...filters, archived: true })}
             aria-current={archived ? "page" : undefined}
             aria-label="Projects that have been archived."
             className={archived ? ACTIVE : IDLE}
