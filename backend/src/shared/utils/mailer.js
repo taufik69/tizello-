@@ -42,7 +42,7 @@ import { createLogger } from '../../config/logger.js';
 
 const log = createLogger('mailer');
 
-const { user, password, host, port, secure, fromName } = config.mail;
+const { user, password, host, port, secure, fromName, maxConnections } = config.mail;
 
 /**
  * True when both credentials are present.
@@ -73,11 +73,18 @@ const transporter = nodemailer.createTransport({
   secure,
   auth: { user, pass: password },
   // Reuse one connection across jobs rather than reconnecting per send.
-  // `maxConnections: 1` keeps the worker to a single SMTP session — Gmail is
-  // strict about concurrent connections per account, and email is not the
-  // throughput bottleneck of anything here.
+  //
+  // **This is the real ceiling on email throughput, not `worker.concurrency`.**
+  // Nodemailer serialises sends through the pool, so a worker at concurrency 5
+  // with one connection still sends one message at a time — the other four wait
+  // inside the pool rather than inside BullMQ. Raising the worker's concurrency
+  // without raising this parallelises only the database half of each job.
+  //
+  // It stays 1 by default anyway, because Gmail counts concurrent connections
+  // per account and starts refusing them: a throughput tweak that trips that
+  // limit produces failed jobs, which is strictly worse than a slower queue.
   pool: true,
-  maxConnections: 1,
+  maxConnections,
   maxMessages: 100,
 });
 

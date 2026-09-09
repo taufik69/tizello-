@@ -120,6 +120,27 @@ const config = {
     // any other string, including 'false', is truthy on its own.
     secure: process.env.SMTP_SECURE === 'true',
     fromName: process.env.MAIL_FROM_NAME || 'Tizello',
+    // How many SMTP connections the pool may open. **One by default, and that
+    // is the ceiling on email throughput regardless of `worker.concurrency`
+    // below** — Nodemailer serialises sends through the pool, so ten workers
+    // sharing one connection still send one at a time. Raise it only if the
+    // relay allows it: Gmail counts concurrent connections per account and
+    // starts refusing them, which turns a throughput tweak into failed jobs.
+    maxConnections: Number(process.env.MAIL_MAX_CONNECTIONS) || 1,
+  },
+
+  // Background workers (src/workers/). `npm run worker` runs every worker in
+  // one process; see src/workers/index.js for why one process rather than one
+  // per worker.
+  worker: {
+    // How many jobs ONE worker takes at a time. 5 rather than 1 because a job
+    // is mostly waiting — a Postgres read, then an SMTP round-trip — and a
+    // worker at concurrency 1 idles through both while a queue backs up.
+    //
+    // For email specifically, the useful ceiling is `mail.maxConnections`
+    // above: past that, the extra jobs queue inside Nodemailer's pool instead
+    // of inside BullMQ, which is the same waiting in a place with no metrics.
+    concurrency: Number(process.env.WORKER_CONCURRENCY) || 5,
   },
   // OAuth provider credentials (plan §5, sprint 5). Absent from
   // REQUIRED_ENV_VARS on purpose: a developer with no provider keys must

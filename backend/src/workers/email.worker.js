@@ -218,11 +218,21 @@ const processEmailJob = async (job) => {
 // the entrypoint's `await`s have run, so the startup checks would race the
 // first job instead of gating it, and a worker with unusable SMTP credentials
 // would drain the queue into failed jobs while still "starting up".
-// run-email-worker.js calls `emailWorker.run()` once those checks pass.
+// src/workers/index.js calls `emailWorker.run()` once the checks in
+// registry.js pass.
 const emailWorker = new Worker(EMAIL_QUEUE_NAME, processEmailJob, {
   connection,
   // Must match the producer's prefix — see email.queue.js.
   prefix: EMAIL_QUEUE_PREFIX,
+  // How many jobs this worker holds at once. A job is mostly waiting — a
+  // Postgres read of the row, then an SMTP round-trip — so at concurrency 1 the
+  // worker idles through both while the queue grows.
+  //
+  // The useful ceiling here is `config.mail.maxConnections`, NOT this number:
+  // Nodemailer serialises sends through its pool, so past that the extra jobs
+  // wait inside the pool instead of inside BullMQ. Raising this alone makes the
+  // database half of each job parallel and the send half no faster.
+  concurrency: config.worker.concurrency,
   autorun: false,
 });
 
