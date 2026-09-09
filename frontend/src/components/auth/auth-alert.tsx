@@ -22,8 +22,18 @@ import { toast } from "sonner";
  * box is the persistent visual one (and the only place `EMAIL_NOT_VERIFIED`'s
  * resend link lives, which a toast has no room for and which must survive
  * longer than a toast's few seconds on screen).
+ *
+ * `email` is optional and only feeds that resend link. Without it `/verify-email`
+ * opens on its "tell us where to send a code" step and asks for an address the
+ * user just typed one field above — so the sign-in form passes what it has.
  */
-export function AuthAlert({ state }: { state: AuthFormState }) {
+export function AuthAlert({
+  state,
+  email,
+}: {
+  state: AuthFormState;
+  email?: string;
+}) {
   // Keyed on `state`, not on `state.code` alone. `useActionState` returns a
   // fresh object on every dispatch, but a code is a primitive string —
   // submitting the same wrong password twice returns the identical string
@@ -45,7 +55,14 @@ export function AuthAlert({ state }: { state: AuthFormState }) {
       {code === "EMAIL_NOT_VERIFIED" && (
         <>
           {" "}
-          <Link href="/verify-email" className="font-semibold underline">
+          <Link
+            href={
+              email
+                ? `/verify-email?email=${encodeURIComponent(email)}`
+                : "/verify-email"
+            }
+            className="font-semibold underline"
+          >
             Resend code
           </Link>
         </>

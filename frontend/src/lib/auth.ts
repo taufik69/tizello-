@@ -115,14 +115,26 @@ export async function register(input: {
  * code and take the same time — splitting them would turn this into an
  * enumeration oracle (spec §8). That parity is enforced on the server; this
  * function must not add a branch that reintroduces it.
+ *
+ * `inviteToken` stands in for email verification, and for nothing else: the API
+ * checks the password first, then accepts the token as proof of the address it
+ * was mailed to. It is what lets someone who registered before their invitation
+ * arrived sign in at all — otherwise login refuses them as unverified and the
+ * accept screen that would verify them sits behind the session login will not
+ * issue. A token that does not name this address changes nothing.
  */
 export async function login(input: {
   email: string;
   password: string;
+  inviteToken?: string;
 }): Promise<AuthResult> {
   const result = await apiCall<{ user: User }>("/auth/login", {
     method: "POST",
-    body: { email: normaliseEmail(input.email), password: input.password },
+    body: {
+      email: normaliseEmail(input.email),
+      password: input.password,
+      ...(input.inviteToken ? { inviteToken: input.inviteToken } : {}),
+    },
     forwardCookies: true,
   });
 

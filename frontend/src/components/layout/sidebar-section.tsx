@@ -62,8 +62,9 @@ export function SidebarSection({
           /* Sub-views only mean something once the parent has a destination
              to hang them off; without one the item is disabled anyway. And a
              disclosure needs somewhere to disclose to — collapsed, the group
-             renders as the plain item it wraps, since its children are the
-             same `?view=` links the page's own view strip already offers. */
+             renders as the plain item it wraps, since its children are either
+             the `?view=` links the page's own view strip offers or routes
+             already reachable from the page itself. */
           if (item.children && href && !collapsed) {
             return (
               <SidebarTreeItem
@@ -71,6 +72,11 @@ export function SidebarSection({
                 item={item}
                 href={href}
                 active={active}
+                pathname={pathname}
+                /* `+` and `⋯` are Projects' operations — "new project",
+                   "project actions". A group of fixed workflow screens owns
+                   neither, and drawing them would promise both. */
+                rowActions={item.id === "projects"}
               />
             );
           }

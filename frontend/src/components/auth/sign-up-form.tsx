@@ -24,14 +24,22 @@ const EMPTY: AuthFormState = {};
  *
  * `noValidate` hands validation to us — the browser's own bubbles cannot be
  * styled, positioned or announced the way the rest of the form is.
+ *
+ * `inviteToken` travels as a hidden field rather than being read back through
+ * `useSearchParams`: a Server Action only ever sees the FormData, so anything
+ * it needs has to be in the form.
  */
-export function SignUpForm() {
+export function SignUpForm({ inviteToken }: { inviteToken?: string }) {
   const [state, formAction, pending] = useActionState(signUpAction, EMPTY);
   const [score, setScore] = useState(0);
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
       <AuthAlert state={state} />
+
+      {inviteToken ? (
+        <input type="hidden" name="inviteToken" value={inviteToken} />
+      ) : null}
 
       <TextField
         label="Full name"

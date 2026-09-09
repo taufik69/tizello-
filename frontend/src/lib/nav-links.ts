@@ -53,6 +53,43 @@ const PROJECT_VIEW_CHILDREN: readonly SidebarChildItem[] = PROJECT_VIEWS.map(
   }),
 );
 
+/*
+ * The three screens under Sprint board.
+ *
+ * **They are project-scoped and the sidebar has no project**, which is the
+ * whole difficulty. `resolveHref` solves the same problem for workspace-scoped
+ * ITEMS by reading the id out of the pathname; a child cannot do that, because
+ * this list is built once at module scope and a child carries a literal href.
+ *
+ * So they are written against the fixture project for now, exactly as the flat
+ * Sprints and Sprint planning items were before this became a group — the same
+ * TEMP note applies, and deleting `DEMO_PROJECT_ID` is what will force this to
+ * be resolved per-render like the items above it.
+ *
+ * `Current sprint` points at `/board/sprint`, the same place the parent does.
+ * That is deliberate: the parent is the group's name AND its default screen,
+ * and the child is what marks it current once the group is open.
+ * `SidebarTreeItem` already hands `aria-current` down to the child for exactly
+ * this reason.
+ *
+ * **Three, and the sprint LIST is not one of them.** These are the screens of a
+ * sprint in flight — plan it, work it, and the pool the unplanned work sits in
+ * — which is the workflow in `.claude/rules/workflow.md`. `/sprints` is the
+ * administrative list of every sprint a project has ever had: a different job,
+ * visited when a sprint is created or closed rather than during one, and it is
+ * still reachable from the project itself. Putting it here made the group read
+ * as "everything with the word sprint in it" instead of as one workflow.
+ */
+const PLANNING_CHILDREN: readonly SidebarChildItem[] = [
+  { id: "current-sprint", label: "Current sprint", href: "/board/sprint" },
+  {
+    id: "sprint-planning",
+    label: "Sprint planning",
+    href: `/workspaces/${DEMO_WORKSPACE_ID}/projects/${DEMO_PROJECT_ID}/sprint-planning`,
+  },
+  { id: "backlog", label: "Backlog", href: "/board/backlog" },
+];
+
 export const PRIMARY_ITEMS: readonly SidebarItem[] = [
   { id: "home", label: "Home", icon: "home", href: "/workspaces" },
   {
@@ -99,37 +136,28 @@ export const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
     id: "planning",
     label: "Planning",
     items: [
-      {
-        id: "backlog",
-        label: "Backlog",
-        icon: "backlog",
-        href: "/board/backlog",
-      },
+      /*
+       * ONE GROUP, NOT FOUR SIBLINGS. These four rows are the sprint workflow
+       * in `.claude/rules/workflow.md` — backlog, plan, run, and the sprints
+       * behind it — and listing them flat said nothing about that. As a
+       * disclosure under Sprint board the shape says it: one thing you do, and
+       * the screens it is done on.
+       *
+       * The parent is the board rather than a heading of its own because it is
+       * the screen the workflow lives on — the one somebody returns to daily —
+       * and a group whose parent is not clickable makes the most-visited screen
+       * the hardest to reach.
+       *
+       * The children are ROUTES, not `?view=` params like Projects': these are
+       * four separate pages, not four views of one. `SidebarChildItem` carries
+       * either shape; see `types/nav.ts`.
+       */
       {
         id: "sprint-board",
         label: "Sprint board",
         icon: "sprint",
         href: "/board/sprint",
-      },
-      {
-        /* Per project: `/workspaces/[id]/projects/[id]/sprints`. TEMP-scoped
-           to the fixture project so the section is reachable. */
-        id: "sprints",
-        label: "Sprints",
-        icon: "sprint",
-        workspaceScoped: true,
-        workspaceSegment: `/projects/${DEMO_PROJECT_ID}/sprints`,
-        hint: "Open a project to see its sprints",
-      },
-      {
-        /* Per project: `/workspaces/[id]/projects/[id]/sprint-planning`. TEMP-
-           scoped to the fixture project so the section is reachable. */
-        id: "sprint-planning",
-        label: "Sprint planning",
-        icon: "planning",
-        workspaceScoped: true,
-        workspaceSegment: `/projects/${DEMO_PROJECT_ID}/sprint-planning`,
-        hint: "Open a project to plan its sprint",
+        children: PLANNING_CHILDREN,
       },
     ],
   },

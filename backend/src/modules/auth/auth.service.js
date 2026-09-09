@@ -272,8 +272,12 @@ const resendRegistrationCode = async ({ email }) => {
  * The verified check comes *after* the password check on purpose — telling an
  * anonymous caller "this address exists but is unverified" before they have
  * proved they own the password is the same leak by another route.
+ *
+ * `inviteToken` is the one thing that stands in for verification here, and
+ * only for an address the invitation was actually sent to. See the block on
+ * that branch below.
  */
-const login = async ({ email, password, userAgent, ip }) => {
+const login = async ({ email, password, inviteToken, userAgent, ip }) => {
   const user = await repository.findUserByEmail(email);
 
   const passwordMatches = await verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
@@ -286,7 +290,29 @@ const login = async ({ email, password, userAgent, ip }) => {
     );
   }
 
-  if (!user.emailVerifiedAt) {
+  // --- The invited path, for an account that already exists (§8.4) ---
+  //
+  // An invitation token mailed to this address and handed back here proves it,
+  // exactly as a verification code would — the claim `acceptInvitation` and
+  // `verifyLoginCodeAndSignIn` both already act on. Without this branch an
+  // invited user who happened to register first is stuck: login refuses them
+  // as unverified, and the accept screen that would have verified them is
+  // behind the session login will not issue.
+  //
+  // Note where it sits: strictly AFTER the password check, so the token grants
+  // nothing on its own. It substitutes for verification and for nothing else —
+  // a correct token with a wrong password has already thrown above.
+  let verifiedUser = user;
+
+  if (!user.emailVerifiedAt && inviteToken) {
+    const proves = await invitationService.tokenProvesEmail({ token: inviteToken, email });
+
+    if (proves) {
+      verifiedUser = await repository.updateUser(user.id, { emailVerifiedAt: new Date() });
+    }
+  }
+
+  if (!verifiedUser.emailVerifiedAt) {
     throw new AppError(
       httpStatus.FORBIDDEN,
       'Verify your email to continue',
@@ -294,9 +320,9 @@ const login = async ({ email, password, userAgent, ip }) => {
     );
   }
 
-  const tokens = await issueSession({ user, userAgent, ip });
+  const tokens = await issueSession({ user: verifiedUser, userAgent, ip });
 
-  return { user: dto.toUser(user), tokens };
+  return { user: dto.toUser(verifiedUser), tokens };
 };
 
 /* ── Login codes: the DEFAULT sign-in path ───────────────────────────────

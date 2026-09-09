@@ -69,7 +69,10 @@ export function SignInForm({ next }: { next?: string }) {
       <input type="hidden" name="mode" value={mode} />
       {step === 2 && remember && <input type="hidden" name="remember" value="on" />}
 
-      <AuthAlert state={state} />
+      {/* The address is in local state by the time any of this can fail, so an
+          EMAIL_NOT_VERIFIED here can hand its resend link a real one instead of
+          bouncing to a screen that asks for it again. */}
+      <AuthAlert state={state} email={email || undefined} />
 
       {/* Keyed on the step AND the mode so a swap remounts — which is what
           re-runs `auth-enter`. Each step already owns its own focus, so the

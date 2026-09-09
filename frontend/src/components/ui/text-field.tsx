@@ -20,7 +20,7 @@ export type TextFieldProps = {
      component because the anatomy is identical — 12px/600 label, 36px control,
      11px message — and the validate-on-blur timing below applies unchanged to
      a date the user typed rather than picked. */
-  type?: "text" | "email" | "password" | "date";
+  type?: "text" | "email" | "password" | "date" | "tel";
   autoComplete?: string;
   defaultValue?: string;
   /**

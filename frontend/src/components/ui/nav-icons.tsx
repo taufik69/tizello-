@@ -45,6 +45,17 @@ export function MembersIcon(props: IconProps) {
   );
 }
 
+/** One person, for the account menu's link to `/profile`. `MembersIcon` is the
+ *  two-person glyph and means a roster; this one means you. */
+export function PersonIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="5.5" r="3" />
+      <path d="M2.5 14a5.5 5.5 0 0111 0" />
+    </Icon>
+  );
+}
+
 export function BacklogIcon(props: IconProps) {
   return (
     <Icon {...props}>

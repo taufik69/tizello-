@@ -3,14 +3,15 @@
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDropdownMenu } from "@/components/ui/dropdown-menu-context";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronDownIcon } from "@/components/ui/icons";
-import { SignOutIcon } from "@/components/ui/nav-icons";
+import { PersonIcon, SignOutIcon } from "@/components/ui/nav-icons";
 import { signOutAction } from "@/lib/actions/auth-actions";
 import { initials } from "@/lib/initials";
 
@@ -46,7 +47,12 @@ function SignOutMenuItem() {
  * reference layout. Identity disc with a decorative "online" dot (this app
  * has no presence system; it is always shown, matching the reference rather
  * than claiming a status the app cannot back), a chevron, and a menu holding
- * the name and the way out.
+ * the name, the way to the profile, and the way out.
+ *
+ * `avatarSrc` is the profile photo when there is one; the initials underneath
+ * are what shows while it loads, if it fails, and for every account that has
+ * not set one. `name` here is already the display name — nickname first — so
+ * the disc and the menu label agree with what the profile page shows.
  *
  * The outer pill (`border border-border bg-surface`, `my-1.5 p-0.5` for the
  * same "leave the fixed-height strip room to show a real gap" reason as
@@ -56,7 +62,13 @@ function SignOutMenuItem() {
  * `bg-surface-sunken` alone doesn't read as a distinct disc against the
  * pill's `bg-surface`.
  */
-export function AccountMenuTrigger({ name }: { name: string }) {
+export function AccountMenuTrigger({
+  name,
+  avatarSrc,
+}: {
+  name: string;
+  avatarSrc: string | null;
+}) {
   return (
     <DropdownMenu className="my-1.5 rounded-full border border-border bg-surface p-0.5">
       <DropdownMenuTrigger
@@ -68,6 +80,7 @@ export function AccountMenuTrigger({ name }: { name: string }) {
             <AvatarFallback className="text-2xs">
               <span aria-hidden="true">{initials(name)}</span>
             </AvatarFallback>
+            {avatarSrc && <AvatarImage src={avatarSrc} alt="" />}
           </Avatar>
           <span
             aria-hidden="true"
@@ -80,6 +93,9 @@ export function AccountMenuTrigger({ name }: { name: string }) {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem href="/profile" icon={<PersonIcon className="size-4" />}>
+          Go to profile
+        </DropdownMenuItem>
         <SignOutMenuItem />
       </DropdownMenuContent>
     </DropdownMenu>

@@ -10,13 +10,25 @@
  * future XSS silently doubles. That is why it is a constant here rather than an
  * argument.
  *
- * The two cookies get different `sameSite` values on purpose:
- *   - access  → `lax`,    so a normal top-level navigation into the app is
- *                         still authenticated.
- *   - refresh → `strict`, because it is only ever sent by the app's own fetch
- *                         to one endpoint; no cross-site context has any
- *                         legitimate reason to trigger it, and `strict` closes
- *                         the CSRF path to token rotation.
+ * Both cookies are `sameSite: 'lax'`.
+ *
+ * The refresh cookie was `strict`, on the reasoning that no cross-site context
+ * has a legitimate reason to trigger token rotation. **OAuth is exactly such a
+ * context, and it broke the flow.** The provider redirects the browser to
+ * `/api/v1/auth/:provider/callback`, which is a cross-site navigation, so the
+ * browser silently dropped every `strict` cookie that response tried to set —
+ * no error, no warning. A user who signed in with Google got an access cookie
+ * that worked for fifteen minutes and no refresh cookie at all, and then was
+ * asked to log in again. Password sign-in hid the bug: that request is made
+ * server-to-server by Next, which re-sets the pair onto its own origin, so no
+ * cross-site rule applies.
+ *
+ * `lax` is not a meaningful loss here. It withholds the cookie from cross-site
+ * *subrequests* and from cross-site POSTs; it sends it only on a top-level
+ * navigation. `POST /api/v1/auth/refresh` is a POST, so the one CSRF shape
+ * `strict` was closing — a cross-site form or fetch rotating the session — is
+ * closed by `lax` on this route too. What changes is that the OAuth callback's
+ * own top-level navigation can now carry a `Set-Cookie` the browser keeps.
  *
  * Clearing must repeat the same `path`, `sameSite` and `domain` the cookie was
  * set with. A browser matches on those attributes, so a mismatched clear is a
@@ -63,7 +75,7 @@ const accessCookieOptions = {
 
 const refreshCookieOptions = {
   ...baseOptions,
-  sameSite: 'strict',
+  sameSite: 'lax',
   path: REFRESH_COOKIE_PATH,
   maxAge: config.auth.refreshTokenTtlDays * DAY,
 };
@@ -72,15 +84,44 @@ const refreshCookieOptions = {
  * Sets both cookies. Callers pass whichever they have — the OAuth callback and
  * every sign-in path set both, but a refresh rotation that only re-issues one
  * would pass one.
+ *
+ * `browserDirect` widens the refresh cookie's path to `/`, and exists for the
+ * OAuth callback alone.
+ *
+ * Every other sign-in is made by the Next server, which re-scopes the cookie
+ * onto its own origin before the browser ever sees it (`forwardSetCookies` in
+ * the frontend's api-client.ts, which rewrites any `/api/...` path to `/`).
+ * The narrow path is real protection there: the browser holds a `/`-scoped
+ * cookie for the *frontend* origin and never holds one for the API's.
+ *
+ * The OAuth callback is the one route the browser reaches directly, so nothing
+ * re-scopes it. Left at `/api/v1/auth/refresh`, the cookie is stored against a
+ * path the frontend never requests — the Next server cannot read it, cannot
+ * forward it, and the session dies with the access token fifteen minutes later,
+ * asking a user who just signed in with Google to sign in again.
  */
-const setAuthCookies = (res, { accessToken, refreshToken }) => {
+const setAuthCookies = (res, { accessToken, refreshToken }, { browserDirect = false } = {}) => {
   if (accessToken) res.cookie(ACCESS_COOKIE, accessToken, accessCookieOptions);
-  if (refreshToken) res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions);
+  if (refreshToken) {
+    res.cookie(
+      REFRESH_COOKIE,
+      refreshToken,
+      browserDirect ? { ...refreshCookieOptions, path: '/' } : refreshCookieOptions
+    );
+  }
 };
 
 /**
  * Clears both cookies, repeating the attributes they were set with (minus
  * `maxAge`, which `clearCookie` replaces with an expiry in the past).
+ *
+ * **The refresh cookie is cleared at BOTH paths.** A browser matches a clear on
+ * `path` as well as name, so a clear that names one path leaves a cookie set at
+ * the other in place — the user believes they signed out and the credential is
+ * still on the machine. Since `setAuthCookies({ browserDirect })` can write it
+ * at `/api/v1/auth/refresh` (every ordinary sign-in) or at `/` (the OAuth
+ * callback), and nothing here knows which one a given session used, both are
+ * cleared unconditionally. Clearing a path that holds no cookie is a no-op.
  */
 const clearAuthCookies = (res) => {
   const { maxAge: _accessMaxAge, ...accessAttributes } = accessCookieOptions;
@@ -88,6 +129,7 @@ const clearAuthCookies = (res) => {
 
   res.clearCookie(ACCESS_COOKIE, accessAttributes);
   res.clearCookie(REFRESH_COOKIE, refreshAttributes);
+  res.clearCookie(REFRESH_COOKIE, { ...refreshAttributes, path: '/' });
 };
 
 export {

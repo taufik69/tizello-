@@ -39,9 +39,13 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
         <AuthDivider label="or continue with" />
         <SocialButtons next={target ?? undefined} />
 
+        {/* `next` rides across to sign-up. Dropping it here breaks the invite
+            path specifically: an invited recipient has no account, so this is
+            the link they take, and `/sign-up` needs `?next=/invite/<token>` to
+            find the token that lets registration double as accepting. */}
         <AuthFooter
           prompt="New to Tizello?"
-          href="/sign-up"
+          href={target ? `/sign-up?next=${encodeURIComponent(target)}` : "/sign-up"}
           label="Create an account"
           secondaryHref="/forgot-password"
           secondaryLabel="Can&rsquo;t log in?"

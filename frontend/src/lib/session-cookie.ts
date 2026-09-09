@@ -11,9 +11,16 @@
 export const ACCESS_COOKIE = "tizello_access";
 
 /**
- * Scoped by the API to `path=/api/v1/auth/refresh`, so the browser sends it to
- * that one endpoint and nowhere else. Anything that re-scopes it to `/` throws
- * away the narrowest part of the session design.
+ * Scoped by the API to `path=/api/v1/auth/refresh` on the API's own origin, so
+ * a browser talking straight to the API sends it to that one endpoint.
+ *
+ * On *this* origin it is always `path=/`, and has to be: the browser talks to
+ * Next and Next talks to the API, so a cookie the browser will not attach to a
+ * page request is a cookie the server can never forward. `forwardSetCookies`
+ * in api-client.ts rewrites the path on every sign-in Next proxies, and the
+ * OAuth callback — the one route the browser reaches directly — writes `/`
+ * itself. Re-narrowing it here does not harden anything; it silently ends every
+ * session when the access token lapses fifteen minutes later.
  */
 export const REFRESH_COOKIE = "tizello_refresh";
 

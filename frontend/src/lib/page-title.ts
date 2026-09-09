@@ -10,6 +10,7 @@
 
 const PAGE_LABELS: Record<string, string> = {
   "/workspaces": "Workspaces",
+  "/profile": "Profile",
   "/board/backlog": "Backlog",
   "/board/sprint": "Sprint board",
 };

@@ -335,6 +335,45 @@ const applyInviteTokenOnRegister = async ({ token, user }, tx) => {
   }
 };
 
+/**
+ * Answers whether a raw token is a live invitation addressed to `email` —
+ * **the deadlock fix's other half**, for an account that already exists.
+ *
+ * `applyInviteTokenOnRegister` above covers the recipient with no account. It
+ * cannot help one who registered first and never verified, because `register`
+ * refuses a taken address long before a token is looked at:
+ *
+ * ```
+ * account exists, emailVerifiedAt null
+ *    → login → 403 EMAIL_NOT_VERIFIED
+ *       → cannot reach the accept screen, which is the one thing that
+ *         would have verified them (§6.3)
+ *          → waiting on a verification email sent before the invitation
+ * ```
+ *
+ * A token that was mailed to an address and came back proves that address —
+ * the same claim `acceptInvitation` and `verifyLoginCodeAndSignIn` already act
+ * on. This function makes that claim available to `login` without granting
+ * anything else: it reads, it does not accept the invitation, create a
+ * membership or write a session. The caller decides what the proof is worth.
+ *
+ * **Returns false rather than throwing**, on every failure including an
+ * unexpected one, so a bad token can only ever leave the caller's own rules in
+ * force — never turn a wrong password into a different error.
+ */
+const tokenProvesEmail = async ({ token, email }) => {
+  try {
+    const invitation = await repository.findByTokenHash(hashToken(token));
+
+    if (!invitation) return false;
+    if (dto.statusOf(invitation) !== dto.STATUS.PENDING) return false;
+
+    return invitation.email === email;
+  } catch {
+    return false;
+  }
+};
+
 export default {
   createInvitation,
   listInvitations,
@@ -344,4 +383,5 @@ export default {
   acceptInvitation,
   declineInvitation,
   applyInviteTokenOnRegister,
+  tokenProvesEmail,
 };

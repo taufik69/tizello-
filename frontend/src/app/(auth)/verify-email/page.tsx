@@ -20,6 +20,10 @@ export default async function VerifyEmailPage({
 }: PageProps<"/verify-email">) {
   const params = await searchParams;
   const email = typeof params.email === "string" ? params.email : undefined;
+  /* Set by `signUpAction` when registration carried an invitation token the API
+     would not apply — almost always because the account was created under a
+     different address than the one invited. */
+  const inviteUnapplied = params.invite === "unapplied";
 
   return (
     <>
@@ -31,6 +35,17 @@ export default async function VerifyEmailPage({
             : "Tell us where to send a new code."
         }
       >
+        {inviteUnapplied && (
+          <p
+            role="status"
+            className="mb-4 rounded-sm border border-warning bg-warning-subtle px-3 py-2 text-2xs text-text"
+          >
+            Your account was created, but the invitation was not applied — it
+            was sent to a different address. Confirm this email, then open the
+            invitation link again to join.
+          </p>
+        )}
+
         {email ? <VerifyEmailCodeForm email={email} /> : <VerifyEmailRequestForm />}
       </AuthColumn>
 

@@ -9,6 +9,7 @@ import {
   requestLoginCode,
   verifyLoginCode,
 } from "@/lib/auth";
+import { inviteTokenFromNext } from "@/lib/invites";
 import { HOME, homeWithWelcome } from "@/lib/session-cookie";
 import {
   normaliseEmail,
@@ -40,6 +41,11 @@ export async function signUpAction(
   const name = String(formData.get("name") ?? "");
   const email = normaliseEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
+  /* Filled in by the hidden field the invite path adds — the raw token the
+     sign-up page pulled out of `?next=/invite/<token>`. Absent on an ordinary
+     sign-up, and the API treats a bad one as "not applied" rather than as a
+     failed registration. */
+  const inviteToken = String(formData.get("inviteToken") ?? "") || undefined;
 
   const errors: Record<string, string> = {};
   const nameError = validateName(name);
@@ -50,7 +56,7 @@ export async function signUpAction(
   if (passwordError) errors.password = passwordError;
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };
 
-  const result = await register({ name, email, password });
+  const result = await register({ name, email, password, inviteToken });
   if (!result.ok) {
     if (result.code === "EMAIL_TAKEN") {
       return field("email", AUTH_ERROR_COPY.EMAIL_TAKEN);
@@ -61,10 +67,38 @@ export async function signUpAction(
     return { code: result.code };
   }
 
+  /* An applied invitation is proof of the address — the token was delivered to
+     it and came back — so the API returns a verified account *and* a session.
+     Sending someone to `/verify-email` here is the deadlock the API's §6.4 note
+     describes: no verification email is ever sent on this path, so they would
+     wait on one that never arrives and `/login` would answer
+     EMAIL_NOT_VERIFIED. They are already signed in.
+
+     The destination is HOME, not `next`: `next` is the invitation page, and
+     the invitation has just been accepted, so sending them back there shows
+     the "you are already a member" state for something they never chose on
+     that screen. `homeWithWelcome()` is the same celebration every other
+     proven credential gets. */
+  if (result.inviteApplied) redirect(homeWithWelcome());
+
   /* Unverified accounts do not get a session — verification is a wall. The
      registration code was already sent as part of `register()`; this page
-     just collects it. */
-  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
+     just collects it.
+
+     `next` is deliberately dropped here. Carrying it would mean threading it
+     through the verify page, its code form and `verifyRegistrationCodeAction`,
+     and the only destination that currently sets one is `/invite/<token>` —
+     which is reachable again from the invite page once the address is
+     confirmed. Add it when a second caller needs it.
+
+     Reaching here *with* an `inviteToken` means the API declined to apply it,
+     and the ordinary reason is the address: an invitation is bound to the one
+     it was sent to, and the public lookup deliberately does not disclose it, so
+     the form cannot pre-fill or check it. The account is real and the
+     invitation is untouched — say so on the next screen rather than letting
+     someone verify their email and then wonder where the workspace went. */
+  const declined = inviteToken && !result.inviteApplied ? "&invite=unapplied" : "";
+  redirect(`/verify-email?email=${encodeURIComponent(email)}${declined}`);
 }
 
 /**
@@ -88,8 +122,13 @@ export async function signInAction(
   const emailError = validateEmail(email);
   if (emailError) return field("email", emailError);
 
+  /* Only the password path needs it. The code path already verifies the address
+     on its own — redeeming a code mailed there proves it — so a token would be
+     redundant there. */
+  const inviteToken = inviteTokenFromNext(next);
+
   const result = await (mode === "password"
-    ? passwordSignIn(email, String(formData.get("password") ?? ""))
+    ? passwordSignIn(email, String(formData.get("password") ?? ""), inviteToken)
     : codeSignIn(email, String(formData.get("code") ?? "")));
 
   if ("state" in result) return result.state;
@@ -111,11 +150,15 @@ export async function signInAction(
   redirect(next === HOME ? homeWithWelcome() : next);
 }
 
-async function passwordSignIn(email: string, password: string): Promise<StepResult> {
+async function passwordSignIn(
+  email: string,
+  password: string,
+  inviteToken?: string,
+): Promise<StepResult> {
   if (password.length === 0) {
     return { state: field("password", "Enter your password.") };
   }
-  const result = await login({ email, password });
+  const result = await login({ email, password, inviteToken });
   return result.ok ? { user: result.user } : { state: { code: result.code } };
 }
 

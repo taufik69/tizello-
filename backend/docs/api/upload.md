@@ -158,6 +158,13 @@ metadata currently lives inside a project's JSON where no index can reach it.
    cancels stays on disk, referenced by nothing. Deleting it would need the
    server to prove no project references it — a scan of every project's JSON on
    every abandoned upload. A sweep job is the eventual answer.
+
+   **Profile avatars are the exception, and show the shape of the fix.**
+   `user.service.js` unlinks a replaced avatar because that reference is one
+   column on one row: the old value is in hand before the update and nothing
+   else can point at it. What makes the general case hard is not deletion, it
+   is the *proof* — which a files table with a foreign key would make equally
+   free here. See `docs/api/user.md`.
 2. **Removing a file from a property detaches it; it does not delete the
    bytes**, for the same reason.
 3. **No per-file authorization**, and with the static mount, no authorization

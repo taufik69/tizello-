@@ -28,20 +28,41 @@ export const SIDEBAR_ICONS = [
 export type SidebarIconName = (typeof SIDEBAR_ICONS)[number];
 
 /**
- * One sub-view of a parent item's page, selected by a single search param — the
- * sidebar's mirror of that page's view strip. Plain data for the same reason
- * the items are: it crosses the server/client boundary as props.
+ * One child of a parent nav item. Plain data for the same reason the items are:
+ * it crosses the server/client boundary as props.
+ *
+ * **Two kinds, and they are told apart by which field is set.** Projects' five
+ * children are views of ONE page selected by `?view=`; Planning's three are
+ * separate routes under one heading. A child sets `param` or `href`, never
+ * both — the two answer "which one is current?" differently, and a child
+ * claiming both would have two answers.
  */
 export type SidebarChildItem = {
   id: string;
   label: string;
   /**
    * The param this child selects, e.g. `{ name: "view", value: "timeline" }`.
-   * Absent marks the page's DEFAULT view, which is written without a param —
-   * so that child is the current one whenever the param is missing or holds a
-   * value no sibling claims.
+   * Absent — on a `param`-style group — marks the page's DEFAULT view, which is
+   * written without a param, so that child is current whenever the param is
+   * missing or holds a value no sibling claims.
    */
   param?: { name: string; value: string };
+  /**
+   * A route of its own, for a group whose children are separate pages rather
+   * than views of the parent's. Current when it equals the pathname, so the
+   * parent's own href plays no part.
+   *
+   * Absent when the route does not exist yet, exactly as on `SidebarItem`: the
+   * child renders disabled rather than as a dead link.
+   */
+  href?: string;
+  /**
+   * Marks this child as a route-style one whose destination could not be
+   * resolved — no workspace open, no project in the URL. Set alongside a
+   * missing `href` so the renderer can tell "not built yet" from "nothing to
+   * scope it to", and surfaced as `title`.
+   */
+  hint?: string;
 };
 
 export type SidebarItem = {

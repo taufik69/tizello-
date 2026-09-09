@@ -118,22 +118,38 @@ leaving existing ones alone, so the environment cannot go below the spec's floor
 | Cookie | `sameSite` | `path` | Lifetime |
 |---|---|---|---|
 | `tizello_access` | `lax` | `/` | 15m |
-| `tizello_refresh` | `strict` | **`/api/v1/auth/refresh`** | 30d |
+| `tizello_refresh` | `lax` | **`/api/v1/auth/refresh`**, or `/` from the OAuth callback | 30d |
 
 Both are `httpOnly`; `secure` is derived from `NODE_ENV === 'production'` rather
 than configured, because a `Secure` cookie is silently dropped over plain http
 and local development is http — the symptom is "login does nothing".
 
-**The refresh cookie's `path` is the highest-value line in the design.** Scoped
-to the one endpoint that consumes it, the browser will not attach the refresh
-token anywhere else, so an XSS on any other route can neither read it (both are
-`httpOnly`) nor cause it to be sent somewhere observable. Widening it to `/`
-breaks no test and doubles the blast radius of every future XSS.
+**The refresh cookie's `path` is the highest-value line in the design**, and it
+holds for every sign-in the Next server proxies. Scoped to the one endpoint that
+consumes it, the browser will not attach the refresh token anywhere else, so an
+XSS on any other route can neither read it (both are `httpOnly`) nor cause it to
+be sent somewhere observable.
 
-`sameSite` differs between the two because their exposure differs: `lax` keeps a
-normal top-level navigation into the app authenticated, while the refresh cookie
-is only ever sent by the app's own `fetch` to one URL, so `strict` closes the
-CSRF path to rotation at no cost.
+**The OAuth callback is the exception, and has to be.** Every other sign-in is a
+server-to-server request from Next, which re-scopes the cookie onto its own
+origin before the browser sees it — the browser ends up holding a `/`-scoped
+cookie for the *frontend* and none at all for the API. The OAuth callback is the
+one route the browser reaches directly, so nothing re-scopes it: left narrow,
+the cookie is stored against a path the frontend never requests, the Next server
+cannot read or forward it, and the session dies with the access token fifteen
+minutes later. `setAuthCookies(res, tokens, { browserDirect: true })` writes `/`
+for that one caller. `clearAuthCookies` clears both paths, because a clear that
+names the wrong `path` is a silent no-op.
+
+**Both cookies are `lax`.** The refresh cookie was `strict`, on the reasoning
+that no cross-site context has a legitimate reason to rotate a session — but
+**OAuth is exactly such a context**. The provider's redirect into
+`/api/v1/auth/:provider/callback` is a cross-site navigation, so the browser
+dropped every `strict` cookie that response set, with no error: a user who
+signed in with Google was asked to sign in again as soon as the access token
+lapsed. `lax` costs nothing here, because `POST /api/v1/auth/refresh` is a POST
+and `lax` withholds the cookie from cross-site POSTs — the CSRF shape `strict`
+was closing on this route is closed either way.
 
 ---
 

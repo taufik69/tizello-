@@ -8,13 +8,25 @@ import { setMobileSidebarOpen } from "@/lib/sidebar";
 import type { SidebarChildItem } from "@/types/nav";
 
 /*
- * The expanded half of a sidebar group: one link per sub-view of the parent's
- * page, pointing at exactly the URLs the page's own view strip carries.
+ * The expanded half of a sidebar group.
  *
- * Which one is current is a question about `?view=`, so this reads
- * `useSearchParams` — and is therefore rendered inside a `<Suspense>` by
- * `SidebarTreeItem`, which is what keeps the reading from opting the whole
- * route out of prerendering.
+ * **It serves two kinds of group, and the difference is what "current" means.**
+ * Projects' children are views of one page selected by `?view=`, so the current
+ * one is decided by a search param. Planning's are separate routes under one
+ * heading, so the current one is decided by the pathname. A child declares
+ * which kind it is by setting `param` or `href`; the row rendering is identical
+ * either way, which is the point of putting both here rather than writing a
+ * near-copy of this file.
+ *
+ * The param reading is `useSearchParams`, so this is rendered inside a
+ * `<Suspense>` by `SidebarTreeItem` — which is what keeps that reading from
+ * opting the whole route out of prerendering. A route-style group pays that
+ * boundary for nothing, which is a cheaper price than two components.
+ *
+ * A route-style child with no `href` renders DISABLED rather than as a dead
+ * link, the same treatment `SidebarItem` gives an unresolvable item: Planning's
+ * children are project-scoped, and from a page with no project in the URL there
+ * is nothing to point them at.
  *
  * Still `<a>`s in a `<ul>`, never `role="tab"`: each one navigates.
  *
@@ -55,6 +67,10 @@ const BASE =
   "relative flex w-full items-center rounded-sm py-1 pr-2 pl-8 text-left text-xs transition-colors duration-100 ease-standard";
 const IDLE = "text-text-muted hover:bg-surface-sunken hover:text-text";
 const ACTIVE = "bg-surface font-medium text-text";
+/* `cursor-default` rather than `not-allowed`: the row is unavailable, not
+   forbidden, and the crossed circle reads as a refusal. Same call
+   `sidebar-item.tsx` makes. */
+const DISABLED = "cursor-default text-text-subtle opacity-60";
 
 const RAIL =
   "before:absolute before:top-0 before:-bottom-0.5 before:left-4 before:w-px before:bg-border before:content-['']";
@@ -68,36 +84,61 @@ export function SidebarSubNav({
   items,
   /** False when the parent's page is not the one on screen: nothing is current. */
   onPath,
+  /** Matched against a route-style child's own `href`. */
+  pathname,
 }: {
   id: string;
   labelledBy: string;
   parentHref: string;
   items: readonly SidebarChildItem[];
   onPath: boolean;
+  pathname: string;
 }) {
   const searchParams = useSearchParams();
 
-  /* Every child selects the same param, so the first one that names it names it
-     for all. `current` is what the URL asks for; `known` is whether any child
-     claims it — a junk `?view=nonsense` falls back to the default child, which
-     is exactly how the page parses it. */
+  /* Every param-style child selects the same param, so the first one that names
+     it names it for all. `current` is what the URL asks for; `known` is whether
+     any child claims it — a junk `?view=nonsense` falls back to the default
+     child, which is exactly how the page parses it. */
   const paramName = items.find((item) => item.param)?.param?.name;
   const current = paramName ? searchParams.get(paramName) : null;
   const known = items.some((item) => item.param?.value === current);
 
+  /* One group is one kind. Asked per list rather than per child so a group of
+     route-style children does not treat the first `href`-less one as "the
+     default view" — it has no default; it has a child that is not built yet. */
+  const routeStyle = items.some((item) => item.href);
+
   return (
     <ul id={id} aria-labelledby={labelledBy} className={LIST}>
       {items.map((item) => {
-        const active =
-          onPath && (item.param ? item.param.value === current : !known);
+        const active = routeStyle
+          ? item.href === pathname
+          : onPath && (item.param ? item.param.value === current : !known);
+
+        const rail = active ? RAIL_CURRENT : RAIL;
+
+        if (routeStyle && !item.href) {
+          return (
+            <li key={item.id}>
+              <span
+                aria-disabled="true"
+                title={item.hint}
+                className={cn(BASE, DISABLED, rail)}
+              >
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              </span>
+            </li>
+          );
+        }
 
         return (
           <li key={item.id}>
             <Link
-              href={childHref(parentHref, item)}
+              href={item.href ?? childHref(parentHref, item)}
               aria-current={active ? "page" : undefined}
               onClick={() => setMobileSidebarOpen(false)}
-              className={cn(BASE, active ? ACTIVE : IDLE, active ? RAIL_CURRENT : RAIL)}
+              className={cn(BASE, active ? ACTIVE : IDLE, rail)}
             >
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </Link>

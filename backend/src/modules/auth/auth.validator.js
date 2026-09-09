@@ -46,6 +46,11 @@ const loginSchema = Joi.object({
   // still correct. Shape validation belongs at registration, where it changes
   // what gets stored.
   password: Joi.string().max(128).required(),
+  // Same contract as `registerSchema`: shape only, never a reason to fail. It
+  // stands in for email verification when it names this address, and does
+  // nothing at all otherwise — the service checks, and a bad one leaves the
+  // ordinary EMAIL_NOT_VERIFIED in force.
+  inviteToken: Joi.string().max(200).optional(),
 });
 
 const requestCodeSchema = Joi.object({ email });

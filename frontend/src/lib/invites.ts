@@ -148,3 +148,25 @@ export async function declineInvitation(token: string): Promise<boolean> {
 
   return result.ok;
 }
+
+/**
+ * Pulls the raw invitation token back out of a `next` destination.
+ *
+ * `/invite/[token]` is the only route that carries one, and `InviteSignedOut`
+ * is what puts it there: an invited recipient reaches `/sign-up` as
+ * `?next=/invite/<token>`. Registering with that token attached is what breaks
+ * the invite deadlock — the API marks the account verified and returns a
+ * session, so there is no verification wall on a path that never sends a
+ * verification email.
+ *
+ * The argument must already have passed `safeNextPath`; this only reads the
+ * shape, it does not vouch for the destination. Returns undefined for every
+ * other route, so an ordinary sign-up is unaffected.
+ */
+export function inviteTokenFromNext(next: string | null | undefined) {
+  if (!next) return undefined;
+
+  const match = /^\/invite\/([^/?#]+)/.exec(next);
+
+  return match ? decodeURIComponent(match[1]) : undefined;
+}

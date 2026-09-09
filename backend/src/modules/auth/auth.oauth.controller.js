@@ -106,7 +106,10 @@ const callback = (provider) => (req, res, next) => {
           ip: req.ip ?? null,
         });
 
-        setAuthCookies(res, tokens);
+        // `browserDirect`: this is the one sign-in the browser performs against
+        // this origin itself, with no Next server in between to re-scope the
+        // refresh cookie. See setAuthCookies.
+        setAuthCookies(res, tokens, { browserDirect: true });
 
         return res.redirect(clientUrl(target));
       } catch (sessionError) {

@@ -16,6 +16,7 @@ import {
 import memberRoutes from "../modules/member/member.routes.js";
 import projectPropertyRoutes from "../modules/project/project-property.routes.js";
 import uploadRoutes from "../modules/upload/upload.routes.js";
+import userRoutes from "../modules/user/user.routes.js";
 import workspaceRoutes from "../modules/workspace/workspace.routes.js";
 
 const router = express.Router();
@@ -51,6 +52,7 @@ router.use("/api/v1/workspaces/:workspaceId/projects", projectWorkspaceRoutes);
 router.use("/api/v1/workspaces/:workspaceId/properties", projectPropertyRoutes);
 // Not workspace-scoped: a file is uploaded before it is attached to anything.
 router.use("/api/v1/uploads", uploadRoutes);
+router.use("/api/v1/users", userRoutes);
 router.use("/api/v1/workspaces", workspaceRoutes);
 
 export default router;

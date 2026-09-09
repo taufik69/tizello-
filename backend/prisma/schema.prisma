@@ -25,6 +25,16 @@ model User {
   id              String    @id @default(cuid())
   email           String    @unique
   name            String?
+  // Profile fields, all optional and all self-service (src/modules/user/).
+  // `nickname` is a display preference, not an identity: it is what the UI
+  // shows where there is room for one word, and it is deliberately NOT unique
+  // — two people may both go by "Sam", and enforcing otherwise would make a
+  // display preference behave like a username.
+  nickname        String?
+  phone           String?
+  // A path served by the public `/static` mount, not a full URL: the origin
+  // differs per environment, so storing one would pin the row to a deploy.
+  avatarUrl       String?
   // A nullable timestamp, never a boolean: "when was this proved" answers
   // every question "is this proved" does, and one more that matters during an
   // incident — how long ago. A boolean throws that away and cannot be
@@ -63,12 +73,12 @@ enum WorkspacePlan {
 }
 
 model Workspace {
-  id          String    @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   // Auto-generated from name at create time (slugify + numeric suffix on
   // collision), never accepted from the client — see docs/api/workspace.md
   // §slug generation. Unique so it can double as a URL segment later.
-  slug        String    @unique
+  slug        String  @unique
   description String?
   // A single emoji character, not an uploaded image — no file storage, no
   // image pipeline, and it renders everywhere a workspace name does without
@@ -98,9 +108,9 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships Membership[]
-  invitations Invitation[]
-  projects    Project[]
+  memberships  Membership[]
+  invitations  Invitation[]
+  projects     Project[]
   propertyDefs ProjectPropertyDef[]
 
   @@map("workspaces")
@@ -359,7 +369,7 @@ model Project {
   // transaction — `count(tasks) + 1` is wrong under concurrency and wrong
   // after any delete. Same schema-ahead-of-logic bargain as Workspace's
   // billing columns. Plan §2.3.
-  taskCounter Int           @default(0)
+  taskCounter Int @default(0)
 
   // Values for this workspace's user-defined properties: a { [defId]: value }
   // map. Json rather than a row per value because nothing queries inside it
@@ -371,26 +381,26 @@ model Project {
   // A key whose definition has been deleted is dead weight, not a bug: the DTO
   // emits a value only when its definition still exists, so deleting a
   // property is O(1) rather than a rewrite of every project (§2.4).
-  properties  Json?
+  properties Json?
 
   workspaceId String
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   // Restrict, not Cascade or SetNull: deleting a user who still owns projects
   // must fail loudly until ownership is transferred, rather than orphaning
   // them silently.
-  ownerId     String
-  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  ownerId String
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
 
-  members     ProjectMember[]
+  members ProjectMember[]
 
   // Archived is reversible (hidden from the default list); deletedAt is not.
   // Neither is `status` — three independent axes, three columns.
-  isArchived  Boolean       @default(false)
-  deletedAt   DateTime?
+  isArchived Boolean   @default(false)
+  deletedAt  DateTime?
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Key is unique per workspace, not globally: two teams may both want "WEB".
   // Named by Prisma as `workspaceId_key` — the constraint the P2002 retry in
