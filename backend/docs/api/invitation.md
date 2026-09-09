@@ -199,6 +199,34 @@ unreachable means **fail closed**, `429` with the standard envelope.
 
 ---
 
+## Getting the link in development — log-only mail
+
+With no `HOST_MAIL` / `HOST_APP_PASSWORD` and `NODE_ENV` anything but
+`production`, the email worker starts in **log-only mode**: `sendMail` writes the
+message — recipient, subject, and the plaintext body containing
+`CLIENT_ORIGIN/invite/<token>` — to the worker's log at `info` and returns
+without opening an SMTP transport. Read the token out of `npm run worker:email`
+and the accept flow works end to end with no inbox.
+
+Before this, a developer with no SMTP account had no path at all: `verifyMailer`
+exited the worker at boot, so no invitation email was ever attempted and the
+accept screen was unreachable.
+
+Two guards on the mode, both load-bearing:
+
+| Guard | Why |
+|---|---|
+| Never in production (`isMailLogOnly` checks `nodeEnv` as well as credentials) | Keyed on the missing credential alone, a production deploy that lost its SMTP secret would silently "deliver" every invitation to a log file and report success — the exact failure the startup check exists to prevent. |
+| `CLIENT_ORIGIN` must still be a real origin | A logged link built from `*` is as useless as a sent one. Still a hard boot failure in both modes. |
+
+The raw token lands in a log file in this mode, which is the one place these docs
+otherwise insist it must never go (§*Tokens*). That is the trade the
+not-production guard buys, and it is why the mode cannot be enabled by a single
+missing variable. See `src/shared/utils/mailer.js` and
+`.claude/plan/member.md` §2.7.
+
+---
+
 ## Caching
 
 Nothing here is cached. A stale pending-list would show an admin an invitation

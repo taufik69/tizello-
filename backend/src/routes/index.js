@@ -13,6 +13,7 @@ import {
   workspaceRouter as projectWorkspaceRoutes,
   projectRouter as projectRoutes,
 } from "../modules/project/project.routes.js";
+import memberRoutes from "../modules/member/member.routes.js";
 import projectPropertyRoutes from "../modules/project/project-property.routes.js";
 import uploadRoutes from "../modules/upload/upload.routes.js";
 import workspaceRoutes from "../modules/workspace/workspace.routes.js";
@@ -37,6 +38,12 @@ router.use("/api/v1/invitations", invitationTokenRoutes);
 // project's own globally unique id.
 router.use("/api/v1/projects", projectRoutes);
 router.use("/api/v1/workspaces/:workspaceId/invitations", invitationWorkspaceRoutes);
+// The roster and its writes. Workspace-scoped because `permission.js` resolves
+// the caller's membership from (userId, workspaceId). The GET moved here from
+// the workspace module unchanged — same path, same response — because the
+// roster's writes live in the member module, and a resource whose read is in
+// one module and whose writes are in another has two owners and therefore none.
+router.use("/api/v1/workspaces/:workspaceId/members", memberRoutes);
 router.use("/api/v1/workspaces/:workspaceId/projects", projectWorkspaceRoutes);
 // The workspace's project-database schema. Workspace-scoped rather than
 // project-scoped because a definition belongs to the workspace: adding one

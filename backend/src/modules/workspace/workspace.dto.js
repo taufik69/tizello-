@@ -29,22 +29,11 @@ const toWorkspace = (row, role) => ({
   updatedAt: row.updatedAt,
 });
 
-/**
- * One `Membership` row as the roster shows it.
- *
- * `id` is the membership, `userId` is the person — and `userId` is what every
- * other endpoint takes (adding a project member, transferring ownership), so a
- * client that confuses the two gets a 404 rather than silent nonsense.
+/*
+ * `toWorkspaceMember` lived here and is now `toMember` in
+ * `src/modules/member/member.dto.js`, unchanged. The roster's writes live in
+ * that module, and one response shape cannot have two owners.
  */
-const toWorkspaceMember = (row) => ({
-  id: row.id,
-  userId: row.userId,
-  role: row.role,
-  createdAt: row.createdAt,
-  ...(row.user
-    ? { user: { id: row.user.id, name: row.user.name, email: row.user.email } }
-    : {}),
-});
 
-export { toWorkspace, toWorkspaceMember };
-export default { toWorkspace, toWorkspaceMember };
+export { toWorkspace };
+export default { toWorkspace };

@@ -7,7 +7,7 @@ import { RoleCards } from "@/components/permissions/role-cards";
 import { RoleDialog } from "@/components/permissions/role-dialog";
 import { useRoles } from "@/components/permissions/use-roles";
 import type { PermissionGroup, RoleDefinition } from "@/types/permissions";
-import type { WorkspaceMember } from "@/types/workspace";
+import type { WorkspaceMember, WorkspaceRole } from "@/types/workspace";
 
 /*
  * The screen's one client boundary: the roles, the matrix and the roster all
@@ -24,11 +24,16 @@ export function PermissionsBoard({
   roles: initialRoles,
   members,
   currentUserId,
+  viewerRole,
+  workspaceId,
 }: {
   groups: PermissionGroup[];
   roles: RoleDefinition[];
   members: WorkspaceMember[];
   currentUserId: string;
+  /** The signed-in user's own role here — what decides whether the role selects are live. */
+  viewerRole: WorkspaceRole;
+  workspaceId: string;
 }) {
   const {
     roles,
@@ -39,7 +44,7 @@ export function PermissionsBoard({
     deleteRole,
     toggleAction,
     assignRole,
-  } = useRoles(initialRoles, members);
+  } = useRoles(initialRoles, members, workspaceId);
 
   const [editing, setEditing] = useState<RoleDefinition | null | undefined>();
   const actionCount = groups.reduce(
@@ -74,6 +79,7 @@ export function PermissionsBoard({
         roles={roles}
         assignments={assignments}
         currentUserId={currentUserId}
+        viewerRole={viewerRole}
         onAssign={assignRole}
       />
 

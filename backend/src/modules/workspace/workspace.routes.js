@@ -46,18 +46,10 @@ router.get(
 router.get('/:workspaceId', authGuard, loadMembership, asyncHandler(controller.getById));
 
 /*
- * The roster. `MEMBER_VIEW` rather than `WORKSPACE_VIEW`: every role holds
- * both, but naming the one this actually reads means a future change to who
- * may see the member list is a change to the permission table rather than to
- * this line.
+ * The roster is NOT here. `GET /workspaces/:workspaceId/members` moved to
+ * `src/modules/member/member.routes.js` — same path, same response — because
+ * that module owns the roster's writes too. See docs/api/member.md §1.
  */
-router.get(
-  '/:workspaceId/members',
-  authGuard,
-  loadMembership,
-  requirePermission(PERMISSIONS.MEMBER_VIEW),
-  asyncHandler(controller.listMembers)
-);
 
 router.patch(
   '/:workspaceId',

@@ -18,7 +18,22 @@
  * retry the job under the queue's exponential backoff; swallowing the error
  * here would mark a mail that was never delivered as completed.
  *
- * See .claude/rules/logging.md and src/queues/email.queue.js
+ * **Two modes.** With credentials, or in production, mail is sent over SMTP and
+ * a missing credential is a hard startup failure. Without credentials outside
+ * production — `isMailLogOnly()` — `sendMail` writes the message to the log
+ * instead of opening a transport, so the invitation and reset flows can be
+ * exercised end to end on a laptop with no SMTP account: the developer reads the
+ * link out of the worker's own output. That is the same bargain auth makes with
+ * dev codes, and it goes through the logger rather than `console.*`, which
+ * .claude/rules/logging.md forbids outright.
+ *
+ * Log-only mode NEVER applies in production. There, `HOST_MAIL` /
+ * `HOST_APP_PASSWORD` missing means the worker refuses to start — a worker that
+ * cannot send is worse than one that will not boot, because it drains the queue
+ * into failed jobs while looking healthy.
+ *
+ * See .claude/rules/logging.md, src/queues/email.queue.js
+ *      and .claude/plan/member.md §2.7
  */
 
 import nodemailer from 'nodemailer';
@@ -37,6 +52,17 @@ const { user, password, host, port, secure, fromName } = config.mail;
  * that reads like a network fault.
  */
 const isMailConfigured = () => Boolean(user && password);
+
+/**
+ * True when mail should be logged instead of sent: no credentials, and not
+ * production.
+ *
+ * The `nodeEnv` half is the whole safety of this feature. Keyed on the missing
+ * credential alone, a production deploy that lost its SMTP secret would silently
+ * "deliver" every invitation to a log file and report success — the exact failure
+ * the startup check exists to prevent. Both conditions, or neither.
+ */
+const isMailLogOnly = () => !isMailConfigured() && config.nodeEnv !== 'production';
 
 // Built even when unconfigured: an ESM module body runs at import time, and
 // throwing here would take down the process before the entrypoint could
@@ -64,6 +90,17 @@ const transporter = nodemailer.createTransport({
  * looking healthy.
  */
 const verifyMailer = async () => {
+  // Announced at `warn`, not `info`: every mail this process handles is about to
+  // go to a log file instead of a person, and that has to be visible in the
+  // scrollback when someone later asks why no invitation arrived.
+  if (isMailLogOnly()) {
+    log.warn(
+      { nodeEnv: config.nodeEnv },
+      'No SMTP credentials — mail is in LOG-ONLY mode. Messages, including invite and reset links, will be written to this log instead of sent.'
+    );
+    return;
+  }
+
   if (!isMailConfigured()) {
     throw new Error(
       'Missing HOST_MAIL / HOST_APP_PASSWORD. The email worker cannot send without them — see .env.example.'
@@ -87,6 +124,22 @@ const verifyMailer = async () => {
  * the caller asked for.
  */
 const sendMail = async ({ to, subject, html, text }) => {
+  // Log-only mode. The plaintext body is logged in full and ON PURPOSE: it is
+  // the only way to reach the invite or reset link without an inbox, and that is
+  // the entire reason this branch exists. It is gated on not-production (see
+  // `isMailLogOnly`) precisely because a live token in a log file is otherwise
+  // exactly what the redaction list in config/logger.js exists to prevent.
+  //
+  // `text`, never `html`: the templates supply both, and one is readable in a
+  // terminal while the other is a wall of markup around the same link.
+  if (isMailLogOnly()) {
+    log.info({ to, subject, body: text ?? '(no plaintext alternative)' }, 'Mail NOT sent (log-only mode)');
+
+    // Shaped like Nodemailer's info object so the worker's logging and any
+    // future caller that reads `messageId` behave identically in both modes.
+    return { messageId: 'log-only', accepted: [to], rejected: [], envelope: { to: [to] } };
+  }
+
   const info = await transporter.sendMail({
     from: `"${fromName}" <${user}>`,
     to,
@@ -112,5 +165,5 @@ const closeMailer = () => {
   transporter.close();
 };
 
-export { transporter, sendMail, verifyMailer, closeMailer, isMailConfigured };
+export { transporter, sendMail, verifyMailer, closeMailer, isMailConfigured, isMailLogOnly };
 export default transporter;

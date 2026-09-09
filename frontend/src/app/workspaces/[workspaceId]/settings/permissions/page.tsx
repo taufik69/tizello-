@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { PermissionsBoard } from "@/components/permissions/permissions-board";
 import { PermissionsPageHeader } from "@/components/permissions/permissions-page-header";
-import { getCurrentUser } from "@/lib/demo-data";
+import { getSession } from "@/lib/auth";
 import { getWorkspace } from "@/lib/workspaces";
-import { getWorkspaceMembers } from "@/lib/demo-members";
+import { getMembers } from "@/lib/members";
 import {
   getPermissionMatrix,
   getWorkspaceRoles,
@@ -37,12 +37,17 @@ export default async function PermissionsPage({
   if (!workspace) notFound();
 
   /* All four reads happen on the server and travel down as plain props. The
-     header ships no JavaScript; everything below it shares one state. */
-  const [groups, roles, members, currentUser] = await Promise.all([
+     header ships no JavaScript; everything below it shares one state.
+
+     The ROSTER is real (`GET /workspaces/:id/members`); the matrix and the role
+     list are still fixtures, because the API has three roles and no endpoint
+     for defining a fourth. See `use-roles.ts` for which half of this screen
+     persists. */
+  const [groups, roles, members, user] = await Promise.all([
     getPermissionMatrix(workspaceId),
     getWorkspaceRoles(workspaceId),
-    getWorkspaceMembers(workspaceId),
-    getCurrentUser(),
+    getMembers(workspaceId),
+    getSession(),
   ]);
 
   return (
@@ -52,7 +57,9 @@ export default async function PermissionsPage({
         groups={groups}
         roles={roles}
         members={members}
-        currentUserId={currentUser.id}
+        currentUserId={user?.id ?? ""}
+        viewerRole={workspace.role}
+        workspaceId={workspaceId}
       />
     </main>
   );

@@ -11,10 +11,10 @@ import {
   inviteMemberAction,
   revokeInvitationAction,
 } from "@/lib/actions/invitation-actions";
+import { useMemberMutations } from "@/components/members/use-member-mutations";
 import { inviteErrorCopy } from "@/lib/invite-error-copy";
 import { sortInvitations } from "@/lib/invite-sort";
 import { toast } from "sonner";
-import { sortMembers } from "@/lib/demo-members";
 import type {
   InvitableRole,
   PendingInvitation,
@@ -31,15 +31,15 @@ import type {
  * Both arrays live here rather than in their panels because the tab strip
  * renders their counts. The panels below own only their own dialogs.
  *
- * Invitations are REAL: invite and cancel call Server Actions, which call the
- * API and revalidate this route. The list is still held in state so the row
- * appears the instant the action resolves rather than after the router has
- * finished refetching — the revalidate is what makes it survive a reload, the
- * local update is what makes it feel immediate.
+ * **Everything on this screen is REAL.** Invite and cancel go through
+ * `invitation-actions.ts`; role change and remove go through `member-actions.ts`
+ * by way of `useMemberMutations`. Each action calls the API and revalidates this
+ * route, which is what makes a change survive a reload; each list is also held
+ * in state, which is what makes it immediate.
  *
- * Roster edits (role change, remove) are still `useState` only: there is no
- * member module on the API yet, so those endpoints do not exist. That is the
- * one thing on this screen that still does not persist.
+ * `viewerRole` is what decides whether a row's controls are drawn at all. It is
+ * a MIRROR of the API's permission table (`lib/roles.ts`) and draws controls
+ * only — `requirePermission` on the server is what allows anything.
  */
 const GROUP = "members";
 
@@ -47,38 +47,37 @@ export function MembersPanel({
   members: roster,
   invitations,
   currentUserId,
+  viewerRole,
   workspaceId,
   workspaceName,
 }: {
   members: WorkspaceMember[];
   invitations: PendingInvitation[];
   currentUserId: string;
+  /** The signed-in user's own role in this workspace, from `GET /workspaces/:id`. */
+  viewerRole: WorkspaceRole;
   workspaceId: string;
   workspaceName: string;
 }) {
   const [tab, setTab] = useState("members");
-  const [members, setMembers] = useState(roster);
   const [invites, setInvites] = useState(invitations);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [pendingRemoval, setPendingRemoval] = useState<WorkspaceMember | null>(
-    null,
-  );
   const [isPending, startTransition] = useTransition();
+
+  /* The roster and its two writes. Its own transition, so a slow role change
+     does not put the invite dialog's button into a pending state. */
+  const {
+    members,
+    pendingRemoval,
+    setPendingRemoval,
+    changeRole,
+    confirmRemoval,
+  } = useMemberMutations(roster, workspaceId);
 
   const tabs: TabDescriptor[] = [
     { value: "members", label: "Members", count: members.length },
     { value: "pending", label: "Pending", count: invites.length },
   ];
-
-  function changeRole(memberId: string, role: WorkspaceRole) {
-    setMembers((current) =>
-      sortMembers(
-        current.map((member) =>
-          member.id === memberId ? { ...member, role } : member,
-        ),
-      ),
-    );
-  }
 
   /* An invitation creates a PENDING row rather than a member: nobody has
      accepted, so nobody belongs on the roster yet.
@@ -137,13 +136,6 @@ export function MembersPanel({
     });
   }
 
-  function confirmRemoval() {
-    setMembers((current) =>
-      current.filter((member) => member.id !== pendingRemoval?.id),
-    );
-    setPendingRemoval(null);
-  }
-
   return (
     <section className="mt-8">
       <MembersToolbar
@@ -158,6 +150,7 @@ export function MembersPanel({
         <MembersList
           members={members}
           currentUserId={currentUserId}
+          viewerRole={viewerRole}
           onRoleChange={changeRole}
           onRemove={setPendingRemoval}
         />

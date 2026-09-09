@@ -45,8 +45,25 @@ against demo data in `src/lib/`, never that a backend is wired.
       its workspace from the API, so the ids in a switcher are the ids those
       pages accept; only their members / projects / sprint data is still
       fixture-backed.
-- [x] **Members** — roster, role menu, remove-with-confirm, invite dialog,
-      pending-invites tab, and the accept page at `/invite/[token]`.
+- [x] **Members** — full CRUD against the real API (`lib/members.ts` →
+      `backend/docs/api/member.md`, `lib/invites.ts` →
+      `backend/docs/api/invitation.md`), no fixtures left in the path.
+      `/workspaces/[workspaceId]/members` reads the real roster
+      (`GET .../members`, owner first, names falling back to the address's local
+      part for an account that never set one) and the real pending invitations,
+      over two tabs whose counts come from the two lists. Role change
+      (`PATCH .../members/:memberId`) is optimistic and rolls back on failure;
+      remove (`DELETE .../members/:memberId`) waits for the server, because its
+      `409` — a member who still owns projects — names those projects in the
+      toast. Both live in `use-member-mutations.ts` and go through
+      `lib/actions/member-actions.ts`, which revalidates this route *and* the
+      permissions screen. Invite, cancel and resend were already real; so is the
+      accept page at `/invite/[token]`. Controls are gated by
+      `canChangeMemberRole` / `canRemoveMember` in `lib/roles.ts` — a mirror of
+      the API's permission table, so role change draws live only for an OWNER
+      and remove for OWNER/ADMIN — plus a per-row lock with its own sentence for
+      the owner's row and your own row. There is deliberately no "add member":
+      the only way in is an invitation the recipient accepts.
 - [ ] **Projects** — `/workspaces/[workspaceId]/projects` renders five
       URL-driven views (`?view=active|timeline|board|all|status`) over
       `demo-projects.ts`, plus the grid and create dialog on the workspace page.
@@ -98,11 +115,17 @@ against demo data in `src/lib/`, never that a backend is wired.
 - [ ] **Permissions** — `/workspaces/[workspaceId]/settings/permissions` renders
       the three role cards, a read-only permissions matrix (14 actions in four
       areas × OWNER / ADMIN / MEMBER, from `demo-permissions.ts`) and a role
-      assignment list over the members fixture, with the owner locked and a
-      `Toast` confirming each change. It is presentation only: the matrix is
-      what the screen DRAWS, not what anything enforces. There is still no
-      permission helper, and no action anywhere is gated by role — every change
-      is `useState` and gone on refresh.
+      assignment list over the **real** roster. **The two halves of this screen
+      no longer have the same status**, which is the thing to know before
+      touching it: defining a role — create, edit, delete, every matrix cell —
+      is still `useState` over fixtures, because the API has exactly three roles
+      and no endpoint for a fourth, while assigning one of those three to a
+      member is a real `PATCH .../members/:memberId` through the same action the
+      members screen uses (`use-role-assignment.ts`). So a renamed role card is
+      gone on refresh and a changed member role is not. Assigning a *custom*
+      role is refused with a sentence rather than written, and the selects are
+      gated by `canChangeMemberRole` like the members screen. The matrix is
+      still what the screen DRAWS, never what anything enforces.
 
 ## Stack
 

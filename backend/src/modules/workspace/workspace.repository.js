@@ -78,23 +78,6 @@ const findWorkspacesForUser = async (userId, { page, limit, includeArchived }) =
   return { rows, total };
 };
 
-/**
- * Everyone in the workspace, owner first.
- *
- * `user` is selected down to three fields AT THE QUERY, not just in the DTO —
- * a roster must never be a route to `passwordHash` or `emailVerifiedAt`, and a
- * `select` guarantees that without trusting a later reader to remember.
- *
- * `Role` is declared OWNER, ADMIN, MEMBER and Postgres orders an enum by
- * declaration order, so `role: 'asc'` is most-privileged first without a CASE.
- */
-const findWorkspaceMembers = (workspaceId) =>
-  prisma.membership.findMany({
-    where: { workspaceId },
-    include: { user: { select: { id: true, name: true, email: true } } },
-    orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
-  });
-
 const updateWorkspace = (id, patch) => prisma.workspace.update({ where: { id }, data: patch });
 
 const setArchived = (id, isArchived) =>
@@ -109,7 +92,6 @@ export default {
   createWorkspaceWithOwner,
   findWorkspaceForMember,
   findWorkspacesForUser,
-  findWorkspaceMembers,
   updateWorkspace,
   setArchived,
   softDeleteWorkspace,

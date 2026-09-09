@@ -3,8 +3,9 @@
 import { MemberIdentity } from "@/components/members/member-identity";
 import { RoleSelect } from "@/components/permissions/role-select";
 import { cn } from "@/lib/cn";
+import { canChangeMemberRole } from "@/lib/roles";
 import type { RoleDefinition } from "@/types/permissions";
-import type { WorkspaceMember } from "@/types/workspace";
+import type { WorkspaceMember, WorkspaceRole } from "@/types/workspace";
 
 /*
  * The roster with one control on it. `MemberRow`'s kebab is deliberately
@@ -22,15 +23,23 @@ export function MemberRoleList({
   roles,
   assignments,
   currentUserId,
+  viewerRole,
   onAssign,
 }: {
   members: WorkspaceMember[];
   roles: RoleDefinition[];
-  /** Member id → role id. Local state; see `useRoles`. */
+  /** Member id → role id. Seeded from the API roster; see `useRoleAssignment`. */
   assignments: Record<string, string>;
   currentUserId: string;
+  viewerRole: WorkspaceRole;
   onAssign: (member: WorkspaceMember, role: RoleDefinition) => void;
 }) {
+  /* Same three locks as the members screen's rows, and the same mirror of the
+     API's table: the owner's role is changed by transferring ownership, you
+     cannot change your own, and only an OWNER holds `member:role:update`.
+     Resolved once — neither depends on the row. */
+  const mayChangeRole = canChangeMemberRole(viewerRole);
+
   return (
     <section className="mt-8">
       <h2 className="text-sm font-semibold text-text">Members</h2>
@@ -46,6 +55,7 @@ export function MemberRoleList({
             const role = roles.find((entry) => entry.id === roleId);
             if (!role) return null;
             const isOwner = role.id === "OWNER";
+            const isSelf = member.userId === currentUserId;
 
             return (
               <li key={member.id}>
@@ -64,7 +74,7 @@ export function MemberRoleList({
                       memberName={member.name}
                       role={role}
                       roles={roles}
-                      locked={isOwner}
+                      locked={isOwner || isSelf || !mayChangeRole}
                       onSelect={(next) => onAssign(member, next)}
                     />
                   </div>

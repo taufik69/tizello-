@@ -48,16 +48,10 @@ const archive = async (req, res) => {
   return ApiResponse.success(res, httpStatus.OK, 'Workspace updated', { workspace });
 };
 
-const listMembers = async (req, res) => {
-  const members = await service.listMembers(req.params.workspaceId);
-
-  return ApiResponse.success(res, httpStatus.OK, 'Members fetched', { members });
-};
-
 const remove = async (req, res) => {
   await service.deleteWorkspace(req.params.workspaceId, req.membership);
 
   return ApiResponse.success(res, httpStatus.OK, 'Workspace deleted', null);
 };
 
-export default { create, list, getById, listMembers, update, archive, remove };
+export default { create, list, getById, update, archive, remove };

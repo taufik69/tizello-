@@ -35,3 +35,23 @@ export function canUpdateWorkspace(role: WorkspaceRole): boolean {
 export function canDeleteWorkspace(role: WorkspaceRole): boolean {
   return role === "OWNER";
 }
+
+/**
+ * `PATCH /workspaces/:id/members/:memberId` — `MEMBER_ROLE_UPDATE`, **OWNER
+ * only**.
+ *
+ * Narrower than `canRemoveMember` below, which is not a typo in the mirror: an
+ * ADMIN who could grant ADMIN can mint peers at will, and since an ADMIN also
+ * holds `member:remove`, that pair is enough to reshape a workspace's
+ * administration without its owner. `backend/docs/api/member.md` §*Guards*
+ * records it as a decision and flags it as open, so if the API's table moves,
+ * this line moves with it — and the API is what enforces either way.
+ */
+export function canChangeMemberRole(role: WorkspaceRole): boolean {
+  return role === "OWNER";
+}
+
+/** `DELETE /workspaces/:id/members/:memberId` — `MEMBER_REMOVE`, OWNER and ADMIN. */
+export function canRemoveMember(role: WorkspaceRole): boolean {
+  return role === "OWNER" || role === "ADMIN";
+}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useRoleAssignment } from "@/components/permissions/use-role-assignment";
 import { draftRole } from "@/lib/demo-permissions";
 import type { RoleDefinition } from "@/types/permissions";
 import type { WorkspaceMember } from "@/types/workspace";
@@ -10,25 +11,30 @@ import type { WorkspaceMember } from "@/types/workspace";
  * Everything this screen can change, in one place: the role list, who holds
  * which role, and the confirmation chip.
  *
- * NOTHING PERSISTS. There is no API and no Server Action behind any of it —
- * state lives here and is gone on refresh. When the endpoints land each writer
- * below becomes one action call plus a revalidate, which is why they are
- * already named after them.
+ * **The two halves no longer have the same status.** Defining a role — create,
+ * edit, delete, and every cell of the matrix — is still fixture state, because
+ * the API has exactly three roles and no endpoint for a fourth. ASSIGNING one
+ * of those three to a member is real, and lives in `useRoleAssignment`, which
+ * calls `PATCH /workspaces/:id/members/:memberId` through the same action the
+ * members screen uses.
+ *
+ * So a role card's name changes and is gone on refresh; a member's role changes
+ * and stays. That is confusing, and it is the truth — writing a fourth role to
+ * an API with three would be worse.
  */
-
-/** Where holders of a deleted role land, and the fallback a new member gets. */
-const FALLBACK_ROLE = "MEMBER";
 
 export function useRoles(
   initialRoles: RoleDefinition[],
   members: WorkspaceMember[],
+  workspaceId: string,
 ) {
   const [roles, setRoles] = useState(initialRoles);
-  const [assignments, setAssignments] = useState<Record<string, string>>(() =>
-    Object.fromEntries(members.map((member) => [member.id, member.role])),
+
+  /* Who holds what, and the one write on this screen that reaches the API. */
+  const { assignments, assignRole, releaseRole, isPending } = useRoleAssignment(
+    members,
+    workspaceId,
   );
-  
-  /* Stable, so `Toast`'s dismiss timer is not re-armed on every render. */
 
   /* Derived, never authored: a card cannot quote a count the list disagrees
      with, and a role reassigned below updates both at once. */
@@ -58,14 +64,7 @@ export function useRoles(
   function deleteRole(role: RoleDefinition) {
     setRoles((current) => current.filter((entry) => entry.id !== role.id));
     /* Nobody is left holding a role that no longer exists. */
-    setAssignments((current) =>
-      Object.fromEntries(
-        Object.entries(current).map(([memberId, roleId]) => [
-          memberId,
-          roleId === role.id ? FALLBACK_ROLE : roleId,
-        ]),
-      ),
-    );
+    releaseRole(role.id);
     toast.success(`${role.name} deleted`);
   }
 
@@ -85,12 +84,6 @@ export function useRoles(
     );
   }
 
-  function assignRole(member: WorkspaceMember, role: RoleDefinition) {
-    if (assignments[member.id] === role.id) return;
-    setAssignments((current) => ({ ...current, [member.id]: role.id }));
-    toast.success(`${member.name} is now ${role.name}`);
-  }
-
   return {
     roles,
     assignments,
@@ -100,5 +93,6 @@ export function useRoles(
     deleteRole,
     toggleAction,
     assignRole,
+    isAssigning: isPending,
   };
 }

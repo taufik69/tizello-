@@ -11,6 +11,7 @@ import {
 import { CheckIcon, ChevronDownIcon } from "@/components/ui/icons";
 import { LockedControl } from "@/components/ui/locked-control";
 import { RoleBadge } from "@/components/workspace/role-badge";
+import { ROLE_LABEL } from "@/lib/roles";
 import { WORKSPACE_ROLES, type WorkspaceRole } from "@/types/workspace";
 
 const TRIGGER = buttonVariants({
@@ -27,30 +28,34 @@ const TRIGGER = buttonVariants({
 const LOCKED_TRIGGER =
   "h-7 gap-1.5 rounded-sm border border-border bg-surface px-2 text-xs whitespace-nowrap text-text";
 
-const OWNER_LOCK = "The workspace owner's role can't be changed here.";
-
 /**
  * The role chip doubles as the menu trigger, so a row never shows the same
  * value twice. Owner is listed but not selectable — handing over a workspace
- * is a transfer, not a role edit, and there is no screen for it yet.
+ * is a transfer, not a role edit, and there is no endpoint for it yet
+ * (`backend/docs/api/member.md` open question 3).
+ *
+ * `lock` is the REASON, not a boolean: the chip is locked on the owner's row, on
+ * your own row, and for anyone without `member:role:update`, and a reader told
+ * the wrong one of those three goes looking for a permission they already have.
+ * `MemberRow` decides which applies.
  */
 export function MemberRoleMenu({
   memberName,
   role,
-  locked,
+  lock,
   onRoleChange,
 }: {
   memberName: string;
   role: WorkspaceRole;
-  /** True on the owner's row. */
-  locked: boolean;
+  /** Why this chip is not interactive, or `null` when it is. */
+  lock: string | null;
   onRoleChange: (role: WorkspaceRole) => void;
 }) {
-  if (locked) {
+  if (lock) {
     return (
       <LockedControl
-        reason={OWNER_LOCK}
-        label={`Role for ${memberName}: Owner`}
+        reason={lock}
+        label={`Role for ${memberName}: ${ROLE_LABEL[role]}`}
         className={LOCKED_TRIGGER}
       >
         <RoleBadge role={role} />

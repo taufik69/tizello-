@@ -16,26 +16,30 @@ const TRIGGER = buttonVariants({ variant: "ghost", size: "icon" });
    must not take the hover fill of a live one. */
 const LOCKED_TRIGGER = "size-9 rounded-sm text-text-muted";
 
-const OWNER_LOCK = "The workspace owner can't be removed.";
-
 /**
  * The per-row kebab. Icon-only, so every branch names the member it acts on —
  * "More actions" alone is useless in a list of five identical buttons.
+ *
+ * `lock` is the REASON rather than a boolean, for the same reason as
+ * `MemberRoleMenu`: the owner cannot be removed, you cannot remove yourself
+ * (leaving is its own endpoint, and does not exist yet — see
+ * `backend/docs/api/member.md` open question 2), and a plain MEMBER cannot
+ * remove anyone. Three different facts, three different sentences.
  */
 export function MemberActionsMenu({
   memberName,
-  locked,
+  lock,
   onRemove,
 }: {
   memberName: string;
-  /** True on the owner's row: there is nothing here they may do. */
-  locked: boolean;
+  /** Why there is nothing here to open, or `null` when there is. */
+  lock: string | null;
   onRemove: () => void;
 }) {
-  if (locked) {
+  if (lock) {
     return (
       <LockedControl
-        reason={OWNER_LOCK}
+        reason={lock}
         label={`Actions for ${memberName}`}
         className={LOCKED_TRIGGER}
       >

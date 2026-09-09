@@ -318,6 +318,22 @@ for this module — see §*Open questions*.
 
 ---
 
+## The member roster is not in this module
+
+`GET /api/v1/workspaces/:workspaceId/members` is served by
+`src/modules/member/` and documented in [member.md](./member.md) §1, along with
+the role-change and removal endpoints on the same path.
+
+It was briefly implemented here — `workspace.controller.listMembers`, never
+documented in this file — and moved unchanged: same path, same `200`, same
+`{ members: [...] }` body. It moved because that module owns the roster's
+*writes*, and a resource whose read is in one module and whose writes are in
+another has two owners and therefore none.
+
+Nothing about the workspace endpoints below changed with it.
+
+---
+
 ## Open questions
 
 Not decided by this contract, flagged rather than silently assumed:
