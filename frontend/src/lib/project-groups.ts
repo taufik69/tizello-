@@ -1,25 +1,17 @@
 import {
   PROJECT_STATUSES,
-  type ProjectPriority,
   type ProjectRecord,
   type ProjectStatus,
 } from "@/types/project";
 
-/** Display strings. Stored values are uppercase; nothing renders them raw. */
-export const STATUS_LABEL: Record<ProjectStatus, string> = {
-  BACKLOG: "Backlog",
-  TODO: "To-do",
-  PLANNING: "Planning",
-  IN_PROGRESS: "In Progress",
-  PAUSED: "Paused",
-  COMPLETE: "Complete",
-};
-
-export const PRIORITY_LABEL: Record<ProjectPriority, string> = {
-  HIGH: "High",
-  MEDIUM: "Medium",
-  LOW: "Low",
-};
+/*
+ * Display strings. Stored values are uppercase; nothing renders them raw.
+ *
+ * Re-exported from `types/project.ts` rather than declared again here: three
+ * screens render a status and one map is what stops "On hold" becoming
+ * "Paused" on one of them.
+ */
+export { PROJECT_STATUS_LABEL as STATUS_LABEL, PROJECT_PRIORITY_LABEL as PRIORITY_LABEL } from "@/types/project";
 
 export type StatusGroup = {
   status: ProjectStatus;
@@ -62,13 +54,23 @@ export const PHASE_LABEL: Record<TimelinePhase, string> = {
   COMPLETE: "Complete",
 };
 
+/*
+ * Total by construction: every status belongs to exactly one phase, so no
+ * project can fall off the chart.
+ *
+ * CANCELLED sits in COMPLETE rather than earning a fourth lane. It is finished
+ * work in the only sense a timeline cares about — nothing further will happen
+ * on those dates — and a lane holding the rare cancelled project would be
+ * empty on most boards. The status chip on the bar still says CANCELLED, in
+ * `danger`, so the two are not confusable at the row level.
+ */
 const PHASE_OF: Record<ProjectStatus, TimelinePhase> = {
   BACKLOG: "TODO",
-  TODO: "TODO",
   PLANNING: "TODO",
-  IN_PROGRESS: "IN_PROGRESS",
-  PAUSED: "IN_PROGRESS",
-  COMPLETE: "COMPLETE",
+  ACTIVE: "IN_PROGRESS",
+  ON_HOLD: "IN_PROGRESS",
+  COMPLETED: "COMPLETE",
+  CANCELLED: "COMPLETE",
 };
 
 export type PhaseGroup = {
@@ -83,7 +85,13 @@ export function groupByPhase(projects: ProjectRecord[]): PhaseGroup[] {
   }));
 }
 
-/** How many projects are finished, for the `COMPLETE 1/6` summary row. */
+/**
+ * How many projects are finished, for the `COMPLETE 1/6` summary row.
+ *
+ * COMPLETED only — a cancelled project is not a delivered one, and counting it
+ * as done would flatter the number the row exists to report. That is the one
+ * place CANCELLED and COMPLETED part company after `PHASE_OF` groups them.
+ */
 export function completeCount(projects: ProjectRecord[]): number {
-  return projects.filter((project) => project.status === "COMPLETE").length;
+  return projects.filter((project) => project.status === "COMPLETED").length;
 }

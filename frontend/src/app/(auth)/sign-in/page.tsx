@@ -6,7 +6,7 @@ import { AuthFooter } from "@/components/auth/auth-footer";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { getSession } from "@/lib/auth";
-import { BOARD_HOME } from "@/lib/session-cookie";
+import { HOME } from "@/lib/session-cookie";
 import { safeNextPath } from "@/lib/validation/auth";
 
 export const metadata = {
@@ -18,13 +18,13 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
   const { next, reset } = await searchParams;
   const target = safeNextPath(typeof next === "string" ? next : undefined);
 
-  if (await getSession()) redirect(target ?? BOARD_HOME);
+  if (await getSession()) redirect(target ?? HOME);
 
   return (
     <>
       <AuthColumn
         heading="Log in to Tizello"
-        sub="Enter your email and we will send you a login code."
+        sub="Enter your email to continue."
       >
         {reset === "1" && (
           <p

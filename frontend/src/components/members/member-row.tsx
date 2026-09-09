@@ -21,18 +21,60 @@ const ROW =
 const OWNER_TONE = "bg-surface-sunken";
 const DEFAULT_TONE = "bg-surface";
 
+/*
+ * Three reasons a control is locked, and they carry different copy because they
+ * are different facts about the world — "the owner can't be removed" and "you
+ * can't remove yourself" are not the same sentence, and a reader who is told the
+ * wrong one goes looking for a permission they already have.
+ *
+ * All three mirror a `422` or `403` the API would answer anyway
+ * (`backend/docs/api/member.md` §§2-3). Locking here is courtesy; the server is
+ * the control.
+ */
+const OWNER_ROLE_LOCK = "The workspace owner's role can't be changed here.";
+const OWNER_REMOVE_LOCK = "The workspace owner can't be removed.";
+const SELF_ROLE_LOCK = "You can't change your own role.";
+const SELF_REMOVE_LOCK = "Leaving a workspace isn't available yet.";
+const ROLE_PERMISSION_LOCK = "Only the workspace owner can change roles.";
+const REMOVE_PERMISSION_LOCK = "You don't have permission to remove members.";
+
 export function MemberRow({
   member,
   isCurrentUser,
+  canChangeRole,
+  canRemove,
   onRoleChange,
   onRemove,
 }: {
   member: WorkspaceMember;
   isCurrentUser: boolean;
+  /** The VIEWER's permission, identical for every row — see `MembersList`. */
+  canChangeRole: boolean;
+  canRemove: boolean;
   onRoleChange: (role: WorkspaceRole) => void;
   onRemove: () => void;
 }) {
   const isOwner = member.role === "OWNER";
+
+  /* Ordered most-specific first: the owner's own row is both "the owner" and
+     "you", and "the owner's role can't be changed" is the more useful of the
+     two. A permission failure comes last because it is the one the viewer can
+     do nothing about. */
+  const roleLock = isOwner
+    ? OWNER_ROLE_LOCK
+    : isCurrentUser
+      ? SELF_ROLE_LOCK
+      : canChangeRole
+        ? null
+        : ROLE_PERMISSION_LOCK;
+
+  const removeLock = isOwner
+    ? OWNER_REMOVE_LOCK
+    : isCurrentUser
+      ? SELF_REMOVE_LOCK
+      : canRemove
+        ? null
+        : REMOVE_PERMISSION_LOCK;
 
   return (
     <div className={cn(ROW, isOwner ? OWNER_TONE : DEFAULT_TONE)}>
@@ -42,12 +84,12 @@ export function MemberRow({
         <MemberRoleMenu
           memberName={member.name}
           role={member.role}
-          locked={isOwner}
+          lock={roleLock}
           onRoleChange={onRoleChange}
         />
         <MemberActionsMenu
           memberName={member.name}
-          locked={isOwner}
+          lock={removeLock}
           onRemove={onRemove}
         />
       </div>

@@ -1,11 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   DropdownMenuContext,
   MENU_ITEM_SELECTOR,
   useDropdownMenu,
 } from "@/components/ui/dropdown-menu-context";
+import {
+  useMenuPlacement,
+  type MenuAlign,
+} from "@/components/ui/use-menu-placement";
 import { cn } from "@/lib/cn";
 
 export {
@@ -69,15 +74,33 @@ export function DropdownMenuTrigger({
   );
 }
 
-const ALIGN = { start: "left-0", end: "right-0" } as const;
-
+/**
+ * Rendered into `document.body` and positioned `fixed` against the trigger's
+ * own box — NOT `absolute` inside the trigger's wrapper.
+ *
+ * Absolute positioning worked on the card grid and broke in the workspace
+ * LIST, and the difference is `table.tsx`'s scroll container: `overflow-x:
+ * auto` cannot be paired with a visible `overflow-y`, so the computed
+ * `overflow-y` becomes `auto` too and every menu that hangs below its row is
+ * clipped by — and scrolls with — that box. A portal has no ancestor left to
+ * be clipped by, which fixes the list and every future overflow container
+ * alike rather than one caller at a time.
+ *
+ * The cost is that a fixed menu no longer follows its trigger for free, so the
+ * position is recomputed on scroll (capture phase, to catch scrolls inside any
+ * container) and on resize, and it flips above the trigger when there is not
+ * room below.
+ */
 export function DropdownMenuContent({
   align = "start",
   className,
+  style,
   ...props
-}: React.ComponentProps<"div"> & { align?: keyof typeof ALIGN }) {
+}: React.ComponentProps<"div"> & { align?: MenuAlign }) {
   const { open, setOpen, contentId, contentRef, triggerRef, closeAndRefocus } =
     useDropdownMenu();
+
+  const placement = useMenuPlacement({ open, align, triggerRef, contentRef });
 
   /* Filtered to what is actually on screen: items can be hidden at a
      breakpoint (the shell links are `md:hidden`), and `.focus()` on a
@@ -144,19 +167,28 @@ export function DropdownMenuContent({
     list[next]?.focus();
   }
 
-  return (
+  return createPortal(
     <div
       id={contentId}
       ref={contentRef}
       role="menu"
       aria-orientation="vertical"
       onKeyDown={onKeyDown}
+      style={{
+        top: placement.top,
+        left: placement.left,
+        visibility: placement.visible ? "visible" : "hidden",
+        ...style,
+      }}
       className={cn(
-        "absolute top-full z-50 mt-1 min-w-60 rounded-md border border-border bg-surface p-1 shadow-overlay",
-        ALIGN[align],
+        "menu-enter fixed z-50 min-w-60 rounded-md border border-border bg-surface p-1 shadow-overlay",
+        /* The panel grows from the corner it was actually placed against —
+           see the `menu-enter` note in globals.css. */
+        align === "end" && "menu-enter-end",
         className,
       )}
       {...props}
-    />
+    />,
+    document.body,
   );
 }

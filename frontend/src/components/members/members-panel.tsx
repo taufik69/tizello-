@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { InviteMemberDialog } from "@/components/members/invite-member-dialog";
 import { MembersList } from "@/components/members/members-list";
 import { MembersToolbar } from "@/components/members/members-toolbar";
 import { PendingInvitesPanel } from "@/components/members/pending-invites-panel";
 import { RemoveMemberDialog } from "@/components/members/remove-member-dialog";
 import { TabPanel, type TabDescriptor } from "@/components/ui/tabs";
-import { sortInvitations } from "@/lib/demo-invites";
-import { sortMembers } from "@/lib/demo-members";
+import {
+  inviteMemberAction,
+  revokeInvitationAction,
+} from "@/lib/actions/invitation-actions";
+import { useMemberMutations } from "@/components/members/use-member-mutations";
+import { inviteErrorCopy } from "@/lib/invite-error-copy";
+import { sortInvitations } from "@/lib/invite-sort";
+import { toast } from "sonner";
 import type {
   InvitableRole,
   PendingInvitation,
@@ -25,9 +31,15 @@ import type {
  * Both arrays live here rather than in their panels because the tab strip
  * renders their counts. The panels below own only their own dialogs.
  *
- * NOTHING PERSISTS. There is no API and no Server Action behind any of this —
- * every change lives in `useState` and is gone on refresh. When the real
- * endpoints land, each handler becomes an action call plus a revalidate.
+ * **Everything on this screen is REAL.** Invite and cancel go through
+ * `invitation-actions.ts`; role change and remove go through `member-actions.ts`
+ * by way of `useMemberMutations`. Each action calls the API and revalidates this
+ * route, which is what makes a change survive a reload; each list is also held
+ * in state, which is what makes it immediate.
+ *
+ * `viewerRole` is what decides whether a row's controls are drawn at all. It is
+ * a MIRROR of the API's permission table (`lib/roles.ts`) and draws controls
+ * only — `requirePermission` on the server is what allows anything.
  */
 const GROUP = "members";
 
@@ -35,63 +47,93 @@ export function MembersPanel({
   members: roster,
   invitations,
   currentUserId,
+  viewerRole,
+  workspaceId,
   workspaceName,
 }: {
   members: WorkspaceMember[];
   invitations: PendingInvitation[];
   currentUserId: string;
+  /** The signed-in user's own role in this workspace, from `GET /workspaces/:id`. */
+  viewerRole: WorkspaceRole;
+  workspaceId: string;
   workspaceName: string;
 }) {
   const [tab, setTab] = useState("members");
-  const [members, setMembers] = useState(roster);
   const [invites, setInvites] = useState(invitations);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [pendingRemoval, setPendingRemoval] = useState<WorkspaceMember | null>(
-    null,
-  );
+  const [isPending, startTransition] = useTransition();
+
+  /* The roster and its two writes. Its own transition, so a slow role change
+     does not put the invite dialog's button into a pending state. */
+  const {
+    members,
+    pendingRemoval,
+    setPendingRemoval,
+    changeRole,
+    confirmRemoval,
+  } = useMemberMutations(roster, workspaceId);
 
   const tabs: TabDescriptor[] = [
     { value: "members", label: "Members", count: members.length },
     { value: "pending", label: "Pending", count: invites.length },
   ];
 
-  function changeRole(memberId: string, role: WorkspaceRole) {
-    setMembers((current) =>
-      sortMembers(
-        current.map((member) =>
-          member.id === memberId ? { ...member, role } : member,
-        ),
-      ),
-    );
-  }
+  /* An invitation creates a PENDING row rather than a member: nobody has
+     accepted, so nobody belongs on the roster yet.
 
-  /* An invitation now creates a PENDING row rather than a member: nobody has
-     accepted, so nobody belongs on the roster yet. `Date.now()` is safe here —
-     this runs in an event handler, never during a render that the server also
-     performed, so there is nothing for hydration to disagree with. */
+     The row is added only AFTER the action succeeds, not optimistically. An
+     invite can fail for reasons the client cannot predict — already a member,
+     already invited, no permission — and showing a row that then disappears is
+     worse than a half-second wait. `new Date()` is safe here: this runs in an
+     event handler, never during a render the server also performed, so there is
+     nothing for hydration to disagree with. */
   function invite(email: string, role: InvitableRole) {
-    const invitation: PendingInvitation = {
-      id: crypto.randomUUID(),
-      email,
-      role,
-      invitedAt: new Date().toISOString(),
-      status: "PENDING",
-    };
-    setInvites((current) => sortInvitations([...current, invitation]));
-    setTab("pending");
+    startTransition(async () => {
+      const result = await inviteMemberAction({ workspaceId, email, role });
+
+      if (!result.ok) {
+        toast.error(inviteErrorCopy(result.code));
+        return;
+      }
+
+      setInvites((current) =>
+        sortInvitations([
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            email,
+            role,
+            invitedAt: new Date().toISOString(),
+            status: "PENDING",
+          },
+        ]),
+      );
+      setTab("pending");
+      toast.success(`Invitation sent to ${email}.`);
+    });
   }
 
   function cancelInvite(invitationId: string) {
-    setInvites((current) =>
-      current.filter((invitation) => invitation.id !== invitationId),
-    );
-  }
+    const cancelled = invites.find((entry) => entry.id === invitationId);
 
-  function confirmRemoval() {
-    setMembers((current) =>
-      current.filter((member) => member.id !== pendingRemoval?.id),
-    );
-    setPendingRemoval(null);
+    startTransition(async () => {
+      const result = await revokeInvitationAction(workspaceId, invitationId);
+
+      if (!result.ok) {
+        toast.error(inviteErrorCopy(result.code));
+        return;
+      }
+
+      setInvites((current) =>
+        current.filter((invitation) => invitation.id !== invitationId),
+      );
+      toast.success(
+        cancelled
+          ? `Invitation to ${cancelled.email} cancelled.`
+          : "Invitation cancelled.",
+      );
+    });
   }
 
   return (
@@ -108,6 +150,7 @@ export function MembersPanel({
         <MembersList
           members={members}
           currentUserId={currentUserId}
+          viewerRole={viewerRole}
           onRoleChange={changeRole}
           onRemove={setPendingRemoval}
         />
@@ -116,6 +159,7 @@ export function MembersPanel({
       <TabPanel group={GROUP} value="pending" active={tab === "pending"}>
         <PendingInvitesPanel
           invitations={invites}
+          workspaceId={workspaceId}
           workspaceName={workspaceName}
           onCancel={cancelInvite}
         />
@@ -125,6 +169,7 @@ export function MembersPanel({
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceName={workspaceName}
+        pending={isPending}
         onInvite={invite}
       />
 

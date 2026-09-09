@@ -1,0 +1,478 @@
+// Starter schema: only what the scaffolded infrastructure itself needs —
+// users, workspaces, the membership row the permission middleware reads, and
+// the invitation row the email worker reads back. Feature models are added
+// per module, not here up front.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 removed `url` from this block — the connection string now lives in
+// prisma.config.js (for CLI/migrate) and reaches the client through the pg
+// driver adapter in src/config/db.js.
+datasource db {
+  provider = "postgresql"
+}
+
+// Values must stay in sync with ROLES in src/shared/constants/roles.js.
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  // A nullable timestamp, never a boolean: "when was this proved" answers
+  // every question "is this proved" does, and one more that matters during an
+  // incident — how long ago. A boolean throws that away and cannot be
+  // reconstructed. Plan 3.1.
+  emailVerifiedAt DateTime?
+  // Null for OAuth-only accounts, which have no password to hash.
+  passwordHash    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  memberships         Membership[]
+  ownedProjects       Project[]           @relation("ProjectOwner")
+  projectMemberships  ProjectMember[]
+  sentInvitations     Invitation[]        @relation("InvitationInvitedBy")
+  // Invitations this user redeemed. Separate from sentInvitations: the
+  // inviter and the acceptor are different people on the same row.
+  acceptedInvitations Invitation[]        @relation("InvitationAcceptedBy")
+  oauthAccounts       OAuthAccount[]
+  refreshTokens       RefreshToken[]
+  loginCodes          LoginCode[]
+  registrationCodes   RegistrationCode[]
+  verificationTokens  VerificationToken[]
+
+  @@map("users")
+}
+
+// Values must stay in sync with WorkspacePlan usage in src/modules/workspace/.
+// Billing (SSLCommerz) is not implemented yet — these fields exist so the
+// column shape doesn't change under a later migration, but nothing in the
+// workspace module reads or writes plan/planExpiresAt/seatLimit/lastPaymentAt
+// today. Every workspace is FREE with everything else null until that lands.
+enum WorkspacePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model Workspace {
+  id          String    @id @default(cuid())
+  name        String
+  // Auto-generated from name at create time (slugify + numeric suffix on
+  // collision), never accepted from the client — see docs/api/workspace.md
+  // §slug generation. Unique so it can double as a URL segment later.
+  slug        String    @unique
+  description String?
+  // A single emoji character, not an uploaded image — no file storage, no
+  // image pipeline, and it renders everywhere a workspace name does without
+  // a network request.
+  icon        String?
+  // Hex string for avatar/theme accents, e.g. "#6366f1". Free text at this
+  // layer; the frontend constrains it to a swatch.
+  color       String?
+
+  // --- billing (future — SSLCommerz). No logic anywhere reads these yet. ---
+  plan          WorkspacePlan @default(FREE)
+  planExpiresAt DateTime?
+  seatLimit     Int?
+  lastPaymentAt DateTime?
+
+  // Free-form workspace-level preferences (e.g. default board view). Json
+  // rather than columns because these are display preferences, not something
+  // any query filters or joins on — a column per setting would mean a
+  // migration for every new one.
+  settings   Json?
+  // Archived is reversible (hide from the default list); deletedAt is not
+  // (soft delete). Two different operations, two different columns — folding
+  // them into one status enum would make "archived AND deleted" ambiguous.
+  isArchived Boolean   @default(false)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  invitations Invitation[]
+  projects    Project[]
+  propertyDefs ProjectPropertyDef[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Named by Prisma as `userId_workspaceId` — the compound key
+  // shared/middlewares/permission.js looks a membership up by.
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id           String    @id @default(cuid())
+  email        String
+  workspaceId  String
+  role         Role      @default(MEMBER)
+  // The SHA-256 of the token, never the token. A leaked database dump of raw
+  // invitation tokens is a set of working links into every workspace; a dump
+  // of hashes is not. The raw value exists only in the email and in the job
+  // payload that sent it.
+  tokenHash    String    @unique
+  invitedById  String
+  expiresAt    DateTime
+  // The four terminal states are timestamps, not a status column, because
+  // "when" is auditable and a derived status cannot drift out of sync with
+  // the write that caused it. Order of precedence lives in invitation.dto.js.
+  acceptedAt   DateTime?
+  acceptedById String?
+  declinedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy  User      @relation("InvitationInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  acceptedBy User?     @relation("InvitationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  // NOTE: there is deliberately no @@unique([email, workspaceId]) here.
+  // Unconditional, it makes "revoke, then re-invite the same person" fail
+  // forever on a row nobody can see. The constraint that is actually wanted —
+  // one *live* invitation per address per workspace — is a partial unique
+  // index, which Prisma cannot express, so it is hand-written into the
+  // migration: invitations_live_email_workspace. Sprint 1 section 1.2.
+  @@index([workspaceId])
+  @@index([email])
+  @@map("invitations")
+}
+
+// Values must stay in sync with config.oauth in src/config/env.js and the
+// provider column of oauth_accounts.
+enum OAuthProvider {
+  GOOGLE
+  GITHUB
+}
+
+// One purpose per token. A token minted to verify an address must never be
+// redeemable to reset a password: both are "a link we emailed you", and
+// without this column the two endpoints accept each other s tokens. Plan 3.5.
+enum TokenPurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+// One row per linked provider identity — a table, not googleId/githubId
+// columns on User. A column per provider needs a migration for every new
+// provider and cannot represent one person linking two of them. Plan 3.2.
+model OAuthAccount {
+  id                String        @id @default(cuid())
+  userId            String
+  provider          OAuthProvider
+  // The provider s own stable id (Google sub, GitHub id). Lookups go through
+  // this, never through email: an email at the provider can change hands, the
+  // subject identifier cannot.
+  providerAccountId String
+  createdAt         DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+// Refresh tokens, rotated on every use. Plan 3.3.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  // SHA-256 hex, not bcrypt. The token is 256 bits of CSPRNG output, so there
+  // is no low-entropy secret to slow an attacker down — and refresh runs on
+  // every access-token expiry, where a deliberate 100ms KDF is a tax paid on
+  // every active session for no gain.
+  tokenHash    String    @unique
+  // Every token descended from one sign-in shares a familyId. Revoking a
+  // family is what turns a single detected replay into "that whole stolen
+  // session is dead" rather than "that one token is dead".
+  familyId     String
+  // Set when this row is rotated out, pointing at its successor. The 10-second
+  // grace window in the refresh flow keys on this: a revoked token that has a
+  // replacement is a racing browser tab, one without is a logout.
+  replacedById String?   @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  // Captured for incident forensics — which device, from where. Never used for
+  // an authorization decision: both are client-controlled strings.
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken? @relation("TokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   RefreshToken? @relation("TokenRotation")
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// Six-digit sign-in codes. Plan 3.4.
+model LoginCode {
+  id         String    @id @default(cuid())
+  userId     String
+  // bcrypt, NOT SHA-256 — the opposite choice from RefreshToken, for the
+  // opposite reason. Six digits is 10^6 possibilities; a SHA-256 of that space
+  // is enumerable in milliseconds on a stolen dump, so here the deliberately
+  // slow KDF is the entire defence.
+  codeHash   String
+  // The attempt counter lives on the row rather than in Redis: a cap that
+  // resets on deploy or eviction is not a cap. 10^6 is small enough that this
+  // counter, not the code length, is what makes the code safe.
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("login_codes")
+}
+
+// Six-digit registration-verification codes. Same shape as LoginCode
+// (low-entropy, attempt-capped, bcrypt) and deliberately its own table rather
+// than a purpose column on LoginCode or a revived VerificationToken row: the
+// plan's own rule for VerificationToken (§3.5) is that low-entropy
+// attempt-capped codes must not share a table with high-entropy single-shot
+// tokens, and merging this into LoginCode would mean every login-code query
+// has to filter out registration rows and vice versa.
+model RegistrationCode {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("registration_codes")
+}
+
+// Email-verification and password-reset links. Plan 3.5.
+//
+// EMAIL_VERIFY is no longer issued — registration verification moved to
+// RegistrationCode above — but the purpose value stays in the enum rather
+// than being dropped: existing rows already reference it, and dropping an
+// enum value Postgres rows still reference means recreating the type. This
+// model still serves PASSWORD_RESET.
+model VerificationToken {
+  id         String       @id @default(cuid())
+  userId     String
+  tokenHash  String       @unique
+  purpose    TokenPurpose
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Lookups are always (user, purpose) — "the outstanding verification token
+  // for this user" — never userId alone, which would mix the two purposes.
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+// The lifecycle of the work, NOT whether the project is filed away. There is
+// deliberately no ARCHIVED member here even though `isArchived` exists below:
+// two columns that can both claim "archived" make "status = ACTIVE and
+// isArchived = true" representable and meaningless. Same reasoning as the
+// Workspace archive/delete split. Plan .claude/plan/project.md §2.1.
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  BACKLOG
+  COMPLETED
+  CANCELLED
+}
+
+// Generically named on purpose: Task will want these exact four values, and
+// one enum beats a ProjectPriority plus a byte-identical TaskPriority. Plan
+// §2.7.
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// OWNER here MIRRORS Project.ownerId, which is the authoritative read — every
+// authorization decision goes to the column, never to this row. The row exists
+// so the member list is one query with one shape instead of a synthesized
+// owner special case, and the two are written in a single transaction. Plan
+// §2.4.
+enum ProjectRole {
+  OWNER
+  MANAGER
+  COLLABORATOR
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  // The human-facing task ID prefix — "TIZ" gives TIZ-1, TIZ-2. Unlike
+  // Workspace.slug this IS accepted from the client (teams care what their
+  // ticket prefix says) and is immutable afterwards: every task id already
+  // written into a commit message or a bookmark carries it. Plan §2.2.
+  key         String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  priority    Priority      @default(MEDIUM)
+  icon        String?
+  color       String?
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // --- task numbering (future — the Task module). Nothing reads or writes
+  // this yet. It ships now so `TIZ-1, TIZ-2, …` needs no migration later, and
+  // it must be incremented by an atomic UPDATE inside the task-creation
+  // transaction — `count(tasks) + 1` is wrong under concurrency and wrong
+  // after any delete. Same schema-ahead-of-logic bargain as Workspace's
+  // billing columns. Plan §2.3.
+  taskCounter Int           @default(0)
+
+  // Values for this workspace's user-defined properties: a { [defId]: value }
+  // map. Json rather than a row per value because nothing queries inside it
+  // yet and a table would mean a join on every list read plus N inserts every
+  // time a property is added. The DEFINITIONS are a real table
+  // (ProjectPropertyDef) precisely because those are listed, renamed and
+  // reordered. See .claude/plan/project-property.md §2.1-2.2.
+  //
+  // A key whose definition has been deleted is dead weight, not a bug: the DTO
+  // emits a value only when its definition still exists, so deleting a
+  // property is O(1) rather than a rewrite of every project (§2.4).
+  properties  Json?
+
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Restrict, not Cascade or SetNull: deleting a user who still owns projects
+  // must fail loudly until ownership is transferred, rather than orphaning
+  // them silently.
+  ownerId     String
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  members     ProjectMember[]
+
+  // Archived is reversible (hidden from the default list); deletedAt is not.
+  // Neither is `status` — three independent axes, three columns.
+  isArchived  Boolean       @default(false)
+  deletedAt   DateTime?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Key is unique per workspace, not globally: two teams may both want "WEB".
+  // Named by Prisma as `workspaceId_key` — the constraint the P2002 retry in
+  // shared/utils/projectKey.js is catching.
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@index([ownerId])
+  // Every list query filters by workspace and usually also by status; the
+  // compound unique above cannot serve that.
+  @@index([workspaceId, status])
+  @@map("projects")
+}
+
+// Values must stay in sync with PROPERTY_TYPES in
+// src/shared/constants/propertyTypes.js, which is what the value validator
+// reads. FORMULA / ROLLUP / RELATION are still deliberately absent — each is
+// blocked on a specific missing thing (an expression evaluator, a second
+// entity to relate to), not on effort. PERSON is absent too: collaborators are
+// ProjectMember rows, which are a real relation with their own endpoints, and
+// a second person-shaped property would be a second answer to "who is on this
+// project". See .claude/plan/project-property.md §2.5.
+enum PropertyType {
+  TEXT
+  NUMBER
+  SELECT
+  MULTI_SELECT
+  DATE
+  CHECKBOX
+  URL
+  EMAIL
+  PHONE
+  // Value is an array of { id, name, url, size, mime } — metadata only. The
+  // bytes live on disk under UPLOAD_DIR and are served by the upload module;
+  // the database never holds a file.
+  FILES
+}
+
+// One user-defined column of the workspace's project database.
+//
+// Scoped to the WORKSPACE, not to a project: adding a property adds the column
+// to every project in the workspace, which is what "add a property to the
+// database" means. A definition per project would make renaming it a rewrite
+// of every row and would let two projects disagree about its type (§2.1).
+model ProjectPropertyDef {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  // Immutable after create. TEXT -> NUMBER has to answer what happens to every
+  // project whose value is "about a week", and all three answers are worse
+  // than making the user delete and re-add. Same call as Project.key (§2.3).
+  type        PropertyType
+  // SELECT / MULTI_SELECT only: [{ id, label, color }]. Null for every other
+  // type, and validated as such — a TEXT property carrying six colour swatches
+  // nobody renders is a lie the next reader has to disprove (§2.6).
+  //
+  // Each option has its own id so renaming a label does not orphan every value
+  // that used it.
+  options     Json?
+  // Sparse (10, 20, 30 ...) so reordering is one UPDATE rather than a renumber
+  // of the whole list.
+  position    Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Two columns called "Budget" in one database is a UI nobody can read. A
+  // P2002 here becomes a 409.
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("project_property_defs")
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectRole @default(COLLABORATOR)
+  createdAt DateTime    @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@map("project_members")
+}

@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SKIP_AUTH } from "@/lib/demo-auth";
-import { SESSION_COOKIE } from "@/lib/session-cookie";
+import { REFRESH_COOKIE, SESSION_COOKIE } from "@/lib/session-cookie";
 
 /*
  * Route protection (Next 16 renamed middleware to proxy).
@@ -12,10 +11,22 @@ import { SESSION_COOKIE } from "@/lib/session-cookie";
  * with any value at all passes here.
  */
 export function proxy(request: NextRequest) {
-  /* TEMP: see `lib/demo-auth.ts`. */
-  if (SKIP_AUTH) return NextResponse.next();
+  /* Either cookie is enough to let the request through. The access cookie is
+     the short-lived half and the browser drops it at its own max-age; bouncing
+     on that alone signs out a user whose refresh token is still perfectly good,
+     which is the whole thing the refresh token exists to prevent. `getSession()`
+     downstream renews through `apiCallWithRefresh` and only genuinely fails
+     once the refresh token has expired too. */
+  if (request.cookies.has(SESSION_COOKIE) || request.cookies.has(REFRESH_COOKIE)) {
+    return NextResponse.next();
+  }
 
-  if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
+  /* A Server Action POST is not a navigation, and redirecting one hands React
+     an HTML sign-in page where it expects a Flight stream — which surfaces as
+     the opaque "An unexpected response was received from the server" runtime
+     error rather than a sign-in bounce. Let it through instead: the action's
+     own API call 401s, returns a code, and the caller renders that. */
+  if (request.headers.has("next-action")) return NextResponse.next();
 
   const url = request.nextUrl.clone();
   url.pathname = "/sign-in";
@@ -30,5 +41,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/board/:path*",
+  // `/workspaces` joined `/board` here once its data stopped being a fixture:
+  // an unauthenticated call to the real API 401s, and without this guard that
+  // read as "you have zero workspaces" instead of a sign-in redirect.
+  matcher: ["/board/:path*", "/workspaces/:path*"],
 };

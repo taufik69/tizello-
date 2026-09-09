@@ -1,0 +1,87 @@
+"use client";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useDropdownMenu } from "@/components/ui/dropdown-menu-context";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ChevronDownIcon } from "@/components/ui/icons";
+import { SignOutIcon } from "@/components/ui/nav-icons";
+import { signOutAction } from "@/lib/actions/auth-actions";
+import { initials } from "@/lib/initials";
+
+/**
+ * Sign out as a menu item that is also a real POST — `DropdownMenuItem`
+ * (`ui/dropdown-menu-item.tsx`) only knows `onSelect` and `href`, neither of
+ * which submits a form, so this reimplements its exact shape (`role`,
+ * `tabIndex`, class) on a `<button type="submit">` instead. A GET would be
+ * CSRF-able and prefetchable; this needs no client JavaScript to work.
+ */
+function SignOutMenuItem() {
+  const { closeAndRefocus } = useDropdownMenu();
+
+  return (
+    <form action={signOutAction}>
+      <button
+        type="submit"
+        role="menuitem"
+        tabIndex={-1}
+        onClick={closeAndRefocus}
+        className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-text-muted transition-colors duration-100 ease-standard hover:bg-surface-hover hover:text-text focus:bg-surface-hover focus:text-text"
+      >
+        <SignOutIcon className="size-4 shrink-0" />
+        Sign out
+      </button>
+    </form>
+  );
+}
+
+/**
+ * The account control that used to be `SidebarAccount`, pinned to the bottom
+ * of the sidebar — now in the top strip beside `ThemeToggle`, per the
+ * reference layout. Identity disc with a decorative "online" dot (this app
+ * has no presence system; it is always shown, matching the reference rather
+ * than claiming a status the app cannot back), a chevron, and a menu holding
+ * the name and the way out.
+ *
+ * The outer pill (`border border-border bg-surface`, `my-1.5 p-0.5` for the
+ * same "leave the fixed-height strip room to show a real gap" reason as
+ * `ThemeToggle` — see that file's header) matches that control's shell so the
+ * two read as one family of controls, not two unrelated shapes bolted
+ * together. The avatar itself carries its own `border-border` ring, since
+ * `bg-surface-sunken` alone doesn't read as a distinct disc against the
+ * pill's `bg-surface`.
+ */
+export function AccountMenuTrigger({ name }: { name: string }) {
+  return (
+    <DropdownMenu className="my-1.5 rounded-full border border-border bg-surface p-0.5">
+      <DropdownMenuTrigger
+        className="flex items-center gap-1 rounded-full pr-1 transition-colors duration-100 ease-standard hover:bg-surface-hover"
+        aria-label={`Account: ${name}. Open menu`}
+      >
+        <span className="relative inline-flex">
+          <Avatar className="size-7 border border-border bg-surface-sunken text-text-muted">
+            <AvatarFallback className="text-2xs">
+              <span aria-hidden="true">{initials(name)}</span>
+            </AvatarFallback>
+          </Avatar>
+          <span
+            aria-hidden="true"
+            className="absolute right-0 bottom-0 size-2.5 rounded-full bg-success ring-2 ring-surface"
+          />
+        </span>
+        <ChevronDownIcon className="size-3 shrink-0 text-text-muted" />
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>{name}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <SignOutMenuItem />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

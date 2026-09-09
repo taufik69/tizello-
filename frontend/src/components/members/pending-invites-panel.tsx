@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { CancelInviteDialog } from "@/components/members/cancel-invite-dialog";
 import { PendingInvitesList } from "@/components/members/pending-invites-list";
+import { resendInvitationAction } from "@/lib/actions/invitation-actions";
+import { inviteErrorCopy } from "@/lib/invite-error-copy";
+import { toast } from "sonner";
 import type { PendingInvitation } from "@/types/workspace";
 
 /*
@@ -11,17 +14,22 @@ import type { PendingInvitation } from "@/types/workspace";
  * the two pieces of state the rows cannot — which invitation is awaiting a
  * cancel confirmation, and which have been resent this session.
  *
- * RESEND SENDS NOTHING. There is no mail service and no Server Action behind
- * this button: it marks the row and announces itself so the click has a
- * visible and an audible result, and that is all. When
- * `POST /invitations/:id/resend` lands, `resend` becomes one action call.
+ * RESEND IS REAL, and it **rotates the token**: the previous link stops working
+ * the moment it succeeds. That is the point — resending is what an admin does
+ * when they suspect the first link went astray, and leaving the old one live
+ * would defeat the gesture.
+ *
+ * The row is marked resent only after the action returns, so the marker never
+ * claims a send that failed.
  */
 export function PendingInvitesPanel({
   invitations,
+  workspaceId,
   workspaceName,
   onCancel,
 }: {
   invitations: PendingInvitation[];
+  workspaceId: string;
   workspaceName: string;
   onCancel: (invitationId: string) => void;
 }) {
@@ -29,13 +37,26 @@ export function PendingInvitesPanel({
     null,
   );
   const [resentIds, setResentIds] = useState<string[]>([]);
-  const [announcement, setAnnouncement] = useState("");
+  const [, startTransition] = useTransition();
 
   function resend(invitation: PendingInvitation) {
-    setResentIds((current) =>
-      current.includes(invitation.id) ? current : [...current, invitation.id],
-    );
-    setAnnouncement(`Invitation resent to ${invitation.email}.`);
+    startTransition(async () => {
+      const result = await resendInvitationAction(workspaceId, invitation.id);
+
+      if (!result.ok) {
+        toast.error(inviteErrorCopy(result.code));
+        return;
+      }
+
+      setResentIds((current) =>
+        current.includes(invitation.id) ? current : [...current, invitation.id],
+      );
+
+      /* The toast is the audible result too: it renders inside the polite live
+         region in `Toaster`, so the separate sr-only announcer this component
+         used to carry would now say the same sentence twice. */
+      toast.success("Invitation resent to " + invitation.email + ".");
+    });
   }
 
   function confirmCancel() {
@@ -51,12 +72,6 @@ export function PendingInvitesPanel({
         onResend={resend}
         onCancel={setPendingCancel}
       />
-
-      {/* The resend has no other audible result — the row's "· Resent" is
-          silent to anyone not looking at it. */}
-      <p aria-live="polite" className="sr-only">
-        {announcement}
-      </p>
 
       <CancelInviteDialog
         invitation={pendingCancel}

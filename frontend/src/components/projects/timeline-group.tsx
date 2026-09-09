@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { NewProjectTrigger } from "@/components/projects/new-project-trigger";
 import { PHASE_DOT } from "@/components/projects/project-tone";
 import { TimelineRow } from "@/components/projects/timeline-row";
@@ -13,9 +14,11 @@ import type { TimelineWindow } from "@/lib/timeline";
 export function TimelineGroup({
   group,
   window,
+  scope,
 }: {
   group: PhaseGroup;
   window: TimelineWindow;
+  scope: ProjectScope;
 }) {
   const headingId = `timeline-group-${group.phase}`;
   const label = PHASE_LABEL[group.phase];
@@ -45,7 +48,7 @@ export function TimelineGroup({
       )}
 
       <div className="w-52 py-1">
-        <NewProjectTrigger label={`New project in ${label}`} />
+        <NewProjectTrigger label={`New project in ${label}`} scope={scope} />
       </div>
     </section>
   );

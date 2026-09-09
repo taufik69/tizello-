@@ -1,11 +1,20 @@
 "use client";
 
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { useState } from "react";
-import { CreateEntityDialog } from "@/components/workspace/create-entity-dialog";
+import { CreateProjectDrawer } from "@/components/projects/create-project-drawer";
 import { CreateTile } from "@/components/workspace/create-tile";
 
-/** The client leaf on a workspace detail page. Same shape as the workspace one. */
-export function NewProjectCard({ workspaceName }: { workspaceName: string }) {
+/**
+ * The client leaf on a workspace detail page. Opens the SAME drawer the
+ * projects toolbar does — two create paths that disagree about which fields a
+ * project has is how one of them silently stops sending a status.
+ */
+export function NewProjectCard({
+  scope,
+}: {
+  scope: ProjectScope;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,15 +24,10 @@ export function NewProjectCard({ workspaceName }: { workspaceName: string }) {
         description="Group related boards and tasks together."
         onClick={() => setOpen(true)}
       />
-      <CreateEntityDialog
+      <CreateProjectDrawer
+        scope={scope}
         open={open}
         onOpenChange={setOpen}
-        title="New project"
-        description={`This project will live in ${workspaceName}.`}
-        fieldLabel="Project name"
-        placeholder="e.g. Website redesign"
-        submitLabel="Create Project"
-        emptyMessage="Give your project a name."
       />
     </>
   );

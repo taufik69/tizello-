@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { BacklogPageHeader } from "@/components/backlog/backlog-page-header";
 import { BacklogPanel } from "@/components/backlog/backlog-panel";
 import { getBacklogAssignees, getProjectBacklog } from "@/lib/demo-backlog";
-import { getWorkspace } from "@/lib/demo-data";
+import { getWorkspace } from "@/lib/workspaces";
 import { getProject } from "@/lib/demo-projects";
 
 export async function generateMetadata({

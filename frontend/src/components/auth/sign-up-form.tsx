@@ -31,7 +31,7 @@ export function SignUpForm() {
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
-      <AuthAlert code={state.code} />
+      <AuthAlert state={state} />
 
       <TextField
         label="Full name"

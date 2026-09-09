@@ -238,24 +238,26 @@ the one place the dark values are written out in a separate block.
 
 | File | Role |
 | --- | --- |
-| `src/lib/theme.ts` | `Theme` type, `localStorage` read/write, `THEME_INIT_SCRIPT` |
+| `src/lib/theme.ts` | `Theme` type, the `tizello-theme` cookie read/write, `themeFromCookies` |
 | `src/components/ui/theme-toggle.tsx` | the Light / Dark / System control |
-| `src/app/layout.tsx` | inlines the init script into `<head>` |
+| `src/app/layout.tsx` | reads the cookie and stamps `data-theme` on `<html>` |
 
 Two details that are load-bearing:
 
-- **`THEME_INIT_SCRIPT` runs before first paint.** The server has no way to know
-  the preference, so SSR'd HTML carries no `data-theme`. Without a blocking
-  inline script, a user who forced dark gets one white frame. `<html>` therefore
-  carries `suppressHydrationWarning` — the script mutates the attribute between
-  SSR and hydration, and that is intentional.
-- **The toggle reads storage through `useSyncExternalStore`,** not an effect.
-  The server snapshot is `"system"`, the client snapshot is the stored value, and
-  React reconciles the difference during hydration without warning. Reading
-  `localStorage` in an effect and calling `setState` trips
+- **The preference is a cookie, not `localStorage`.** It is sent with the
+  document request, so the root layout stamps `data-theme` server-side and the
+  right palette is in the first byte of HTML. The alternative — storage plus a
+  blocking inline `<script>` in `<head>` — cost a `suppressHydrationWarning`
+  and tripped React 19's "Scripts inside React components are never executed
+  when rendering on the client" warning, which `next/script` does not avoid
+  (it is itself a Client Component).
+- **The toggle reads the cookie through `useSyncExternalStore`,** not an effect.
+  The server snapshot is `"system"` and the client snapshot is the stored value;
+  only the toggle's own highlight reconciles on hydration, since the palette was
+  already correct. Reading it in an effect and calling `setState` trips
   `react-hooks/set-state-in-effect`.
 
-Picking **System** clears the stored value and removes the attribute, handing
+Picking **System** clears the cookie and removes the attribute, handing
 control back to `color-scheme: light dark`.
 
 ### What does not change
@@ -328,7 +330,17 @@ theme. Consequence: they don't compose with `shadow-<color>`, which we never do.
 | --- | --- |
 | `w-list` | `272px` — Trello's exact list column |
 | `w-sidebar` | `256px` |
+| `w-rail` | `56px` — the sidebar collapsed to icons |
 | `h-topbar` | `48px` |
+| `min-h-board` | `416px` — the kanban rail's floor |
+
+`min-h-board` is a drag-and-drop constraint wearing a layout token's clothes. A
+rail sized only by its tallest column changes height every time a card crosses
+between two — which moves the horizontal scrollbar under the cursor mid-drag
+and re-runs the collision that started the move, so the card oscillates. Paired
+with `items-stretch` on the rail and `flex-1` on each column's track, every
+column is the same height and that height has a floor, so an ordinary drop
+changes no box at all. Do not remove it to "let the board hug its content".
 
 The board canvas is neutral (`bg-canvas`) and the column track is untinted.
 Colour appears in two small places only: the column's status pill and the

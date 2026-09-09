@@ -21,17 +21,20 @@ const COLUMNS: ReadonlyArray<{
   label: string;
   Glyph: (props: IconProps) => React.ReactElement;
 }> = [
-  { key: "id", label: "ID", Glyph: HashIcon },
+  { key: "key", label: "Key", Glyph: HashIcon },
   { key: "name", label: "Project name", Glyph: DocIcon },
   { key: "status", label: "Status", Glyph: TagIcon },
   { key: "owner", label: "Owner", Glyph: PersonIcon },
   { key: "dates", label: "Dates", Glyph: CalendarIcon },
   { key: "priority", label: "Priority", Glyph: FlagIcon },
-  { key: "createdBy", label: "Created by", Glyph: PersonIcon },
-  { key: "createdTime", label: "Created time", Glyph: ClockIcon },
+  { key: "createdAt", label: "Created", Glyph: ClockIcon },
 ];
 
-export const ACTIVE_COLUMN_COUNT = COLUMNS.length;
+/* The actions column has no header glyph and no visible label — it is a
+   control, not an attribute of the project. The count below includes it so
+   every `colSpan` still spans the whole table. */
+
+export const ACTIVE_COLUMN_COUNT = COLUMNS.length + 1;
 
 export function ActiveTableHead() {
   return (
@@ -45,6 +48,9 @@ export function ActiveTableHead() {
             </span>
           </TableHead>
         ))}
+        <TableHead>
+          <span className="sr-only">Actions</span>
+        </TableHead>
       </TableRow>
     </TableHeader>
   );

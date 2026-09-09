@@ -14,8 +14,27 @@ import { cn } from "@/lib/cn";
  * Tailwind's preflight zeroes margins on every element, which removes the UA's
  * `margin: auto` centring — hence the explicit `m-auto` below.
  */
+/*
+ * `text-start` is load-bearing, and its absence was a real bug.
+ *
+ * A `<dialog>` paints in the top layer but it is still a DOM DESCENDANT of
+ * whatever rendered it, so it inherits that subtree's typography. The project
+ * actions menu is mounted inside a `<td className="w-9 text-right">` — the
+ * alignment that pushes the ⋯ button to the cell's right edge — and every
+ * dialog it opened inherited it: the Delete confirmation's title, its
+ * paragraph and its field label all rendered right-aligned, in the middle of
+ * an otherwise left-aligned app.
+ *
+ * Fixed here rather than on that one cell, because the cell is not wrong. An
+ * overlay that covers the whole viewport is not visually inside the box it was
+ * declared in, so inheriting that box's alignment is never what anyone means —
+ * and the next `text-right` cell to gain a dialog would rediscover this.
+ *
+ * `text-start`, not `text-left`: it resets the inherited value without
+ * hard-coding a direction an RTL locale would need to flip.
+ */
 const PANEL =
-  "m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-xl border border-border bg-surface p-0 text-text shadow-modal backdrop:bg-scrim";
+  "dialog-enter m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-xl border border-border bg-surface p-0 text-start text-text shadow-modal backdrop:bg-scrim";
 
 /* React strips `autoFocus` on the client and calls .focus() during commit —
    which is too early, because the dialog is still closed and hidden at that

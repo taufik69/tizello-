@@ -23,6 +23,37 @@ export type TextFieldProps = {
   type?: "text" | "email" | "password" | "date";
   autoComplete?: string;
   defaultValue?: string;
+  /**
+   * Makes the field CONTROLLED. Almost every caller wants `defaultValue` —
+   * uncontrolled is what lets a form re-seed by remounting — but a value that
+   * lives in a map keyed by id (a project's custom properties) has to be able
+   * to change without a remount, and a `defaultValue` would ignore it.
+   *
+   * Pass one or the other, never both: React warns, and the field then decides
+   * for itself which one it is.
+   */
+  value?: string;
+  /** Hard cap, enforced by the platform — the right primitive for a length limit, so `transform` can stay a pure 1:1 map. */
+  maxLength?: number;
+  /**
+   * A value that exists and cannot be edited — a project key in the edit form.
+   * `disabled` rather than `readOnly` on purpose: read-only stays focusable and
+   * tabbable, which walks a keyboard user into a field they cannot change and
+   * gives them no signal why.
+   */
+  disabled?: boolean;
+  /**
+   * The property-row look: no resting border, the value reading as text until
+   * it is hovered or focused. Notion's, and the reason a list of twelve
+   * properties does not read as a wall of boxes.
+   */
+  ghost?: boolean;
+  /**
+   * Drops the visible label while keeping it as the accessible name. For a
+   * field inside a `PropertyRow`, which already draws the label in its own
+   * column — two copies is what made the Key row say "Key" twice.
+   */
+  hideLabel?: boolean;
   placeholder?: string;
   helper?: string;
   /** From the Server Action. Outranks anything the browser worked out. */
@@ -32,13 +63,31 @@ export type TextFieldProps = {
   trailing?: ReactNode;
   inputRef?: Ref<HTMLInputElement>;
   onValueChange?: (value: string) => void;
+  /**
+   * Rewrites what the user typed, in place, before anything sees it — for a
+   * field whose stored form is narrower than what a keyboard produces (a
+   * project key is uppercase-only).
+   *
+   * This writes back to `event.target.value` rather than styling the input
+   * with `uppercase`, because the field is UNCONTROLLED: a CSS transform is
+   * display-only, so the form would still submit what was actually typed and
+   * the two would silently disagree. Must be a 1:1 character map — a
+   * transform that changes the string's LENGTH moves the caret to the end
+   * mid-word, since there is no controlled value to restore a selection
+   * against.
+   */
+  transform?: (value: string) => string;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   autoFocus?: boolean;
   required?: boolean;
 };
 
 const BASE =
-  "h-9 w-full rounded-sm border bg-surface px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
+  "h-9 w-full rounded-sm border px-2.5 text-sm text-text transition-colors duration-100 ease-standard placeholder:text-text-subtle";
+/* Bordered only on hover and focus. `border-transparent` rather than
+   `border-0` so the box does not resize by 2px the moment it is hovered. */
+const GHOST = "border-transparent bg-transparent hover:bg-surface-hover";
+const SOLID = "border-border bg-surface";
 
 export function TextField({
   label,
@@ -46,6 +95,11 @@ export function TextField({
   type = "text",
   autoComplete,
   defaultValue,
+  value,
+  maxLength,
+  disabled,
+  ghost,
+  hideLabel,
   placeholder,
   helper,
   error,
@@ -53,6 +107,7 @@ export function TextField({
   trailing,
   inputRef,
   onValueChange,
+  transform,
   onKeyDown,
   autoFocus,
   required = true,
@@ -64,18 +119,26 @@ export function TextField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-text-muted">
+      <label
+        htmlFor={id}
+        className={
+          hideLabel ? "sr-only" : "block text-xs font-semibold text-text-muted"
+        }
+      >
         {label}
       </label>
 
-      <div className="relative mt-1">
+      <div className={hideLabel ? "relative" : "relative mt-1"}>
         <input
           id={id}
           name={name}
           type={type}
           ref={inputRef}
           autoComplete={autoComplete}
-          defaultValue={defaultValue}
+          defaultValue={value === undefined ? defaultValue : undefined}
+          value={value}
+          maxLength={maxLength}
+          disabled={disabled}
           placeholder={placeholder}
           autoFocus={autoFocus}
           required={required}
@@ -83,14 +146,31 @@ export function TextField({
           aria-describedby={message || helper ? messageId : undefined}
           onBlur={(event) => setLocal(validate?.(event.target.value) ?? null)}
           onChange={(event) => {
-            const { value } = event.target;
+            let { value } = event.target;
+
+            if (transform) {
+              const next = transform(value);
+              /* Only assign on a real change: writing the same string back
+                 still resets the caret to the end in Safari, which turns
+                 editing the middle of a value into a fight. */
+              if (next !== value) event.target.value = next;
+              value = next;
+            }
+
             if (local) setLocal(validate?.(value) ?? null);
             onValueChange?.(value);
           }}
           onKeyDown={onKeyDown}
           className={[
             BASE,
-            message ? "border-danger" : "border-border",
+            // An invalid field is already carrying its own signal (the red
+            // border, plus the message below it) — layering the global brand
+            // `:focus-visible` ring on top of that reads as two competing
+            // borders. Suppressing the ring here, only while invalid, leaves
+            // exactly one border on screen; it returns the moment `message`
+            // clears, so a fixed field still gets the normal brand ring back.
+            message ? "border-danger focus-visible:outline-none" : ghost ? GHOST : SOLID,
+            disabled ? "cursor-not-allowed bg-surface-sunken text-text-muted" : "",
             trailing ? "pr-16" : "",
           ].join(" ")}
         />

@@ -22,6 +22,10 @@ import type { ProjectPriority } from "@/types/project";
  * `PRIORITY_CHIP`.
  */
 export const PRIORITY_DOT: Record<ProjectPriority, string> = {
+  /* A dot, not a chip: URGENT and HIGH share the one red token, separated by
+     a halo rather than a hue — there is no "more than danger" colour, and a
+     second red would read as a different meaning instead of a higher one. */
+  URGENT: "bg-danger ring-2 ring-danger-subtle",
   HIGH: "bg-danger",
   MEDIUM: "bg-text-muted",
   LOW: "bg-text-subtle",

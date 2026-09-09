@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { AllProjectRow } from "@/components/projects/all-project-row";
 import { AllSummaryRow } from "@/components/projects/all-summary-row";
 import { ProjectsEmpty } from "@/components/projects/projects-empty";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/table-icons";
 import { completeCount } from "@/lib/project-groups";
 import type { ProjectRecord } from "@/types/project";
+import type { WorkspaceRole } from "@/types/workspace";
 
 /* Six columns, ungrouped. The All view deliberately drops the ID and the
    creation metadata the Active view carries — that is most of what makes it
@@ -39,9 +41,13 @@ const COLUMNS: ReadonlyArray<{
 export function AllView({
   projects,
   currentUserId,
+  workspaceRole,
+  scope,
 }: {
   projects: ProjectRecord[];
   currentUserId: string;
+  workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   if (projects.length === 0) return <ProjectsEmpty />;
 
@@ -66,6 +72,8 @@ export function AllView({
             key={project.id}
             project={project}
             currentUserId={currentUserId}
+            workspaceRole={workspaceRole}
+            scope={scope}
           />
         ))}
       </TableBody>

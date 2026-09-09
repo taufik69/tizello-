@@ -31,7 +31,7 @@ export function SidebarNav({
   return (
     <nav
       aria-label="Workspace"
-      className="min-h-0 flex-1 overflow-y-auto px-2 pb-3"
+      className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-3"
     >
       <ul className="space-y-0.5">
         {primary.map((item) => {

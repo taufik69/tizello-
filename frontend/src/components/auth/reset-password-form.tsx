@@ -23,7 +23,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   return (
     <form action={formAction} className="space-y-4" noValidate>
       <input type="hidden" name="token" value={token} />
-      <AuthAlert code={state.code} />
+      <AuthAlert state={state} />
 
       <div>
         <PasswordField

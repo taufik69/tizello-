@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PlanningPageHeader } from "@/components/sprint-planning/planning-page-header";
 import { SprintPlanningPanel } from "@/components/sprint-planning/sprint-planning-panel";
 import { getProjectTasks } from "@/lib/demo-backlog";
-import { getWorkspace } from "@/lib/demo-data";
+import { getWorkspace } from "@/lib/workspaces";
 import { DEMO_TODAY, getProject } from "@/lib/demo-projects";
 import { getProjectSprints } from "@/lib/demo-sprints";
 

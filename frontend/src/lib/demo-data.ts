@@ -12,10 +12,24 @@ import type { CurrentUser, Workspace } from "@/types/workspace";
 
 const currentUser: CurrentUser = { id: "u-me", name: "Wren Adisa" };
 
+/*
+ * `slug` through `updatedAt` exist only so these fixtures satisfy the real
+ * `Workspace` type (see types/workspace.ts) — the detail/switcher screens
+ * that read this array never look at them, only at the fixture-only fields
+ * (`memberCount`, `accent`, `projects`) below.
+ */
+const DEMO_TIMESTAMPS = { createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
+
 const workspaces: Workspace[] = [
   {
     id: "northwind-studio",
     name: "Northwind Studio",
+    slug: "northwind-studio",
+    description: null,
+    icon: null,
+    color: null,
+    isArchived: false,
+    ...DEMO_TIMESTAMPS,
     memberCount: 6,
     role: "OWNER",
     accent: "green",
@@ -41,6 +55,12 @@ const workspaces: Workspace[] = [
     /* Deliberately the longest name the UI should tolerate. */
     id: "atlas-robotics",
     name: "Atlas Robotics Platform Engineering",
+    slug: "atlas-robotics",
+    description: null,
+    icon: null,
+    color: null,
+    isArchived: false,
+    ...DEMO_TIMESTAMPS,
     memberCount: 42,
     role: "MEMBER",
     accent: "blue",
@@ -63,6 +83,12 @@ const workspaces: Workspace[] = [
   {
     id: "quiet-hours",
     name: "Quiet Hours",
+    slug: "quiet-hours",
+    description: null,
+    icon: null,
+    color: null,
+    isArchived: false,
+    ...DEMO_TIMESTAMPS,
     memberCount: 3,
     role: "MEMBER",
     accent: "purple",
@@ -80,6 +106,12 @@ const workspaces: Workspace[] = [
     /* memberCount 1 — the singular/plural edge. */
     id: "lantern",
     name: "Lantern",
+    slug: "lantern",
+    description: null,
+    icon: null,
+    color: null,
+    isArchived: false,
+    ...DEMO_TIMESTAMPS,
     memberCount: 1,
     role: "MEMBER",
     accent: "orange",

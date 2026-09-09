@@ -1,3 +1,4 @@
+import type { ProjectScope } from "@/components/projects/project-properties";
 import { ActiveProjectRow } from "@/components/projects/active-project-row";
 import {
   ACTIVE_COLUMN_COUNT,
@@ -9,6 +10,7 @@ import { StatusGroupHeader } from "@/components/projects/status-group-header";
 import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { groupByStatus, STATUS_LABEL } from "@/lib/project-groups";
 import type { ProjectRecord } from "@/types/project";
+import type { WorkspaceRole } from "@/types/workspace";
 
 /*
  * The default view: one table, grouped by status.
@@ -26,9 +28,13 @@ import type { ProjectRecord } from "@/types/project";
 export function ActiveView({
   projects,
   currentUserId,
+  workspaceRole,
+  scope,
 }: {
   projects: ProjectRecord[];
   currentUserId: string;
+  workspaceRole: WorkspaceRole;
+  scope: ProjectScope;
 }) {
   const groups = groupByStatus(projects, { includeEmpty: false });
   if (groups.length === 0) return <ProjectsEmpty />;
@@ -57,6 +63,8 @@ export function ActiveView({
               key={project.id}
               project={project}
               currentUserId={currentUserId}
+              workspaceRole={workspaceRole}
+              scope={scope}
             />
           ))}
 
@@ -67,6 +75,8 @@ export function ActiveView({
               <span className="block max-w-64">
                 <NewProjectTrigger
                   label={`New project in ${STATUS_LABEL[group.status]}`}
+                  scope={scope}
+                  status={group.status}
                 />
               </span>
             </TableCell>

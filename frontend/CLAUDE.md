@@ -27,17 +27,55 @@ against demo data in `src/lib/`, never that a backend is wired.
 - [x] **Auth** — sign-in (email → password or code), sign-up, forgot/reset
       password, verify email, sign-out. Server Actions over `auth-fixtures.ts`;
       `proxy.ts` does the optimistic cookie check.
-- [x] **Workspace** — `/workspaces` grid, `/workspaces/[workspaceId]` detail,
-      switcher, create dialog, sidebar shell.
-- [x] **Members** — roster, role menu, remove-with-confirm, invite dialog,
-      pending-invites tab, and the accept page at `/invite/[token]`.
+- [x] **Workspace** — full CRUD against the real API (`lib/workspaces.ts` →
+      `backend/docs/api/workspace.md`), no fixtures left in the path.
+      `/workspaces` draws the list two ways from `?view=grid|list` — the card
+      grid and a table with role, status and both dates — with `?archived=1`
+      as the way back to anything archived. `/workspaces/[workspaceId]` is a
+      real detail page: identity header, a `<dl>` of the stored record, an
+      archived banner, and the projects grid still fixture-shaped beneath it.
+      Edit (name / description / icon / colour, changed fields only), archive
+      and restore (`isArchived`), and delete (`deletedAt` — soft on the server,
+      permanent from here) all hang off one `WorkspaceActionsMenu`, gated by
+      `canUpdateWorkspace` / `canDeleteWorkspace` in `lib/roles.ts` — a mirror
+      of the API's permission table, drawing controls only; the API enforces.
+      Switching is two controls over the same list: the sidebar's
+      `WorkspaceSwitcher` and the detail page's `WorkspaceSwitchMenu`, both
+      real `<a>`s. Every screen under `/workspaces/[workspaceId]` now resolves
+      its workspace from the API, so the ids in a switcher are the ids those
+      pages accept; only their members / projects / sprint data is still
+      fixture-backed.
+- [x] **Members** — full CRUD against the real API (`lib/members.ts` →
+      `backend/docs/api/member.md`, `lib/invites.ts` →
+      `backend/docs/api/invitation.md`), no fixtures left in the path.
+      `/workspaces/[workspaceId]/members` reads the real roster
+      (`GET .../members`, owner first, names falling back to the address's local
+      part for an account that never set one) and the real pending invitations,
+      over two tabs whose counts come from the two lists. Role change
+      (`PATCH .../members/:memberId`) is optimistic and rolls back on failure;
+      remove (`DELETE .../members/:memberId`) waits for the server, because its
+      `409` — a member who still owns projects — names those projects in the
+      toast. Both live in `use-member-mutations.ts` and go through
+      `lib/actions/member-actions.ts`, which revalidates this route *and* the
+      permissions screen. Invite, cancel and resend were already real; so is the
+      accept page at `/invite/[token]`. Controls are gated by
+      `canChangeMemberRole` / `canRemoveMember` in `lib/roles.ts` — a mirror of
+      the API's permission table, so role change draws live only for an OWNER
+      and remove for OWNER/ADMIN — plus a per-row lock with its own sentence for
+      the owner's row and your own row. There is deliberately no "add member":
+      the only way in is an invitation the recipient accepts.
 - [ ] **Projects** — `/workspaces/[workspaceId]/projects` renders five
       URL-driven views (`?view=active|timeline|board|all|status`) over
       `demo-projects.ts`, plus the grid and create dialog on the workspace page.
-      Every control in the toolbar is a `LockedControl`: no create, filter,
-      sort, search or drag & drop. No project detail route, and boards are not
-      scoped to a project. `Project` (workspace tile) and `ProjectRecord`
-      (full record) are still two types.
+      The sidebar's Projects item is a disclosure over those same five URLs —
+      chevron toggle, the five views as children, and locked `+` / `⋯` row
+      actions. **Board drag & drop works** — `@dnd-kit/react`, pointer and
+      keyboard, and a drop into another column is a `PATCH /projects/:id` with
+      the new status. Only the COLUMN persists: `Project` has no rank field, so
+      the order a card is dropped at holds for the session and the server's
+      order returns on reload (`lib/project-board-order.ts`). Filter, sort and
+      search in the toolbar are still `LockedControl`s. `Project` (workspace
+      tile) and `ProjectRecord` (full record) are still two types.
 - [ ] **Backlog** — `/board/backlog` renders with a working card composer, but
       it is one global backlog, not per-project.
 - [ ] **Sprint** — `/workspaces/[workspaceId]/projects/[projectId]/sprints`
@@ -74,9 +112,20 @@ against demo data in `src/lib/`, never that a backend is wired.
       "Complete sprint" opens a confirm that changes nothing — `closeSprint` in
       `lib/sprint.ts` is still uncalled. All `useState`: nothing persists past
       a refresh.
-- [ ] **Permissions** — roles are typed and shown (`RoleBadge`), and the owner is
-      locked in the members UI; there is no permission helper and no action is
-      gated by role.
+- [ ] **Permissions** — `/workspaces/[workspaceId]/settings/permissions` renders
+      the three role cards, a read-only permissions matrix (14 actions in four
+      areas × OWNER / ADMIN / MEMBER, from `demo-permissions.ts`) and a role
+      assignment list over the **real** roster. **The two halves of this screen
+      no longer have the same status**, which is the thing to know before
+      touching it: defining a role — create, edit, delete, every matrix cell —
+      is still `useState` over fixtures, because the API has exactly three roles
+      and no endpoint for a fourth, while assigning one of those three to a
+      member is a real `PATCH .../members/:memberId` through the same action the
+      members screen uses (`use-role-assignment.ts`). So a renamed role card is
+      gone on refresh and a changed member role is not. Assigning a *custom*
+      role is refused with a sentence rather than written, and the selects are
+      gated by `canChangeMemberRole` like the members screen. The matrix is
+      still what the screen DRAWS, never what anything enforces.
 
 ## Stack
 
@@ -86,7 +135,7 @@ against demo data in `src/lib/`, never that a backend is wired.
 | Language   | TypeScript (strict)                           |
 | Styling    | Tailwind CSS v4 — CSS-first config, no `tailwind.config.js` |
 | Font       | Inter, via `next/font/google`                 |
-| Drag & drop| `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board only) |
+| Drag & drop| **Two, on purpose.** Hand-rolled (projects board) · `@dnd-kit/core` + `@dnd-kit/sortable` (sprint board) — see below |
 | Alias      | `@/*` → `src/*`                               |
 
 ```bash
@@ -94,6 +143,39 @@ npm run dev     # http://localhost:3000
 npm run build
 npm run lint
 ```
+
+### Why two drag-and-drop implementations
+
+**The projects board (`?view=board`) is hand-rolled.** It was on
+`@dnd-kit/react` and that is what caused its worst bug: the library's sortable
+is CONTROLLED, so the column map had to be mutated on every `dragover`. The
+list reordered under the pointer, each reorder re-measured, and a re-measure
+could resolve to a different target than the one that produced it — the cards
+in the hovered column shuffled continuously for as long as a card was held.
+Four attempts at damping that loop each removed one feeder and left the loop
+standing, because the loop was the architecture.
+
+The replacement inverts the rule: **nothing moves in the layout until the
+drop.** Boxes are measured once at the press; every frame after resolves a
+target against those frozen numbers and expresses it as `transform` only, which
+composites and reflows nothing. State is written once, on release. A feedback
+loop needs feedback, and there is none.
+
+| File | Role |
+| --- | --- |
+| `src/lib/board-drag.ts` | pure geometry — snapshot types, `resolveTarget`, `cardOffsets` |
+| `src/components/projects/use-project-board-dnd.ts` | the pointer: measure, listen, move the carried card |
+| `src/lib/project-board-order.ts` | the column map, and `place()` — what a drop commits |
+| `src/components/projects/use-board-pan.ts` | grab the background, pan the rail |
+
+**The sprint board is still on `@dnd-kit/core` + `@dnd-kit/sortable`** and
+works. It is a different gesture over a different model — three fixed columns
+with a real `position` field to persist — and it does not have the projects
+board's problem. Leave it alone; migrating it is its own job.
+
+**Do not add a drag-and-drop library to the projects board again.** If the
+hand-rolled version needs a feature it lacks (auto-scroll at the rail's edges,
+multi-select), add it to the files above.
 
 ## Design system
 
@@ -122,9 +204,9 @@ palette; there is no duplicated dark block.
 | File | Role |
 | --- | --- |
 | `src/app/globals.css` | the `light-dark()` token values (block 3) |
-| `src/lib/theme.ts` | `Theme` type, storage, `THEME_INIT_SCRIPT` |
+| `src/lib/theme.ts` | `Theme` type, the `tizello-theme` cookie, `themeFromCookies` |
 | `src/components/ui/theme-toggle.tsx` | Light / Dark / System control |
-| `src/app/layout.tsx` | inlines the init script into `<head>` |
+| `src/app/layout.tsx` | reads the cookie, stamps `data-theme` on `<html>` |
 
 **Write markup once.** If a component needs a `dark:` utility, a semantic token
 is usually missing — add the token instead. Full mechanics, both neutral ramps,

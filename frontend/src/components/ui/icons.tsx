@@ -87,6 +87,15 @@ export function CheckIcon(props: IconProps) {
   );
 }
 
+/** The universal dismiss. Two strokes, so it inherits `Icon`'s round caps rather than looking like a letter. */
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </Icon>
+  );
+}
+
 export function SettingsIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -160,6 +169,19 @@ export function FlagIcon(props: IconProps) {
     <Icon {...props}>
       <path d="M4 14V2.5" />
       <path d="M4 3h7.5l-1.4 2.5L11.5 8H4z" />
+    </Icon>
+  );
+}
+
+/**
+ * The denial mark in the permissions matrix — a dash, deliberately not a cross.
+ * "Not granted" is the resting state of most cells, and fourteen red crosses
+ * would read as fourteen errors.
+ */
+export function DashIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4.5 8h7" />
     </Icon>
   );
 }

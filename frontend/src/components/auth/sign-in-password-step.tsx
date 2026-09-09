@@ -3,9 +3,10 @@ import { SignInIdentity } from "@/components/auth/sign-in-identity";
 import { PasswordField } from "@/components/ui/password-field";
 
 /**
- * Step 2, password mode — the fallback for anyone who set one. No client-side
- * length rule: an existing 6-character password is still the right password,
- * and telling someone their own password is too short is nonsense.
+ * Step 2, password mode — the default (see `.claude/specs/authentication.md`
+ * on why code stopped being it). No client-side length rule: an existing
+ * 6-character password is still the right password, and telling someone
+ * their own password is too short is nonsense.
  */
 export function SignInPasswordStep({
   email,
