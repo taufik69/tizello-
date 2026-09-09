@@ -103,6 +103,12 @@ export function ProjectPropertyList({
           name="key"
           autoComplete="off"
           maxLength={5}
+          /* CONTROLLED on create, uncontrolled on edit. The create drawer
+             derives this from the name as it is typed (`use-project-draft.ts`),
+             and a `defaultValue` would ignore every keystroke after the first
+             render. The edit drawer has no name to follow and is disabled, so
+             it keeps the cheaper seed. */
+          value={keyEditable ? draft.key : undefined}
           defaultValue={draft.key}
           placeholder={keyEditable ? "Auto — derived from the name" : undefined}
           disabled={!keyEditable}

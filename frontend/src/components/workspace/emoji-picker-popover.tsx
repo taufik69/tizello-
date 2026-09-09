@@ -94,15 +94,21 @@ export function EmojiPickerPopover({ onSelect }: { onSelect: (emoji: string) => 
       if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
       setOpen(false);
     }
+    /* CAPTURE, and stopped. Escape means "close the innermost thing open",
+       which is this picker — without stopping it the host `<dialog>` takes the
+       same keypress and closes the whole form behind it. `use-menu-popover.ts`
+       does the same for every other popover in these panels. */
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
     }
 
     document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [open]);
 

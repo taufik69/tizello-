@@ -127,7 +127,18 @@ export function ProjectBoardColumn({
           </p>
         )}
 
-        <ul className="flex flex-col gap-2">
+        {/* NO `gap` HERE — the spacing is `pb-2` INSIDE each `<li>`
+            (`sortable-project-card.tsx`), and that is a collision fix rather
+            than a styling preference. A gap is a strip where no card is under
+            the pointer, so the column's own droppable wins it
+            (`CollisionPriority.Low`) and resolves to "end of column", while
+            one pixel either side a card wins and resolves to "at this index".
+            Dragging across a column alternated between the two every frame,
+            which is what made the cards in it jump. Padding inside the `<li>`
+            puts the gap INSIDE the measured box, so the cards tile
+            continuously and the column is the target only below the last one,
+            which is the case it exists for. */}
+        <ul className="flex flex-col">
           {projects.map((project, index) => (
             <SortableProjectCard
               key={project.id}

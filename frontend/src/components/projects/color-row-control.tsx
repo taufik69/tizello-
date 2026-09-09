@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
 import { CheckIcon } from "@/components/ui/icons";
+import { ColorPickerPopover } from "@/components/projects/color-picker-popover";
 import {
   COLOR_CHOICES,
   colourName,
@@ -36,7 +36,6 @@ export function ColorRowControl({
   onChange: (color: string) => void;
 }) {
   const custom = isCustomColor(color);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex min-h-9 flex-wrap items-center gap-2 rounded-sm border border-transparent px-1.5 py-1 transition-colors duration-100 ease-standard hover:bg-surface-hover">
@@ -68,29 +67,25 @@ export function ColorRowControl({
 
       {/*
        * The one swatch whose fill isn't a design token on purpose: a conic
-       * rainbow is the standard "pick any colour" affordance. The native
-       * `<input type="color">` is layered on top at `opacity-0` rather than
-       * hidden, so it stays a real hit target for the OS picker.
+       * rainbow is the standard "pick any colour" affordance, and once a
+       * custom colour is chosen the disc shows that literal hex back.
+       *
+       * It used to open a native `<input type="color">`, which Chromium hands
+       * to the OS as its own window — and an OS window anchored to a control
+       * pinned against the right edge of the screen opened half outside the
+       * browser. `ColorPickerPopover` is the same choice in a panel this app
+       * places, and can therefore keep on screen.
+       *
+       * The fill is passed in rather than owned by the picker: the rainbow and
+       * the chosen-hex swap are this row's look, and the panel is reusable.
        */}
-      <button
-        type="button"
-        aria-pressed={custom}
-        aria-label="Choose a custom colour"
-        onClick={() => inputRef.current?.click()}
+      <ColorPickerPopover
+        color={color}
+        custom={custom}
         className={DISC}
-        style={{ background: custom ? color : RAINBOW }}
-      >
-        {custom && <CheckIcon className="size-3" />}
-        <input
-          ref={inputRef}
-          type="color"
-          value={custom ? color : "#34c77b"}
-          onChange={(event) => onChange(event.target.value)}
-          aria-hidden="true"
-          tabIndex={-1}
-          className="absolute inset-0 size-full cursor-pointer opacity-0"
-        />
-      </button>
+        background={custom ? color : RAINBOW}
+        onChange={onChange}
+      />
 
       <span className="ml-auto pr-1 text-xs text-text-subtle">
         {colourName(color)}

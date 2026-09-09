@@ -7,15 +7,27 @@ import type { ProjectPerson } from "@/types/project";
  * so the discs separate on either theme; `-space-x-1.5` is what overlaps them
  * and the later ones stack above by document order, which is the direction
  * Notion draws them.
+ *
+ * EMPTY RENDERS AN EM DASH IN A TABLE AND NOTHING ON A CARD, which is one
+ * component behaving two ways on purpose. A table cell is a fixed position in
+ * a grid: leaving it blank reads as a rendering failure, and `—` is the
+ * conventional "no value here". A board card has no grid to hold a place in,
+ * so the dash is just a stray horizontal line floating beside the status chip
+ * with nothing to explain it — and at card size it reads as a control, which
+ * is worse than noise.
  */
 const MAX_SHOWN = 3;
 
 export function CollaboratorStack({
   collaborators,
+  hideWhenEmpty,
 }: {
   collaborators: ProjectPerson[];
+  /** Renders nothing at all instead of `—`. For a card, not a table cell. */
+  hideWhenEmpty?: boolean;
 }) {
   if (collaborators.length === 0) {
+    if (hideWhenEmpty) return null;
     return <span className="text-xs text-text-subtle">&mdash;</span>;
   }
 

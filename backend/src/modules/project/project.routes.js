@@ -41,7 +41,6 @@ import {
   requireProjectOwner,
 } from '../../shared/middlewares/project.js';
 import { PERMISSIONS } from '../../shared/constants/roles.js';
-import { apiLimiter, projectCreateLimiter } from '../../shared/middlewares/rateLimiter.js';
 
 /* ── Workspace-scoped: /api/v1/workspaces/:workspaceId/projects ─────────── */
 
@@ -52,7 +51,6 @@ const workspaceRouter = express.Router({ mergeParams: true });
 
 workspaceRouter.post(
   '/',
-  projectCreateLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.PROJECT_CREATE),
@@ -62,7 +60,6 @@ workspaceRouter.post(
 
 workspaceRouter.get(
   '/',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.PROJECT_VIEW),
@@ -79,7 +76,6 @@ const projectRouter = express.Router();
 // §2.5 step 4).
 projectRouter.get(
   '/:projectId',
-  apiLimiter,
   authGuard,
   loadProject,
   asyncHandler(controller.getById)
@@ -87,7 +83,6 @@ projectRouter.get(
 
 projectRouter.patch(
   '/:projectId',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectWrite,
@@ -97,7 +92,6 @@ projectRouter.patch(
 
 projectRouter.patch(
   '/:projectId/archive',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectWrite,
@@ -109,7 +103,6 @@ projectRouter.patch(
 // (or a workspace OWNER/ADMIN) may delete it.
 projectRouter.delete(
   '/:projectId',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectOwner,
@@ -122,7 +115,6 @@ projectRouter.delete(
 // Read is open to the whole workspace, exactly as reading the project is.
 projectRouter.get(
   '/:projectId/members',
-  apiLimiter,
   authGuard,
   loadProject,
   validate(listMembersQuerySchema, 'query'),
@@ -131,7 +123,6 @@ projectRouter.get(
 
 projectRouter.post(
   '/:projectId/members',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectWrite,
@@ -141,7 +132,6 @@ projectRouter.post(
 
 projectRouter.patch(
   '/:projectId/members/:userId',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectWrite,
@@ -151,7 +141,6 @@ projectRouter.patch(
 
 projectRouter.delete(
   '/:projectId/members/:userId',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectWrite,
@@ -162,7 +151,6 @@ projectRouter.delete(
 // remove collaborators and may not hand the project to someone else.
 projectRouter.patch(
   '/:projectId/transfer-ownership',
-  apiLimiter,
   authGuard,
   loadProject,
   requireProjectOwner,

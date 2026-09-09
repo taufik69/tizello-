@@ -38,6 +38,16 @@ export type StoredProjectDraft = {
   properties: ProjectPropertyPatch;
   /** Staged collaborator user ids. */
   people: string[];
+  /**
+   * Whether the Key was typed rather than derived from the name.
+   *
+   * Kept because it changes what the create request SENDS, not just what the
+   * field shows: an untouched key is omitted so the server can suffix a
+   * collision silently. Losing this across a reload would turn a key somebody
+   * chose back into one the name implies. Optional — a draft written before
+   * this existed has no flag, and `false` is the right reading of it.
+   */
+  keyTouched?: boolean;
 };
 
 const keyFor = (workspaceId: string) => `${PREFIX}:${workspaceId}`;
@@ -94,6 +104,7 @@ export function readProjectDraft(workspaceId: string): StoredProjectDraft | null
           ? parsed.properties
           : {},
       people: Array.isArray(parsed.people) ? parsed.people : [],
+      keyTouched: parsed.keyTouched === true,
     };
   } catch {
     return null;

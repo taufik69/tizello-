@@ -28,7 +28,6 @@ import asyncHandler from '../../shared/utils/asyncHandler.js';
 import { authGuard } from '../../shared/middlewares/auth.js';
 import { loadMembership, requirePermission } from '../../shared/middlewares/permission.js';
 import { PERMISSIONS } from '../../shared/constants/roles.js';
-import { apiLimiter } from '../../shared/middlewares/rateLimiter.js';
 
 // `mergeParams` is load-bearing: without it `req.params.workspaceId` is
 // undefined inside this router, so `loadMembership` cannot resolve a membership
@@ -37,7 +36,6 @@ const router = express.Router({ mergeParams: true });
 
 router.get(
   '/',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.PROJECT_VIEW),
@@ -46,7 +44,6 @@ router.get(
 
 router.post(
   '/',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.PROJECT_MANAGE_ANY),
@@ -56,7 +53,6 @@ router.post(
 
 router.patch(
   '/:propertyId',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.PROJECT_MANAGE_ANY),
@@ -66,7 +62,6 @@ router.patch(
 
 router.delete(
   '/:propertyId',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.PROJECT_MANAGE_ANY),

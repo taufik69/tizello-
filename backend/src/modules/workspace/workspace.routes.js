@@ -26,13 +26,11 @@ import asyncHandler from '../../shared/utils/asyncHandler.js';
 import { authGuard } from '../../shared/middlewares/auth.js';
 import { loadMembership, requirePermission } from '../../shared/middlewares/permission.js';
 import { PERMISSIONS } from '../../shared/constants/roles.js';
-import { apiLimiter, workspaceCreateLimiter } from '../../shared/middlewares/rateLimiter.js';
 
 const router = express.Router();
 
 router.post(
   '/',
-  workspaceCreateLimiter,
   authGuard,
   validate(createWorkspaceSchema),
   asyncHandler(controller.create)
@@ -40,13 +38,12 @@ router.post(
 
 router.get(
   '/',
-  apiLimiter,
   authGuard,
   validate(listWorkspacesQuerySchema, 'query'),
   asyncHandler(controller.list)
 );
 
-router.get('/:workspaceId', apiLimiter, authGuard, loadMembership, asyncHandler(controller.getById));
+router.get('/:workspaceId', authGuard, loadMembership, asyncHandler(controller.getById));
 
 /*
  * The roster. `MEMBER_VIEW` rather than `WORKSPACE_VIEW`: every role holds
@@ -56,7 +53,6 @@ router.get('/:workspaceId', apiLimiter, authGuard, loadMembership, asyncHandler(
  */
 router.get(
   '/:workspaceId/members',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.MEMBER_VIEW),
@@ -65,7 +61,6 @@ router.get(
 
 router.patch(
   '/:workspaceId',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.WORKSPACE_UPDATE),
@@ -75,7 +70,6 @@ router.patch(
 
 router.patch(
   '/:workspaceId/archive',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.WORKSPACE_UPDATE),
@@ -85,7 +79,6 @@ router.patch(
 
 router.delete(
   '/:workspaceId',
-  apiLimiter,
   authGuard,
   loadMembership,
   requirePermission(PERMISSIONS.WORKSPACE_DELETE),

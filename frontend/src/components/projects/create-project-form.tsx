@@ -64,6 +64,7 @@ export function CreateProjectForm({
       const outcome = await submitNewProject({
         workspaceId,
         draft: { ...form.draft, name },
+        keyTouched: form.keyTouched,
         properties: form.properties,
         people: form.people,
       });

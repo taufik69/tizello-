@@ -30,6 +30,16 @@ import { SidebarFrame } from "@/components/layout/sidebar-frame";
  *   content. A flex item's default `min-height: auto` floors it at the
  *   content's height, so `overflow-y-auto` would have nothing to scroll and
  *   the overflow would push out of the shell instead.
+ * - `scrollbar-gutter: stable` reserves the vertical scrollbar's track whether
+ *   or not there is one to draw, and its absence was the projects board's
+ *   shake. A kanban column changes height as a card enters or leaves it, so a
+ *   drag repeatedly crossed the threshold where this region overflows; each
+ *   crossing added or removed a ~15px scrollbar, which changed the CONTENT
+ *   WIDTH, which moved the board's horizontal scroll and the card under the
+ *   cursor with it — re-running the collision that started the move, every
+ *   frame. Reserving the gutter means appearing and disappearing costs no
+ *   layout, so the loop has nothing to feed on. It applies to every page in
+ *   the shell, which is right: nothing should reflow sideways because it grew.
  *
  * The sidebar has the same arrangement one level down: `AppSidebar` pins the
  * switcher and gives `SidebarNav` the scroll region, so a long nav scrolls
@@ -44,7 +54,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col bg-surface">
         <ContentStrip />
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+          {children}
+        </div>
       </div>
     </div>
   );

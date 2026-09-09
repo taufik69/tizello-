@@ -22,14 +22,39 @@ import type { ProjectPriority, ProjectStatus } from "@/types/project";
  * and bar rails, where the bar is 3:1 rather than 4.5:1.
  */
 
-/** Chip fill + ink. Composed onto `BADGE_BASE`, which sets no colour. */
+/**
+ * Chip fill + soft edge + ink. Composed onto `BADGE_BASE`, which sets no colour.
+ *
+ * THE BORDER IS THE STRONG TOKEN AT 40%, not a seventh set of tokens. A
+ * `-subtle` fill on `surface` is a 1.06:1 edge — the chip has no outline at
+ * all, so on a board card it dissolves into the card it sits on. The strong
+ * token at full strength is the opposite problem: `border-success` beside
+ * `bg-success-subtle` reads as a bordered button rather than a label.
+ *
+ * `border-success/25` is `color-mix(…, transparent)` over whatever the fill
+ * resolves to, so it lands between the two — a green chip whose edge is
+ * unmistakably the same green, in both themes, from one declaration. It is
+ * DECORATIVE, which is what makes 25% acceptable: the word carries the
+ * meaning and the fill carries recognition, so the edge has no 3:1 to clear.
+ * The dots and bars below still use the strong token undiluted, because those
+ * ARE the indicator.
+ *
+ * 25% AND NOT 40%: at 40 the hairline was reading as the chip's subject rather
+ * than its edge — on a dark surface a 40% amber outline is brighter than the
+ * fill it bounds, so an "On hold" chip looked outlined rather than tinted. A
+ * quarter strength still names the hue and lets the fill stay the loudest part
+ * of the chip.
+ *
+ * BACKLOG stays neutral, on `border-border` — there is no hue to soften, and
+ * the point of the neutral chip is that it is the absence of one.
+ */
 export const STATUS_CHIP: Record<ProjectStatus, string> = {
-  BACKLOG: "bg-surface-sunken text-text-muted",
-  PLANNING: "bg-accent-subtle text-text-muted",
-  ACTIVE: "bg-info-subtle text-text-muted",
-  ON_HOLD: "bg-warning-subtle text-text-muted",
-  COMPLETED: "bg-success-subtle text-text-muted",
-  CANCELLED: "bg-danger-subtle text-text-muted",
+  BACKLOG: "border border-border bg-surface-sunken text-text-muted",
+  PLANNING: "border border-accent/25 bg-accent-subtle text-text-muted",
+  ACTIVE: "border border-info/25 bg-info-subtle text-text-muted",
+  ON_HOLD: "border border-warning/25 bg-warning-subtle text-text-muted",
+  COMPLETED: "border border-success/25 bg-success-subtle text-text-muted",
+  CANCELLED: "border border-danger/25 bg-danger-subtle text-text-muted",
 };
 
 /*
@@ -88,14 +113,41 @@ export const STATUS_BAR: Record<ProjectStatus, string> = {
  * URGENT and HIGH share the red family and separate by weight rather than hue:
  * a seventh tint would leave the ramp with no visible step, and there is no
  * "more than danger" token. `font-semibold` is already on `BADGE_BASE`, so the
- * distinction is the border — URGENT is the only chip that is both filled and
- * outlined.
+ * distinction is the border — URGENT is the only chip here carrying the strong
+ * token at FULL strength, where the status chips above are all softened to a
+ * quarter. That is still a visible step when the two columns sit side by side,
+ * and it is the one this ramp has left.
  */
 export const PRIORITY_CHIP: Record<ProjectPriority, string> = {
   URGENT: "border border-danger bg-danger-subtle text-text-muted",
-  HIGH: "bg-danger-subtle text-text-muted",
-  MEDIUM: "bg-surface-sunken text-text-muted",
+  HIGH: "border border-danger/25 bg-danger-subtle text-text-muted",
+  MEDIUM: "border border-border bg-surface-sunken text-text-muted",
   LOW: "border border-border text-text-muted",
+};
+
+/*
+ * The `+ New project` box that closes every board column and status group.
+ *
+ * IT TAKES THE COLUMN'S OWN HUE, softly. The trigger seeds the drawer with the
+ * column's status (`new-project-trigger.tsx`), so the control and the column
+ * are making the same statement — a neutral grey box in six coloured columns
+ * was the one element on the board that did not say which column it belonged
+ * to. Soft at rest and firmer on hover: the same quarter/two-thirds pair the
+ * chips above use, so a column's add-box and its chips read as one family.
+ *
+ * The hover FILL is the `-subtle` tint rather than `surface-hover`, which is
+ * what makes hovering feel like the column reaching up to meet the pointer.
+ *
+ * BACKLOG is neutral for the reason it is neutral everywhere else: there is no
+ * hue, and inventing one for it would make it look like a seventh status.
+ */
+export const STATUS_ADD: Record<ProjectStatus, string> = {
+  BACKLOG: "border-border hover:border-border-strong hover:bg-surface-hover",
+  PLANNING: "border-accent/25 hover:border-accent/60 hover:bg-accent-subtle",
+  ACTIVE: "border-info/25 hover:border-info/60 hover:bg-info-subtle",
+  ON_HOLD: "border-warning/25 hover:border-warning/60 hover:bg-warning-subtle",
+  COMPLETED: "border-success/25 hover:border-success/60 hover:bg-success-subtle",
+  CANCELLED: "border-danger/25 hover:border-danger/60 hover:bg-danger-subtle",
 };
 
 /** The timeline groups by phase, not by status, so it needs its own three. */

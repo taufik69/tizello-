@@ -128,6 +128,20 @@ export function Drawer({
         const rect = ref.current?.getBoundingClientRect();
         if (!rect) return;
 
+        /* A TOP-LAYER POPOVER OPENED FROM INSIDE THE PANEL IS NOT OUTSIDE IT,
+           whatever its coordinates say — and this was a real bug.
+           `EmojiPickerPopover` places its panel BESIDE the drawer on purpose
+           (a 360px picker dropped under the trigger covers the rest of the
+           form). It is a DOM descendant, so its clicks bubble to this handler,
+           but `showPopover()` lays it out against the viewport — so every
+           click into the picker measured as outside and closed the whole
+           drawer. Typing in the picker's search box was the visible symptom:
+           the first click on the field dismissed the form it belonged to.
+           Every menu in these panels is a popover for the same top-layer
+           reasons (`use-menu-popover.ts`), so this is the general rule rather
+           than a patch for one picker. */
+        if ((event.target as Element | null)?.closest?.("[popover]")) return;
+
         /* A click dispatched by the keyboard (Enter on a button) reports 0,0
            and would otherwise read as a click in the top-left corner — that is
            outside the panel, so every keyboard activation would close it. */

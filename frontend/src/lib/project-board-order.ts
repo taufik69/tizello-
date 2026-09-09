@@ -44,6 +44,35 @@ export function baseColumns(projects: ProjectRecord[]): ColumnMap {
 }
 
 /**
+ * Whether two maps describe the same board — same ids, same columns, same order.
+ *
+ * Used only to let `reconcile` hand BACK the object it was given, and that
+ * identity is load-bearing rather than an optimisation. `onDragOver` fires at
+ * pointer-move frequency and runs
+ * `setStored(current => move(reconcile(base, current), event))`. `move()`
+ * already has a fast path — it returns its input BY REFERENCE when the drag
+ * has not actually changed the order — but `reconcile` used to build a fresh
+ * object unconditionally, so that reference was never `current`, and React
+ * re-rendered all six columns on every frame of every drag. dnd-kit re-measures
+ * its sortables when their props change, so each of those renders re-ran the
+ * collision that produced it: the cards in the column under the cursor
+ * shuffled, settled, and shuffled again, continuously, for as long as the card
+ * was held. That was the jitter.
+ *
+ * With this, an unchanged drag frame returns the identical object all the way
+ * back out to `setStored`, React bails out of the render, and the cards move
+ * exactly once per real change.
+ */
+function sameColumns(a: ColumnMap, b: ColumnMap): boolean {
+  return PROJECT_STATUSES.every((status) => {
+    const left = a[status] ?? [];
+    const right = b[status] ?? [];
+
+    return left.length === right.length && left.every((id, at) => id === right[at]);
+  });
+}
+
+/**
  * The server's columns with this session's moves laid over them.
  *
  * Three things have to survive at once, and the set arithmetic is what does it:
@@ -71,7 +100,8 @@ export function reconcile(base: ColumnMap, stored: ColumnMap | null): ColumnMap 
     columns[status] = [...fresh, ...kept];
   }
 
-  return columns;
+  /* Same board, same object — see `sameColumns`. */
+  return sameColumns(columns, stored) ? stored : columns;
 }
 
 /** Which column a project is in, or `null` for one the map has never heard of. */

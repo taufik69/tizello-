@@ -5,6 +5,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
 import { BOARD_SENSORS } from "@/components/projects/board-sensors";
 import { ProjectBoardColumn } from "@/components/projects/project-board-column";
+import { useBoardPan } from "@/components/projects/use-board-pan";
 import type { ProjectScope } from "@/components/projects/project-properties";
 import { useProjectStatusWrite } from "@/components/projects/use-project-status-write";
 import {
@@ -14,6 +15,7 @@ import {
   statusOf,
   type ColumnMap,
 } from "@/lib/project-board-order";
+import { cn } from "@/lib/cn";
 import { canWriteProject } from "@/lib/project-roles";
 import {
   PROJECT_STATUSES,
@@ -50,6 +52,21 @@ import type { WorkspaceRole } from "@/types/workspace";
  * A CANCELLED DRAG RESTORES THE SNAPSHOT taken at `dragstart`. dnd-kit reverts
  * its own optimistic state, but the map above is ours and it has already been
  * moved by every `dragover` on the way — so Escape has to put it back.
+ *
+ * THE RAIL HAS NO SCROLLBAR AND PANS INSTEAD — `scrollbar-hidden` plus
+ * `use-board-pan.ts`, which turns the background into a grab surface. Grabbing
+ * a CARD is still dnd-kit's; the hook tells them apart by where the press
+ * landed.
+ *
+ * THE RAIL'S HEIGHT IS FROZEN FOR THE LENGTH OF A DRAG, and this is the second
+ * half of the shake fix (`app-shell.tsx` has the first). The rail is as tall as
+ * its tallest column, so pulling the last card out of that column shortens the
+ * whole board mid-gesture: everything below the cursor jumps up, and if the
+ * page crosses its own overflow threshold on the way the scrollbar flickers
+ * too. `min-h-board` sets a floor but not a floor that MOVES with the content.
+ * Pinning the measured height at `dragstart` means the one thing a drag must
+ * not change — the geometry it is being measured against — cannot change until
+ * the drop has landed.
  */
 export function ProjectBoard({
   projects,
@@ -64,6 +81,12 @@ export function ProjectBoard({
   const [stored, setStored] = useState<ColumnMap | null>(null);
   const [dragging, setDragging] = useState(false);
   const snapshot = useRef<ColumnMap | null>(null);
+  const rail = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  /* Read off the element at `dragstart` and written straight back as an inline
+     style, so the freeze costs no render of its own. */
+  const frozen = useRef<number | null>(null);
+  const pan = useBoardPan(rail, dragging);
 
   const base = baseColumns(projects);
   const columns = reconcile(base, stored);
@@ -76,6 +99,12 @@ export function ProjectBoard({
       onDragStart={() => {
         setDragging(true);
         snapshot.current = columns;
+
+        const element = track.current;
+        if (element) {
+          frozen.current = element.offsetHeight;
+          element.style.height = `${frozen.current}px`;
+        }
       }}
       /* Every `dragover` re-sorts the map, which is what the cards animate to.
          The updater form reconciles against the CURRENT props each time — drag
@@ -86,6 +115,12 @@ export function ProjectBoard({
       }}
       onDragEnd={(event) => {
         setDragging(false);
+
+        /* Released in the same handler that froze it. Not in an effect keyed on
+           `dragging`: an effect runs AFTER paint, so there would be one frame
+           where the drop has committed and the board is still the old height. */
+        if (track.current) track.current.style.height = "";
+        frozen.current = null;
 
         if (event.canceled) {
           setStored(snapshot.current);
@@ -123,9 +158,20 @@ export function ProjectBoard({
        * that `--spacing-board` documents: every column is the same height and
        * that height has a floor, so a card crossing between two changes no
        * box, moves no scrollbar, and cannot un-trigger its own collision.
+       *
+       * `cursor-grab` sits on the rail rather than the inner track so the
+       * padding either side of the columns is grabbable too — the strip down
+       * the left edge of the board is background like any other.
        */}
-      <div className="scrollbar-board -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:-mx-6 sm:px-6">
-        <div className="flex min-h-board items-stretch gap-4">
+      <div
+        ref={rail}
+        {...pan.handlers}
+        className={cn(
+          "scrollbar-hidden -mx-4 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:-mx-6 sm:px-6",
+          pan.panning ? "cursor-grabbing select-none" : "cursor-grab",
+        )}
+      >
+        <div ref={track} className="flex min-h-board items-stretch gap-4">
           {PROJECT_STATUSES.map((status) => (
             <ProjectBoardColumn
               key={status}

@@ -472,6 +472,24 @@
   scrollbar-color: var(--border-strong) transparent;
 }
 
+/* A scroll region with NO visible scrollbar, still fully scrollable — wheel,
+   trackpad, keyboard, `scrollLeft`, and the drag-to-pan in `use-board-pan.ts`.
+   For the projects board rail, where a full-width grey bar under six columns
+   was the heaviest line on the screen and pointed at nothing.
+
+   Both declarations are needed and neither is a fallback for the other:
+   `scrollbar-width` is the standard property (Firefox, and Chromium 121+),
+   `::-webkit-scrollbar` is what older WebKit and Safari still read. Reaching
+   for this at all is a deliberate trade — a hidden scrollbar is a hidden
+   affordance, so use it only where something else advertises the scroll. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* --------------------------------------------------------------------------
    AUTH ASIDE — the right panel of the split shell.
    See .claude/specs/authentication.md §5. Layer 1 (the gradient field) and the

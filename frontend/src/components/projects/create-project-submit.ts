@@ -27,11 +27,20 @@ export type CreateOutcome =
 export async function submitNewProject({
   workspaceId,
   draft,
+  keyTouched,
   properties,
   people,
 }: {
   workspaceId: string;
   draft: ProjectDraft;
+  /**
+   * Whether `draft.key` was typed or merely derived from the name for display.
+   *
+   * The drawer fills the Key row in as the name is typed, so a non-empty
+   * `draft.key` no longer means the user chose it — this flag is what still
+   * does. See `lib/project-key.ts`.
+   */
+  keyTouched: boolean;
   properties: ProjectPropertyPatch;
   /** Staged collaborator user ids, attached once the project has an id. */
   people: string[];
@@ -41,8 +50,10 @@ export async function submitNewProject({
   const result = await createProjectAction(workspaceId, {
     name,
     /* Sent only when the user typed one — a supplied key that collides is a
-       `409`, where a derived one is silently suffixed. */
-    key: draft.key.trim() || undefined,
+       `409`, where a derived one is silently suffixed. The key the field SHOWS
+       while it is following the name is the same value this omission makes the
+       server derive, so what is displayed and what is stored still agree. */
+    key: keyTouched ? draft.key.trim() || undefined : undefined,
     description: draft.description.trim() || undefined,
     status: draft.status,
     priority: draft.priority,

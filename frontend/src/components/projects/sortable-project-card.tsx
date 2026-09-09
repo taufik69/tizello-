@@ -25,6 +25,15 @@ import { PROJECT_STATUS_LABEL, type ProjectRecord } from "@/types/project";
  * navigates, so a card that was its own activator would have no key left to
  * open with.
  *
+ * SO THE GRIP IS NOW KEYBOARD-ONLY, and never appears on hover. It was drawn
+ * for the pointer too, which was worse than redundant: it advertised itself as
+ * THE place to grab, and for a while it genuinely was the only one that worked
+ * (`project-board-card.tsx` has that story). A mouse can grab the card
+ * anywhere, so a widget saying "grab here" is a smaller target and a lie.
+ * `group-focus-within` is what still reveals it, so tabbing to a card still
+ * surfaces the control that starts a keyboard drag — and `sr-only` would not
+ * do: a focused control has to be visible to be usable.
+ *
  * NOTHING HERE TRANSFORMS OR TRANSITIONS THE MEASURED ELEMENT. dnd-kit
  * translates the `<li>` itself and runs its own 300ms sort transition on it; a
  * competing `transition-[transform]` from a utility class smears every frame
@@ -35,8 +44,11 @@ import { PROJECT_STATUS_LABEL, type ProjectRecord } from "@/types/project";
  * Not sortable at all without write access — a card that lifts and snaps back
  * on a `403` is worse than one that does not lift.
  */
+/* `pointer-events-none` while invisible, so the one region of the card the
+   stretched link does not cover cannot swallow a pointer press either — the
+   grip is out of the mouse's way entirely until a keyboard brings it back. */
 const HANDLE =
-  "absolute top-1 right-1 z-10 grid size-5 cursor-grab place-items-center rounded-xs border border-border bg-surface text-text-subtle opacity-0 transition-opacity duration-100 ease-standard hover:bg-surface-hover hover:text-text active:cursor-grabbing group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100";
+  "pointer-events-none absolute top-1 right-1 z-10 grid size-5 cursor-grab place-items-center rounded-xs border border-border bg-surface text-text-subtle opacity-0 transition-opacity duration-100 ease-standard hover:bg-surface-hover hover:text-text active:cursor-grabbing group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100";
 
 export function SortableProjectCard({
   project,
@@ -61,7 +73,18 @@ export function SortableProjectCard({
     <li
       ref={ref}
       data-dragging={isDragging || undefined}
-      className={cn("group relative", isDragging && "z-20")}
+      /* BELT AND BRACES WITH `draggable={false}` ON THE CARD'S LINK, and the
+         pair covers both orderings the browser can choose. Chromium fires
+         `pointercancel` when it commits to a native drag; whether that lands
+         before or after `dragstart` decides whether cancelling the drag here
+         is early enough to save dnd-kit's activation. `draggable={false}`
+         means the native drag is never considered, this means it is refused if
+         it ever is, and neither costs anything if the other did the job. */
+      onDragStart={(event) => event.preventDefault()}
+      /* `pb-2` is the gap between cards, held inside the measured box on
+         purpose — `project-board-column.tsx` explains what a real `gap` did to
+         the collision. */
+      className={cn("group relative pb-2", isDragging && "z-20")}
     >
       {/* The lift. A tilt and the modal shadow on the card being carried, and
           nothing at all on the others — which is what makes it read as picked
@@ -69,7 +92,11 @@ export function SortableProjectCard({
       <div
         className={cn(
           "rounded-md transition-[transform,box-shadow,opacity] duration-100 ease-standard",
-          canMove && "cursor-grab active:cursor-grabbing",
+          /* `select-none` for the same reason the link is not draggable: a
+             press-and-move that lands on the project's name would otherwise
+             start a text selection, which drags a highlight across the board
+             underneath the card being carried. */
+          canMove && "cursor-grab select-none active:cursor-grabbing",
           isDragging && "rotate-2 cursor-grabbing shadow-modal",
         )}
       >
